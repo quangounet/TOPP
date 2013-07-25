@@ -4,9 +4,11 @@
 using namespace TOPP;
 
 class TorqueLimits : public Constraints {
-    void SampleDynamics(){
-        std::cout << "toto\n";
+public:
+    TorqueLimits(Trajectory& trajectory, Tunings& tunings) : Constraints(trajectory,tunings){
     }
+
+    void DiscretizeDynamics();
+    void ComputeMVC();
+    void ComputeSwitchPoints();
 };
-
-

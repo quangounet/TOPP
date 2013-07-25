@@ -22,38 +22,113 @@ namespace TOPP {
 
 // Trajectory
 
+void Trajectory::Eval(dReal s, std::vector<dReal>& q){
+
+}
+
+void Trajectory::Evald(dReal s, std::vector<dReal>& qd){
+
+}
+
+void Trajectory::Evaldd(dReal s, std::vector<dReal>& qdd){
+
+}
+
+
+
 
 
 // Constraints
 
 
-Constraints::Constraints(Trajectory trajectory0, Tunings tunings0){
+void Constraints::Preprocess(Trajectory& trajectory0, Tunings& tunings0){
     trajectory = trajectory0;
     tunings = tunings0;
-
-    //Preprocessing
-    SampleDynamics();
+    Discretize();
     ComputeMVC();
-    ComputeSwitchPoints();
+    FindSwitchPoints();
 }
 
 
-dReal Constraints::SdLimitMVC(dReal s){
-    return 0;
+void Constraints::Discretize(){
+    ndiscrsteps = int((trajectory.duration+TINY)/tunings.discrtimestep);
+    tunings.discrtimestep = trajectory.duration/ndiscrsteps;
+    ndiscrsteps++;
+    discrsvect.resize(0);
+    for(int i=0; i<ndiscrsteps; i++) {
+        discrsvect.push_back(i*tunings.discrtimestep);
+    }
 }
+
+
+void Constraints::ComputeMVC(){
+    for(int i=0; i<ndiscrsteps; i++) {
+        mvc.push_back(SdLimitMVC(discrsvect[i]));
+    }
+}
+
 
 dReal Constraints::SdLimitDirect(dReal s){
     return 0;
 }
 
-std::pair<dReal,dReal> Constraints::SddLimits(dReal s, dReal sd){
-    std::pair<dReal,dReal> res;
-    res.first=0;
-    res.second=0;
+
+
+void Constraints::FindSwitchPoints(){
+    FindTangentSwitchPoints();
+    FindSingularSwitchPoints();
+    FindDiscontinuousSwitchPoints();
 }
 
-void GetSwitchPoints(std::list<SwitchPoint>& switchpointslist){
-    int x=0;
+void Constraints::AddSwitchPoint(int i, int switchpointtype){
+    int iadd = i+1;
+    if(mvc[i-1]<std::min(mvc[i],mvc[i+1])) {
+        iadd = i-1;
+    }
+    else{
+        if(mvc[i]<mvc[i+1]) {
+            iadd = i;
+        }
+    }
+}
+
+
+
+void Constraints::FindTangentSwitchPoints(){
+    if(ndiscrsteps<3) {
+        return;
+    }
+    int i = 1;
+    dReal s,sd,snext,sdnext,alpha,beta,diff,diffprev;
+    std::pair<dReal,dReal> sddlimits;
+
+    s = mvc[i];
+    snext = mvc[i+1];
+    sd = SdLimitMVC(s);
+    sdnext = SdLimitMVC(snext);
+    sddlimits = SddLimits(s,sd);
+    alpha = sddlimits.first;
+    beta = sddlimits.second;
+    diffprev = alpha/sd - (sdnext-sd)/tunings.discrtimestep;
+
+    for(int i=2; i<ndiscrsteps-1; i++) {
+        s = mvc[i];
+        snext = mvc[i+1];
+        sd = SdLimitMVC(s);
+        sdnext = SdLimitMVC(snext);
+        sddlimits = SddLimits(s,sd);
+        alpha = sddlimits.first;
+        beta = sddlimits.second;
+        diff = alpha/sd - (sdnext-sd)/tunings.discrtimestep;
+        if(diffprev>0 && diff<0) {
+            AddSwitchPoint(i,SP_TANGENT);
+        }
+        diffprev = diff;
+    }
+}
+
+void Constraints::FindDiscontinuousSwitchPoints(){
+
 }
 
 

@@ -19,10 +19,13 @@
 #include <vector>
 #include <list>
 #include <math.h>
+#include <stdlib.h>
+
 
 typedef double dReal;
 
-#define TINY 1e-10;
+#define TINY 1e-10
+#define INF 1e15
 
 namespace TOPP {
 
@@ -43,17 +46,21 @@ enum SwitchPointType {
 
 class Trajectory {
 public:
-    size_t dimension;
+    Trajectory(){
+    };
+    int dimension;
     dReal duration;
-    void Eval(dReal t, std::vector<dReal>& q);
-    void Evald(dReal t, std::vector<dReal>& qd);
-    void Evaldd(dReal t, std::vector<dReal>& qdd);
+    void Eval(dReal s, std::vector<dReal>& q);
+    void Evald(dReal s, std::vector<dReal>& qd);
+    void Evaldd(dReal s, std::vector<dReal>& qdd);
 };
 
 
 class Tunings {
 public:
-    dReal mvctimestep;
+    Tunings(){
+    }
+    dReal discrtimestep;
     dReal integrationtimestep;
 };
 
@@ -78,27 +85,54 @@ public:
 
 class Constraints {
 public:
-    Constraints(Trajectory trajectory, Tunings tunings);
 
     Trajectory trajectory;
     Tunings tunings;
-    size_t dimension;
+    int ndiscrsteps;
+    std::vector<dReal> discrsvect;
+    std::vector<dReal> mvc;
+    std::list<SwitchPoint> switchpointslist;
 
-    virtual void SampleDynamics(){
-        throw "Virtual method not implemented";
+
+
+    //////////////////////// General ///////////////////////////
+
+    Constraints(){
     }
-    virtual void ComputeMVC(){
-        throw "Virtual method not implemented";
-    }
-    virtual void ComputeSwitchPoints(){
+    virtual void Preprocess(Trajectory& trajectory, Tunings& tunings);
+    void Discretize();
+    void ComputeMVC();
+
+
+
+    //////////////////////// Limits ///////////////////////////
+
+    // upper limit on sd given by the MVC
+    virtual dReal SdLimitMVC(dReal s){
         throw "Virtual method not implemented";
     }
 
-    dReal SdLimitMVC(dReal s);  // upper limit on sd given by the MVC
-    dReal SdLimitDirect(dReal s);  // upper limit on sd given by the direct velocity constraints
-    std::pair<dReal,dReal> SddLimits(dReal s, dReal sd);  // lower and upper limits on sdd
-    void GetSwitchPoints(std::list<SwitchPoint>& switchpointslist);  // get the list of switch points
-    void HandleSwitchPoint(SwitchPoint sp);
+    // upper limit on sd given by the direct velocity constraints
+    dReal SdLimitDirect(dReal s);
+
+    // lower and upper limits on sdd
+    virtual std::pair<dReal,dReal> SddLimits(dReal s, dReal sd){
+        throw "Virtual method not implemented";
+    }
+
+
+
+    ///////////////////////// Switch Points ///////////////////////
+    void FindSwitchPoints();
+    void AddSwitchPoint(int i, int switchpointtype);
+    void FindTangentSwitchPoints();
+    virtual void FindSingularSwitchPoints(){
+        throw "Virtual method not implemented";
+    };
+    void FindDiscontinuousSwitchPoints();
+    virtual void HandleSingularSwitchPoint(SwitchPoint sp){
+        throw "Virtual method not implemented";
+    }
 };
 
 }
