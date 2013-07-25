@@ -1,0 +1,6 @@
+SOURCE = TOPP.h TOPP.cpp
+TARGET = TOPP
+CC = g++
+
+$(TARGET): $(SOURCE)
+	$(CC) $(SOURCE) -o $(TARGET)
