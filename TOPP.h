@@ -83,7 +83,10 @@ public:
     Profile(std::list<dReal>& slist, std::list<dReal>& sdlist, std::list<dReal>&  sddlist, dReal integrationtimestep);
     dReal duration;
     int nsteps;
-    bool Evalall(dReal t, dReal& s, dReal& sd, dReal& sdd);
+    bool FindTimestepIndex(dReal t, int& index, dReal& remainder);
+    dReal Eval(dReal t);
+    dReal Evald(dReal t);
+    dReal Evaldd(dReal t);
 };
 
 

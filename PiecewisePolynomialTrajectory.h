@@ -45,6 +45,7 @@ public:
     void Eval(dReal s, std::vector<dReal>&q);
     void Evald(dReal s, std::vector<dReal>&qd);
     void Evaldd(dReal s, std::vector<dReal>&qdd);
+    void Reparameterize(const Profile& profile); //Reparameterize in place
 
 };
 }

@@ -164,7 +164,9 @@ void PiecewisePolynomialTrajectory::Evaldd(dReal s, std::vector<dReal>&qdd){
 
 
 
+void Reparameterize(const Profile& profile){
 
+}
 
 
 

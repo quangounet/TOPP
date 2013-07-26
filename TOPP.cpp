@@ -144,24 +144,53 @@ Profile::Profile(std::list<dReal>& slist, std::list<dReal>& sdlist, std::list<dR
     duration = integrationtimestep * nsteps;
 }
 
-bool Profile::Evalall(dReal t, dReal& s, dReal& sd, dReal& sdd){
-    int istep;
+bool Profile::FindTimestepIndex(dReal t, int& index, dReal& remainder){
     if (t < 0 || t > duration) {
         return false;
     }
     if(duration-t <= 1e-10) {
-        istep = nsteps-1;
+        index = nsteps-1;
     }
     else{
-        istep = (int) floor(t/integrationtimestep);
+        index = (int) floor(t/integrationtimestep);
     }
-    dReal tremain = t - istep * integrationtimestep;
-    s = svect.at(istep) + tremain*sdvect.at(istep) + 0.5*tremain*tremain*sddvect.at(istep);
-    sd = sdvect.at(istep) + tremain*sddvect.at(istep);
-    sdd = sddvect.at(istep);
+    remainder = t - index * integrationtimestep;
     return true;
 }
 
+dReal Profile::Eval(dReal t){
+    int index;
+    dReal remainder;
+    if(FindTimestepIndex(t, index, remainder)) {
+        return svect[index] + remainder*sdvect[index] + 0.5*remainder*remainder*sddvect[index];
+    }
+    else{
+        return INF;
+    }
+}
+
+dReal Profile::Evald(dReal t){
+    int index;
+    dReal remainder;
+    if(FindTimestepIndex(t, index, remainder)) {
+        return sdvect[index] + remainder*sddvect[index];
+    }
+    else{
+        return INF;
+    }
+}
+
+
+dReal Profile::Evaldd(dReal t){
+    int index;
+    dReal remainder;
+    if(FindTimestepIndex(t, index, remainder)) {
+        return sddvect[index];
+    }
+    else{
+        return INF;
+    }
+}
 
 
 // Integration
