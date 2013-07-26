@@ -15,11 +15,15 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifndef TOPP_H
+#define TOPP_H
+
 #include <iostream>
 #include <vector>
 #include <list>
 #include <math.h>
 #include <stdlib.h>
+#include <assert.h>
 
 
 typedef double dReal;
@@ -136,3 +140,5 @@ public:
 };
 
 }
+
+#endif // TOPP_H

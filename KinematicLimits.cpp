@@ -1,6 +1,7 @@
 #include "KinematicLimits.h"
 
-using namespace TOPP;
+
+namespace TOPP {
 
 void KinematicLimits::Preprocess(Trajectory& trajectory, Tunings& tunings){
     Constraints::Preprocess(trajectory, tunings);
@@ -97,4 +98,5 @@ void KinematicLimits::FindSingularSwitchPoints(){
         }
         qdprev = qd;
     }
+}
 }
