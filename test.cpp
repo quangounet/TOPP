@@ -44,7 +44,7 @@ int main(){
     PiecewisePolynomialTrajectory trajectory(chunkslist);
 
     std::vector<dReal> q(1), qd(1), qdd(1);
-    dReal s=6.1;
+    dReal s=5.9;
     trajectory.Eval(s,q);
     //trajectory.Evald(s,qd);
     //trajectory.Evaldd(s,qdd);

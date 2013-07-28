@@ -106,12 +106,16 @@ PiecewisePolynomialTrajectory::PiecewisePolynomialTrajectory(const std::list<Chu
     chunkcumulateddurationslist.resize(0);
     std::list<Chunk>::iterator itchunk = chunkslist.begin();
     while(itchunk != chunkslist.end()) {
+      assert(degree == itchunk->degree);
         dReal chunkduration = itchunk->duration;
-        chunkdurationslist.push_back(chunkduration);
-        chunkcumulateddurationslist.push_back(duration);
-        duration += chunkduration;
+	if(chunkduration > TINY){
+	  chunkdurationslist.push_back(chunkduration);
+	  chunkcumulateddurationslist.push_back(duration);
+	  duration += chunkduration;
+	}
         itchunk++;
     }
+    chunkcumulateddurationslist.push_back(duration);
 }
 
 void PiecewisePolynomialTrajectory::FindChunkIndex(dReal s, int& index, dReal& remainder){
@@ -165,9 +169,51 @@ void PiecewisePolynomialTrajectory::Evaldd(dReal s, std::vector<dReal>&qdd){
 
 
 void Reparameterize(const Profile& profile){
+  if(chunkslist.size() == 0){
+    return;
+  }
+  
+  dReal s, sd, sdd, si, t, tnext;
+  int currentchunkindex, chunkindex;
+  dReal processedcursor, remainder;
 
-}
+  std::list<Chunk>::iterator itcurrentchunk = chunkslist.begin();
+  std::list<dReal>::iterator itcumduration = chunkcumulateddurationslist.begin();
+  itcumduration++;
+  currentchunkindex = 0;
+  processedcursor = 0;
+  t = 0;
 
+  for(int i=0; i<profile.nsteps-1; i++){
+    s = profile.svect[i];
+    sd = profile.sdvect[i];
+    halfsdd = 0.5*profile.sddvect[i];
+    snext = profile.svect[i+1];
+    FindChunkIndex(snext,chunkindex,remainder);    
+    // Process all chunks that have been overpassed
+    while(currentchunkindex<chunkindex){
+      // Make a new chunk from currentprocessedcursor to the end of the chunk
+      tnext = SolveEq(s-*itcumduration,sd,halfsdd);
+      // Make chunk from t to tnext
+
+      currentchunkindex++;
+      itcurrentchunk++;
+      itcumduration++;
+      processedcursor = 0;
+      t = tnext;
+    }
+
+    // Process current chunk
+    // Make a new chunk from currentprocessedcursor to remainder
+    itcumduration--;
+    tnext = SolveEq(s-(*itcumduration+remainder),sd,halfsdd);
+    itcumduration++;
+    // Make chunk from t to tnext
+
+
+    t = tnext;
+    processedcursor = remainder;
+  }
 
 
 }
