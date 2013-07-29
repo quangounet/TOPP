@@ -1,0 +1,214 @@
+;; ;;;comint
+
+;; (require 'comint)
+;; (defun comint-exec-1 (name buffer command switches)
+;;   (let ((process-environment
+;; 	 (nconc
+;; 	  (if (and (boundp 'system-uses-terminfo) system-uses-terminfo)
+;; 	      (list "EMACS=t" "TERM=emacs"
+;; 		    (format "COLUMNS=%d" (frame-width)))
+;; 	    (list "EMACS=t" "TERM=emacs"
+;; 		  (format "TERMCAP=emacs:co#%d:tc=unknown" (frame-width))))
+;; 	  process-environment)))
+;;     (apply 'start-process name buffer command switches)))
+
+
+;;Bind Command key to Meta
+(setq mac-command-modifier 'meta)
+
+(setq x-select-enable-clipboard 't)
+
+;;Hide the welcome screen
+(setq inhibit-splash-screen t)
+
+;;; mulot à roulette
+(setq wheel-scroll-interval 6)
+(defun wheel-scroll-down-some-lines ()
+	(interactive)
+	(scroll-down wheel-scroll-interval))
+(defun wheel-scroll-up-some-lines ()
+	(interactive)
+	(scroll-up wheel-scroll-interval))
+
+(defun wheel-scroll-down-page ()
+	(interactive)
+	(scroll-down))
+(defun wheel-scroll-up-page ()
+	(interactive)
+	(scroll-up))
+
+
+(defun reload-file ()  
+  (interactive)
+  (find-file (buffer-name)))
+
+(global-set-key [mouse-5] 'wheel-scroll-up-some-lines)
+(global-set-key [mouse-4] 'wheel-scroll-down-some-lines)
+(global-set-key [S-mouse-5] 'wheel-scroll-up-page)
+(global-set-key [S-mouse-4] 'wheel-scroll-down-page)
+;; end mulot
+
+
+;Modes path
+(setq load-path (cons "/usr/local/share/emacs/site-lisp/" load-path))
+
+
+;;Tabbar
+(require 'tabbar)
+
+(tabbar-mode)
+
+(global-set-key [(meta up)] 'tabbar-backward-group)
+(global-set-key [(meta down)] 'tabbar-forward-group)
+(global-set-key [(meta left)] 'tabbar-backward-tab)
+(global-set-key [(meta right)] 'tabbar-forward-tab)
+;(global-set-key [(meta left)] 'previous-buffer)
+;(global-set-key [(meta right)] 'next-buffer)
+
+
+(autoload 'css-mode "css-mode")
+(setq auto-mode-alist       
+      (cons '("\\.css\\'" . css-mode) auto-mode-alist))
+
+
+
+;Mode Auctex
+;(load "auctex.el" nil t t)
+;(load "preview-latex.el" nil t t)
+
+
+;; RefTex
+;(add-hook 'LaTeX-mode-hook 'turn-on-reftex)
+;(setq reftex-enable-partial-scans t)
+;(setq reftex-save-parse-info t)
+;(setq reftex-use-multiple-selection-buffers t)
+;(setq reftex-plug-into-AUCTeX t)
+
+
+;Mode Javascript
+;(setq auto-mode-alist (append '(("\\.js$" . c-mode)) auto-mode-alist))
+
+
+;Mode PHP
+;(setq load-path (cons "/home/cuong/.emacs.d/" load-path))
+;(require 'php-mode) 
+
+
+
+;Mode fvwm2rc
+;(load "fvwm-mode")  
+;(autoload 'fvwm-mode "fvwm-mode" "Mode for editing fvwm files" t)
+;(setq auto-mode-alist 
+;      (cons '("\\.fvwm2rc$\\|\\.fvwmrc$" . fvwm-mode) auto-mode-alist))
+
+;Mode css
+;(autoload 'css-mode "css-mode")
+;(setq auto-mode-alist       
+;      (cons '("\\.css\\'" . css-mode) auto-mode-alist))
+
+
+;Mode Tuareg
+;(setq load-path (cons "/home/cuong/.emacs.d/tuareg" load-path))
+;(setq auto-mode-alist (cons '("\\.ml\\w?" . tuareg-mode) auto-mode-alist))
+;(autoload 'tuareg-mode "tuareg" "Major mode for editing Caml code" t)
+;(autoload 'camldebug "camldebug" "Run the Caml debugger" t)
+;(setq tuareg-in-indent 0)
+
+;(if (and (boundp 'window-system) window-system)
+;    (when (string-match "XEmacs" emacs-version)
+;       	(if (not (and (boundp 'mule-x-win-initted) mule-x-win-initted))
+;            (require 'sym-lock))
+;       	(require 'font-lock)))
+
+
+
+;Mode Gnuplot
+;(setq load-path (cons "/home/cuong/.emacs.d/gnuplot" load-path))
+;(autoload 'gnuplot-mode "gnuplot"
+;          "gnuplot major mode" t)
+;(autoload 'gnuplot-make-buffer "gnuplot"
+;          "open a buffer in gnuplot mode" t)
+;(setq auto-mode-alist
+;      (append '(("\\.gp$" . gnuplot-mode))
+;              auto-mode-alist))
+;(global-set-key [(f9)] 'gnuplot-make-buffer)
+
+;(autoload 'yacas "yacas" "Start a yacas process" t nil)
+
+
+
+
+;(setq-default TeX-master nil) ; Query for master file.
+
+
+
+
+
+;;Displays column number
+(column-number-mode 1)
+
+;;Some key bindings
+(global-set-key [f3] 'find-file)                 ;;C-x C-f
+(global-set-key [f4] 'save-buffer)               ;;C-x C-s
+(global-set-key [f5] 'reload-file)
+(global-set-key [f6] 'split-window-horizontally) ;;C-x 3
+(global-set-key [f7] 'delete-other-windows)      ;;C-x 1
+(global-set-key [f8] 'kill-buffer)               ;;C-x 1
+(global-set-key [f11] 'fill-paragraph)               ;;C-x 1
+(global-set-key [f12] 'TeX-command-master)                ;;C-c C-c
+
+(add-hook 'octave-mode-hook
+	  '(lambda ()
+	     (define-key octave-mode-map [f12] 'octave-send-line)))
+
+(add-hook 'tuareg-mode-hook
+	  '(lambda ()
+	     (define-key tuareg-mode-map [f12] 'tuareg-eval-phrase)))
+
+(add-hook 'gnuplot-mode-hook
+	  '(lambda ()
+	     (define-key gnuplot-mode-map [f12] 'gnuplot-send-line-and-forward)))
+
+
+(custom-set-variables
+  ;; custom-set-variables was added by Custom.
+  ;; If you edit it by hand, you could mess it up, so be careful.
+  ;; Your init file should contain only one such instance.
+  ;; If there is more than one, they won't work right.
+ '(case-fold-search t)
+ '(column-number-mode t)
+ '(current-language-environment "UTF-8")
+ '(default-input-method "rfc1345")
+ '(delete-selection-mode t nil (delsel))
+ '(global-font-lock-mode t nil (font-lock))
+ '(show-paren-mode t nil (paren))
+ '(text-mode-hook (quote (turn-on-auto-fill text-mode-hook-identify))))
+
+(custom-set-faces
+  ;; custom-set-faces was added by Custom.
+  ;; If you edit it by hand, you could mess it up, so be careful.
+  ;; Your init file should contain only one such instance.
+  ;; If there is more than one, they won't work right.
+ '(default ((t (:stipple nil :background "black" :foreground "white" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 98 :width normal :foundry "unknown" :family "DejaVu Sans Mono"))))
+ '(cursor ((t (:background "white")))))
+
+(put 'downcase-region 'disabled nil)
+
+(add-to-list 'load-path "~/.emacs.d/")
+(require 'uncrustify)
+(setq uncrustify-uncrustify-on-save t)
+(setq uncrustify-args "-l CPP")
+
+(setq-default c-basic-offset 4)
+
+
+;;Octave
+(autoload 'run-octave "octave-inf" nil t)
+  (add-hook 'inferior-octave-mode-hook
+               (lambda ()
+                 (turn-on-font-lock)
+                 (define-key inferior-octave-mode-map [up]
+                   'comint-previous-input)
+                 (define-key inferior-octave-mode-map [down]
+                   'comint-next-input)))
+

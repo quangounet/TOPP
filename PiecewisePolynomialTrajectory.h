@@ -6,6 +6,8 @@ namespace TOPP {
 class Polynomial {
 public:
     Polynomial(const std::vector<dReal>& coefficientsvector);
+    Polynomial(){
+    }
     int degree;
     std::vector<dReal> coefficientsvector;
     std::vector<dReal> coefficientsvectord;
@@ -19,6 +21,8 @@ public:
 class Chunk {
 public:
     Chunk(dReal duration, const std::vector<Polynomial>& polynomialsvector);
+    Chunk(){
+    };
     int dimension;
     int degree;
     dReal duration;
@@ -45,6 +49,7 @@ public:
     void Eval(dReal s, std::vector<dReal>&q);
     void Evald(dReal s, std::vector<dReal>&qd);
     void Evaldd(dReal s, std::vector<dReal>&qdd);
+    void ComputeChunk(dReal t, dReal t0, dReal s, dReal sd, dReal sdd, const Chunk& currentchunk, Chunk& newchunk); // Compute a new chunk
     void Reparameterize(const Profile& profile); //Reparameterize in place
 
 };

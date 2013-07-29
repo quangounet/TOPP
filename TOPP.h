@@ -76,11 +76,10 @@ class SwitchPoint {
 
 
 class Profile {
-private:
-    std::vector<dReal> svect, sdvect, sddvect;
-    dReal integrationtimestep;
 public:
     Profile(std::list<dReal>& slist, std::list<dReal>& sdlist, std::list<dReal>&  sddlist, dReal integrationtimestep);
+    std::vector<dReal> svect, sdvect, sddvect;
+    dReal integrationtimestep;
     dReal duration;
     int nsteps;
     bool FindTimestepIndex(dReal t, int& index, dReal& remainder);
@@ -141,6 +140,13 @@ public:
         throw "Virtual method not implemented";
     }
 };
+
+
+// Useful functions
+
+//Solves a0 + a1*x + a2*x^2 = 0 in the interval [lowerbound,upperbound]
+//If more than one solution, returns the smallest
+bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal lowerbound, dReal upperbound, dReal& sol);
 
 }
 

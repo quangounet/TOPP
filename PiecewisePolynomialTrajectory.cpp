@@ -106,13 +106,13 @@ PiecewisePolynomialTrajectory::PiecewisePolynomialTrajectory(const std::list<Chu
     chunkcumulateddurationslist.resize(0);
     std::list<Chunk>::iterator itchunk = chunkslist.begin();
     while(itchunk != chunkslist.end()) {
-      assert(degree == itchunk->degree);
+        assert(degree == itchunk->degree);
         dReal chunkduration = itchunk->duration;
-	if(chunkduration > TINY){
-	  chunkdurationslist.push_back(chunkduration);
-	  chunkcumulateddurationslist.push_back(duration);
-	  duration += chunkduration;
-	}
+        if(chunkduration > TINY) {
+            chunkdurationslist.push_back(chunkduration);
+            chunkcumulateddurationslist.push_back(duration);
+            duration += chunkduration;
+        }
         itchunk++;
     }
     chunkcumulateddurationslist.push_back(duration);
@@ -120,12 +120,18 @@ PiecewisePolynomialTrajectory::PiecewisePolynomialTrajectory(const std::list<Chu
 
 void PiecewisePolynomialTrajectory::FindChunkIndex(dReal s, int& index, dReal& remainder){
     std::list<dReal>::iterator it = chunkcumulateddurationslist.begin();
+    if(s <= TINY) {
+        index = 0;
+        remainder = 0;
+        return;
+    }
     index = 0;
-    while(it != chunkcumulateddurationslist.end() && s >= *it) {
+    while(it != chunkcumulateddurationslist.end() && s > *it) {
         index++;
         it++;
     }
     index--;
+    assert(index<=chunkslist.size()-1);
     it--;
     remainder = s-*it;
 }
@@ -167,53 +173,108 @@ void PiecewisePolynomialTrajectory::Evaldd(dReal s, std::vector<dReal>&qdd){
 }
 
 
+void PiecewisePolynomialTrajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal sdd, const Chunk& currentchunk, Chunk& newchunk){
+    assert(currentchunk.degree == 2);
+    dReal a0, a1, a2, b0, b1, b2, b3, b4, u0, u1, u2;
+    std::vector<dReal> coefficientsvector;
+    std::vector<Polynomial> polynomialsvector;
+    // current chunk: u0 + u1*s + u2*s^2
+    // new chunk : c0 + c1*t + c2*t^2 + c3*t^3 + c4*t^4
+    a0 = s + sd*t0 + 0.5*sdd*t0*t0;
+    a1 = sd + sdd*t0;
+    a2 = 0.5*sdd;
+    b0 = a0*a0;
+    b1 = 2*a0*a1;
+    b2 = 2*a0*a2+a1*a1;
+    b3 = 2*a1*a2;
+    b4 = a2*a2;
+    for(int i=0; i<currentchunk.dimension; i++) {
+        u0 = currentchunk.polynomialsvector[i].coefficientsvector[0];
+        u1 = currentchunk.polynomialsvector[i].coefficientsvector[1];
+        u2 = currentchunk.polynomialsvector[i].coefficientsvector[2];
+        coefficientsvector.resize(0);
+        coefficientsvector.push_back(u0 + u1*a0 + u2*b0); //c0
+        coefficientsvector.push_back(u1*a1 + u2*b1);      //c1
+        coefficientsvector.push_back(u1*a2 + u2*b2);      //c2
+        coefficientsvector.push_back(u2*b3);              //c3
+        coefficientsvector.push_back(u2*b4);              //c4
+        polynomialsvector.push_back(Polynomial(coefficientsvector));
+    }
+    newchunk = Chunk(tnext-t0, polynomialsvector);
+}
 
-void Reparameterize(const Profile& profile){
-  if(chunkslist.size() == 0){
-    return;
-  }
-  
-  dReal s, sd, sdd, si, t, tnext;
-  int currentchunkindex, chunkindex;
-  dReal processedcursor, remainder;
 
-  std::list<Chunk>::iterator itcurrentchunk = chunkslist.begin();
-  std::list<dReal>::iterator itcumduration = chunkcumulateddurationslist.begin();
-  itcumduration++;
-  currentchunkindex = 0;
-  processedcursor = 0;
-  t = 0;
+void PiecewisePolynomialTrajectory::Reparameterize(const Profile& profile){
+    // For now, supports only reparameterization of 2nd order polynomial trajectories
+    assert(degree == 2);
 
-  for(int i=0; i<profile.nsteps-1; i++){
-    s = profile.svect[i];
-    sd = profile.sdvect[i];
-    halfsdd = 0.5*profile.sddvect[i];
-    snext = profile.svect[i+1];
-    FindChunkIndex(snext,chunkindex,remainder);    
-    // Process all chunks that have been overpassed
-    while(currentchunkindex<chunkindex){
-      // Make a new chunk from currentprocessedcursor to the end of the chunk
-      tnext = SolveEq(s-*itcumduration,sd,halfsdd);
-      // Make chunk from t to tnext
-
-      currentchunkindex++;
-      itcurrentchunk++;
-      itcumduration++;
-      processedcursor = 0;
-      t = tnext;
+    if(chunkslist.size() == 0) {
+        return;
     }
 
-    // Process current chunk
-    // Make a new chunk from currentprocessedcursor to remainder
-    itcumduration--;
-    tnext = SolveEq(s-(*itcumduration+remainder),sd,halfsdd);
+    dReal ps, psd, psdd, psnext, s0, t, tnext;
+    dReal sbeginchunk;
+    int currentchunkindex, chunkindex;
+    dReal processedcursor, remainingduration, remainder;
+    Chunk newchunk;
+    std::list<Chunk> newchunkslist;
+
+    std::list<Chunk>::iterator itcurrentchunk = chunkslist.begin();
+    std::list<dReal>::iterator itcumduration = chunkcumulateddurationslist.begin();
+    sbeginchunk = *itcumduration;
     itcumduration++;
-    // Make chunk from t to tnext
+    currentchunkindex = 0;
+    processedcursor = 0;
+    t = 0;
 
+    for(int i=0; i<profile.nsteps-1; i++) {
+        t = 0;
+        ps = profile.svect[i];
+        psd = profile.sdvect[i];
+        psdd = profile.sddvect[i];
+        psnext = profile.svect[i+1];
+        FindChunkIndex(psnext,chunkindex,remainder);
+        // Process all chunks that have been overpassed
+        while(currentchunkindex<chunkindex) {
+            if(itcurrentchunk->duration-processedcursor>=TINY) {
+                assert(SolveQuadraticEquation(ps-*itcumduration,psd,0.5*psdd,t,profile.integrationtimestep,tnext));
+                ComputeChunk(t,tnext,ps-sbeginchunk,psd,psdd,*itcurrentchunk,newchunk);
+                newchunkslist.push_back(newchunk);
+                t = tnext;
+            }
+            currentchunkindex++;
+            itcurrentchunk++;
+            sbeginchunk = *itcumduration;
+            itcumduration++;
+            processedcursor = 0;
+        }
 
-    t = tnext;
-    processedcursor = remainder;
-  }
+        // Process current chunk
+        assert(SolveQuadraticEquation((ps-sbeginchunk)-remainder,psd,0.5*psdd,t,profile.integrationtimestep,tnext));
+        ComputeChunk(t,tnext,ps-sbeginchunk,psd,psdd,*itcurrentchunk,newchunk);
+        newchunkslist.push_back(newchunk);
+        processedcursor = remainder;
+    }
 
-
+    // Update trajectory
+    degree = 2*degree;
+    duration = 0;
+    chunkslist.swap(newchunkslist);
+    chunkdurationslist.resize(0);
+    chunkcumulateddurationslist.resize(0);
+    std::list<Chunk>::iterator itchunk = chunkslist.begin();
+    while(itchunk != chunkslist.end()) {
+        assert(degree == itchunk->degree);
+        dReal chunkduration = itchunk->duration;
+        if(chunkduration > TINY) {
+            chunkdurationslist.push_back(chunkduration);
+            chunkcumulateddurationslist.push_back(duration);
+            duration += chunkduration;
+        }
+        itchunk++;
+    }
+    chunkcumulateddurationslist.push_back(duration);
 }
+
+
+} // End namespace TOPP

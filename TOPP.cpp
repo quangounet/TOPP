@@ -136,12 +136,13 @@ void Constraints::FindDiscontinuousSwitchPoints(){
 
 Profile::Profile(std::list<dReal>& slist, std::list<dReal>& sdlist, std::list<dReal>&  sddlist, dReal integrationtimestep0){
     svect = std::vector<dReal>(slist.begin(), slist.end());
-    sdvect = std::vector<dReal>(sdlist.begin(), slist.end());
-    sddvect = std::vector<dReal>(sddlist.begin(), slist.end());
+    sdvect = std::vector<dReal>(sdlist.begin(), sdlist.end());
+    sddvect = std::vector<dReal>(sddlist.begin(), sddlist.end());
     // TODO: handle the case of last step with variable width
     integrationtimestep = integrationtimestep0;
     nsteps = svect.size();
     duration = integrationtimestep * nsteps;
+
 }
 
 bool Profile::FindTimestepIndex(dReal t, int& index, dReal& remainder){
@@ -239,6 +240,33 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, Prof
     profile = Profile(slist,sdlist,sddlist,dt);
     return returntype;
 }
+
+
+bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal lowerbound, dReal upperbound, dReal& sol){
+    dReal delta = a1*a1- 4*a0*a2;
+    if(delta<0) {
+        return false;
+    }
+    if(a2<0) {
+        a2=-a2;
+        a1=-a1;
+        a0=-a0;
+    }
+    if(a2<=TINY) {
+        if(abs(a1)<=TINY) {
+            return false; // Must be in a weird case
+        }
+        sol = -a0/a1;
+        return sol>=lowerbound && sol<=upperbound;
+    }
+    sol = (-a1-sqrt(delta))/(2*a2);
+    if(sol>=lowerbound && sol<=upperbound) {
+        return true;
+    }
+    sol = (-a1+sqrt(delta))/(2*a2);
+    return sol>=lowerbound && sol<=upperbound;
+}
+
 
 
 } // end namespace TOPP
