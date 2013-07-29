@@ -12,7 +12,7 @@ std::pair<dReal,dReal> KinematicLimits::SddLimits(dReal s, dReal sd){
     dReal alpha = -INF;
     dReal beta = INF;
     dReal a_alpha_i, a_beta_i, alpha_i, beta_i;
-    std::vector<dReal> qd, qdd;
+    std::vector<dReal> qd(trajectory.dimension), qdd(trajectory.dimension);
     trajectory.Evald(s, qd);
     trajectory.Evaldd(s, qdd);
     for(int i=0; i<trajectory.dimension; i++) {
@@ -41,7 +41,7 @@ dReal KinematicLimits::SdLimitMVC(dReal s){
         return 0;
     }
     std::vector<dReal> a_alpha(trajectory.dimension), a_beta(trajectory.dimension);
-    std::vector<dReal> qd, qdd;
+    std::vector<dReal> qd(trajectory.dimension), qdd(trajectory.dimension);
     trajectory.Evald(s, qd);
     trajectory.Evaldd(s, qdd);
     for(int i=0; i<trajectory.dimension; i++) {

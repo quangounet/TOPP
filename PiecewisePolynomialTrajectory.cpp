@@ -204,7 +204,7 @@ void PiecewisePolynomialTrajectory::ComputeChunk(dReal t0, dReal tnext, dReal s,
 }
 
 
-void PiecewisePolynomialTrajectory::Reparameterize(const Profile& profile){
+void PiecewisePolynomialTrajectory::Reparameterize(const Profile& profile, PiecewisePolynomialTrajectory& newtrajectory){
     // For now, supports only reparameterization of 2nd order polynomial trajectories
     assert(degree == 2);
 
@@ -257,23 +257,7 @@ void PiecewisePolynomialTrajectory::Reparameterize(const Profile& profile){
     }
 
     // Update trajectory
-    degree = 2*degree;
-    duration = 0;
-    chunkslist.swap(newchunkslist);
-    chunkdurationslist.resize(0);
-    chunkcumulateddurationslist.resize(0);
-    std::list<Chunk>::iterator itchunk = chunkslist.begin();
-    while(itchunk != chunkslist.end()) {
-        assert(degree == itchunk->degree);
-        dReal chunkduration = itchunk->duration;
-        if(chunkduration > TINY) {
-            chunkdurationslist.push_back(chunkduration);
-            chunkcumulateddurationslist.push_back(duration);
-            duration += chunkduration;
-        }
-        itchunk++;
-    }
-    chunkcumulateddurationslist.push_back(duration);
+    newtrajectory = PiecewisePolynomialTrajectory(newchunkslist);
 }
 
 

@@ -37,7 +37,8 @@ public:
 class PiecewisePolynomialTrajectory : public Trajectory {
 public:
     PiecewisePolynomialTrajectory(const std::list<Chunk>& chunkslist);
-
+    PiecewisePolynomialTrajectory(){
+    }
     int dimension;
     int degree;
     dReal duration;
@@ -49,8 +50,8 @@ public:
     void Eval(dReal s, std::vector<dReal>&q);
     void Evald(dReal s, std::vector<dReal>&qd);
     void Evaldd(dReal s, std::vector<dReal>&qdd);
-    void ComputeChunk(dReal t, dReal t0, dReal s, dReal sd, dReal sdd, const Chunk& currentchunk, Chunk& newchunk); // Compute a new chunk
-    void Reparameterize(const Profile& profile); //Reparameterize in place
+    void ComputeChunk(dReal t, dReal t0, dReal s, dReal sd, dReal sdd, const Chunk& currentchunk, Chunk& newchunk);
+    void Reparameterize(const Profile& profile, PiecewisePolynomialTrajectory& newtrajectory);
 
 };
 }

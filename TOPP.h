@@ -105,7 +105,7 @@ public:
 
     Constraints(){
     }
-    virtual void Preprocess(Trajectory& trajectory, Tunings& tunings);
+    virtual void Preprocess(const Trajectory& trajectory, const Tunings& tunings);
     void Discretize();
     void ComputeMVC();
 

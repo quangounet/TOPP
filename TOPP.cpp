@@ -41,7 +41,7 @@ void Trajectory::Evaldd(dReal s, std::vector<dReal>& qdd){
 // Constraints
 
 
-void Constraints::Preprocess(Trajectory& trajectory0, Tunings& tunings0){
+void Constraints::Preprocess(const Trajectory& trajectory0, const Tunings& tunings0){
     trajectory = trajectory0;
     tunings = tunings0;
     Discretize();
@@ -270,13 +270,4 @@ bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal lowerbound, dRea
 
 
 } // end namespace TOPP
-
-
-
-
-
-
-
-
-
 
