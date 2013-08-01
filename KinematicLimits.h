@@ -9,7 +9,7 @@ public:
 
     }
     std::vector<dReal> amax, vmax;
-    void Preprocess(Trajectory& trajectory, Tunings& tunings);
+    void Preprocess(Trajectory& trajectory, const Tunings& tunings);
     std::pair<dReal,dReal> SddLimits(dReal s, dReal sd);
     dReal SdLimitMVC(dReal s);
     void FindSingularSwitchPoints();

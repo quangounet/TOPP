@@ -39,9 +39,7 @@ public:
     PiecewisePolynomialTrajectory(const std::list<Chunk>& chunkslist);
     PiecewisePolynomialTrajectory(){
     }
-    int dimension;
     int degree;
-    dReal duration;
     std::list<Chunk> chunkslist;
     std::list<dReal> chunkdurationslist;
     std::list<dReal> chunkcumulateddurationslist;

@@ -14,26 +14,30 @@ int main(){
 
     coefficientsvector.resize(0);
     coefficientsvector.push_back(1);
-    coefficientsvector.push_back(-3);
+    coefficientsvector.push_back(0);
+    coefficientsvector.push_back(0);
     coefficientsvector.push_back(1);
     Polynomial P0(coefficientsvector);
 
     coefficientsvector.resize(0);
-    coefficientsvector.push_back(1);
-    coefficientsvector.push_back(1);
-    coefficientsvector.push_back(-2);
+    coefficientsvector.push_back(0);
+    coefficientsvector.push_back(0);
+    coefficientsvector.push_back(0);
+    coefficientsvector.push_back(-1);
     Polynomial P1(coefficientsvector);
 
     coefficientsvector.resize(0);
-    coefficientsvector.push_back(-1);
-    coefficientsvector.push_back(-1);
-    coefficientsvector.push_back(2);
+    coefficientsvector.push_back(9);
+    coefficientsvector.push_back(12);
+    coefficientsvector.push_back(6);
+    coefficientsvector.push_back(1/3.);
     Polynomial P2(coefficientsvector);
 
     coefficientsvector.resize(0);
-    coefficientsvector.push_back(-5);
-    coefficientsvector.push_back(-7);
-    coefficientsvector.push_back(1);
+    coefficientsvector.push_back(-8);
+    coefficientsvector.push_back(-12);
+    coefficientsvector.push_back(-6);
+    coefficientsvector.push_back(1/6.);
     Polynomial P3(coefficientsvector);
 
     polynomialsvector.resize(0);
@@ -50,21 +54,14 @@ int main(){
     chunkslist.push_back(chunk0);
     chunkslist.push_back(chunk1);
 
-    PiecewisePolynomialTrajectory trajectory(chunkslist);
+    PiecewisePolynomialTrajectory* ptrajectory;
+    ptrajectory = new PiecewisePolynomialTrajectory(chunkslist);
 
     std::vector<dReal> q(2);
 
-    trajectory.Evald(0,q);
+    ptrajectory->Eval(1.99,q);
     std::cout << q[0] << "," << q[1] << "\n";
-    trajectory.Evald(1,q);
-    std::cout << q[0] << "," << q[1] << "\n";
-    trajectory.Evald(2,q);
-    std::cout << q[0] << "," << q[1] << "\n";
-    trajectory.Evald(3,q);
-    std::cout << q[0] << "," << q[1] << "\n";
-    trajectory.Evald(4,q);
-    std::cout << q[0] << "," << q[1] << "\n";
-    trajectory.Evald(5,q);
+    ptrajectory->Eval(2.01,q);
     std::cout << q[0] << "," << q[1] << "\n";
 
 
@@ -86,9 +83,20 @@ int main(){
     kinconstraints.amax = amax;
     kinconstraints.vmax = vmax;
 
-    kinconstraints.Preprocess(trajectory,tunings);
+    std::cout << ptrajectory->dimension << "\n";
+    kinconstraints.Preprocess(*ptrajectory,tunings);
 
-    kinconstraints.Preprocess(trajectory,tunings);
+    std::cout << "SP: " << kinconstraints.mvc.size() << "\n";
+
+    // std::vector<dReal>::iterator it = kinconstraints.mvc.begin();
+    // int toto =0;
+    // while(it != kinconstraints.mvc.end()) {
+    //     std::cout << toto << ": " << *it << "\n";
+    //     it++;
+    //     toto++;
+    // }
+
+    delete ptrajectory;
 
 }
 

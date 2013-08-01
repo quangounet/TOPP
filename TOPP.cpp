@@ -20,30 +20,18 @@
 namespace TOPP {
 
 
-// Trajectory
-
-void Trajectory::Eval(dReal s, std::vector<dReal>& q){
-
-}
-
-void Trajectory::Evald(dReal s, std::vector<dReal>& qd){
-
-}
-
-void Trajectory::Evaldd(dReal s, std::vector<dReal>& qdd){
-
-}
-
-
-
-
 
 // Constraints
 
 
-void Constraints::Preprocess(const Trajectory& trajectory0, const Tunings& tunings0){
-    trajectory = trajectory0;
+void Constraints::Preprocess(Trajectory& trajectory0, const Tunings& tunings0){
+    ptrajectory = &trajectory0;
     tunings = tunings0;
+
+    std::vector<dReal> q(2);
+    ptrajectory->Evald(0,q);
+    std::cout << q[0] << "," << q[1] << "\n";
+
     Discretize();
     ComputeMVC();
     FindSwitchPoints();
@@ -51,8 +39,8 @@ void Constraints::Preprocess(const Trajectory& trajectory0, const Tunings& tunin
 
 
 void Constraints::Discretize(){
-    ndiscrsteps = int((trajectory.duration+TINY)/tunings.discrtimestep);
-    tunings.discrtimestep = trajectory.duration/ndiscrsteps;
+    ndiscrsteps = int((ptrajectory->duration+TINY)/tunings.discrtimestep);
+    tunings.discrtimestep = ptrajectory->duration/ndiscrsteps;
     ndiscrsteps++;
     discrsvect.resize(0);
     for(int i=0; i<ndiscrsteps; i++) {
@@ -102,8 +90,8 @@ void Constraints::FindTangentSwitchPoints(){
     dReal s,sd,snext,sdnext,alpha,beta,diff,diffprev;
     std::pair<dReal,dReal> sddlimits;
 
-    s = mvc[i];
-    snext = mvc[i+1];
+    s = discrsvect[i];
+    snext = discrsvect[i+1];
     sd = SdLimitMVC(s);
     sdnext = SdLimitMVC(snext);
     sddlimits = SddLimits(s,sd);
@@ -112,8 +100,8 @@ void Constraints::FindTangentSwitchPoints(){
     diffprev = alpha/sd - (sdnext-sd)/tunings.discrtimestep;
 
     for(int i=2; i<ndiscrsteps-1; i++) {
-        s = mvc[i];
-        snext = mvc[i+1];
+        s = discrsvect[i];
+        snext = discrsvect[i+1];
         sd = SdLimitMVC(s);
         sdnext = SdLimitMVC(snext);
         sddlimits = SddLimits(s,sd);
@@ -208,7 +196,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, Prof
             returntype = RT_MAXSTEPS;
             break;
         }
-        else if(scur > constraints.trajectory.duration) {
+        else if(scur > constraints.ptrajectory->duration) {
             //TODO: change the time step of previous step to reach the end
             returntype = RT_END;
             break;

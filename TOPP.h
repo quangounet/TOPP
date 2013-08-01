@@ -54,9 +54,12 @@ public:
     };
     int dimension;
     dReal duration;
-    void Eval(dReal s, std::vector<dReal>& q);
-    void Evald(dReal s, std::vector<dReal>& qd);
-    void Evaldd(dReal s, std::vector<dReal>& qdd);
+    virtual void Eval(dReal s, std::vector<dReal>& q){
+    }
+    virtual void Evald(dReal s, std::vector<dReal>& qd){
+    }
+    virtual void Evaldd(dReal s, std::vector<dReal>& qdd){
+    }
 };
 
 
@@ -92,7 +95,7 @@ public:
 class Constraints {
 public:
 
-    Trajectory trajectory;
+    Trajectory* ptrajectory;
     Tunings tunings;
     int ndiscrsteps;
     std::vector<dReal> discrsvect;
@@ -105,7 +108,7 @@ public:
 
     Constraints(){
     }
-    virtual void Preprocess(const Trajectory& trajectory, const Tunings& tunings);
+    virtual void Preprocess(Trajectory& trajectory, const Tunings& tunings);
     void Discretize();
     void ComputeMVC();
 
