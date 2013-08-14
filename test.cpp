@@ -90,6 +90,8 @@ int main(){
 
     tunings.discrtimestep = 0.01;
     tunings.integrationtimestep = 0.001;
+    tunings.threshold = 0.01;
+    tunings.passswitchpointnsteps = 10;
 
     std::vector<dReal> amax, vmax;
 
@@ -107,6 +109,13 @@ int main(){
 
     std::cout << "Switch: " << kinconstraints.switchpointslist.size() << "\n";
 
+    std::list<SwitchPoint>::iterator itsw = kinconstraints.switchpointslist.begin();
+    while(itsw!=kinconstraints.switchpointslist.end()) {
+        std::cout << "Type " << itsw->switchpointtype << ": (" << itsw->s <<"," << itsw->sd << ")\n";
+        itsw++;
+    }
+
+
     //    PrintVector1d(kinconstraints.mvc);
 
     //    std::pair<dReal,dReal> p = kinconstraints.SddLimits(0.1,10);
@@ -114,12 +123,17 @@ int main(){
 
 
     Profile profile;
+    std::list<Profile> resprofileslist;
+    ComputeLimitingCurves(kinconstraints,resprofileslist);
+
+    std::cout << "CLC: " << resprofileslist.size() << "\n";
+
     std::cout << "Integrate: " << IntegrateForward(kinconstraints,0,1,profile) << "\n";
     std::cout << "Duration: " << profile.duration << "\n";
 
     dReal tres;
     int startindex = 0;
-    profile.currentindex = profile.nsteps;
+    profile.currentindex = profile.nsteps-1;
     assert(profile.Invert(0.11,tres,true));
 
     std::cout << "Invert: " << tres << "\n";

@@ -74,7 +74,22 @@ void Constraints::AddSwitchPoint(int i, int switchpointtype){
             iadd = i;
         }
     }
-    switchpointslist.push_back(SwitchPoint(discrsvect[iadd],switchpointtype));
+    std::list<SwitchPoint>::iterator it = switchpointslist.begin();
+    dReal s = discrsvect[iadd];
+    dReal sd = mvc[iadd];
+    if(sd>=INF) {
+        return;
+    }
+    while(it!=switchpointslist.end()) {
+        if(s == it->s) {
+            return;
+        }
+        if(s<=it->s) {
+            break;
+        }
+        it++;
+    }
+    switchpointslist.insert(it,SwitchPoint(s,sd,switchpointtype));
 }
 
 
@@ -359,13 +374,100 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, Pro
 }
 
 
-int ComputeLimitingCurves(){
+bool PassSwitchPoint(Constraints& constraints, dReal s, dReal sd){
+    int ret;
+    Profile profile;
+    ret = IntegrateBackward(constraints,s,sd,profile,constraints.tunings.passswitchpointnsteps);
+    if(ret==IRT_MAXSTEPS||ret==IRT_END) {
+        ret = IntegrateForward(constraints,s,sd,profile,constraints.tunings.passswitchpointnsteps);
+        if(ret==IRT_MAXSTEPS||ret==IRT_END) {
+            return true;
+        }
+    }
+    return false;
+}
 
+
+dReal BisectionSearch(Constraints& constraints, dReal s, dReal sdbottom, dReal sdtop, int position){
+    if(position!=1 && PassSwitchPoint(constraints,s,sdtop)) {
+        return sdtop;
+    }
+    if(sdtop-sdbottom<constraints.tunings.threshold) {
+        if(position!=-1 && PassSwitchPoint(constraints,s,sdbottom)) {
+            return sdbottom;
+        }
+        return -1;
+    }
+    dReal sdmid = (sdbottom+sdtop)*0.5;
+    return std::max(BisectionSearch(constraints,s,sdbottom,sdmid,-1),BisectionSearch(constraints,s,sdmid,sdtop,1));
 }
 
 
 
-int IntegrateAllProfiles(){
+bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint, dReal& sbackward, dReal& sdbackward, dReal& sforward, dReal& sdforward){
+    dReal s = switchpoint.s;
+    dReal sd = switchpoint.sd;
+
+    //    if(switchpoint.switchpointtype == SPT_TANGENT || switchpoint.switchpointtype == SPT_DISCONTINUOUS) {
+    if(true) {
+        dReal sdtop = BisectionSearch(constraints,s,0,sd,0);
+        if(sdtop<=0) {
+            return false;
+        }
+        sbackward = s;
+        sforward = s;
+        sdbackward = sdtop;
+        sdforward = sdtop;
+        return true;
+    }
+    else{
+        // here switchpointtype == SP_SINGULAR
+
+    }
+}
+
+
+
+int ComputeLimitingCurves(Constraints& constraints, std::list<Profile>& resprofileslist){
+    std::list<SwitchPoint> switchpointslist0(constraints.switchpointslist);
+    Profile tmpprofile;
+    dReal sswitch, sdswitch, sbackward, sdbackward, sforward, sdforward;
+    int status = CLC_OK;
+    int integratestatus;
+
+    while(switchpointslist0.size()>0) {
+        SwitchPoint switchpoint = switchpointslist0.front();
+        switchpointslist0.pop_front();
+        sswitch = switchpoint.s;
+        sdswitch = switchpoint.sd;
+        if(IsAboveProfilesList(sswitch,sdswitch,resprofileslist,false,true)) {
+            continue;
+        }
+
+        // Address Switch Point
+        if(!AddressSwitchPoint(constraints,switchpoint,sbackward,sdbackward,sforward,sdforward)) {
+            status = CLC_SP;
+            break;
+        }
+
+        // Integrate backward
+        integratestatus = IntegrateBackward(constraints,sbackward,sdbackward,tmpprofile);
+        if(tmpprofile.nsteps>1) {
+            resprofileslist.push_back(tmpprofile);
+        }
+
+        // Integrate forward
+        integratestatus = IntegrateForward(constraints,sforward,sdforward,tmpprofile);
+        if(tmpprofile.nsteps>1) {
+            resprofileslist.push_back(tmpprofile);
+        }
+
+    }
+}
+
+
+
+int IntegrateAllProfiles(Constraints& constraints, std::list<Profile>&resprofileslist){
 
 }
 
@@ -403,10 +505,18 @@ bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal lowerbound, dRea
 }
 
 
-bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>& testprofileslist, bool searchbackward){
+bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>&testprofileslist, bool searchbackward, bool reinitialize){
     dReal t;
     std::list<Profile>::iterator it = testprofileslist.begin();
     while(it != testprofileslist.end()) {
+        if(reinitialize) {
+            if(searchbackward) {
+                it->currentindex = it->nsteps-1;
+            }
+            else{
+                it->currentindex = 0;
+            }
+        }
         if(it->Invert(s,t,searchbackward)) {
             if(sd > it->Eval(t)) {
                 return true;

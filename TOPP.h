@@ -45,6 +45,8 @@ public:
     }
     dReal discrtimestep;
     dReal integrationtimestep;
+    dReal threshold;
+    int passswitchpointnsteps;
 };
 
 
@@ -82,11 +84,12 @@ enum SwitchPointType {
 
 class SwitchPoint {
 public:
-    SwitchPoint(dReal s0, int switchpointtype0){
+    SwitchPoint(dReal s0, dReal sd0, int switchpointtype0){
         s = s0;
+        sd = sd0;
         switchpointtype = switchpointtype0;
     }
-    dReal s;
+    dReal s, sd;
     int switchpointtype;
 };
 
@@ -182,13 +185,19 @@ enum IntegrationReturnType {
     IRT_ABOVEPROFILES = 4
 };
 
+enum CLCReturnType {
+    CLC_OK = 0,   // no problem
+    CLC_SP = 1    // cannot cross a switchpoint
+};
+
+
 static std::list<Profile> voidprofileslist;
 
 int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, Profile& profile, int maxsteps=1e5, std::list<Profile>& testprofileslist = voidprofileslist);
 
 int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, Profile& profile, int maxsteps=1e5, std::list<Profile>& testprofileslist = voidprofileslist);
 
-int ComputeLimitingCurves();
+int ComputeLimitingCurves(Constraints& constraints, std::list<Profile>& resprofileslist);
 
 int IntegrateAllProfiles();
 
@@ -203,7 +212,7 @@ int IntegrateAllProfiles();
 //If more than one solution, returns the smallest
 bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal lowerbound, dReal upperbound, dReal& sol);
 
-bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>& testprofileslist, bool searchbackward=false);
+bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>& testprofileslist, bool searchbackward=false, bool reinitialize=false);
 
 
 }
