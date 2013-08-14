@@ -65,8 +65,8 @@ Chunk::Chunk(dReal duration0, const std::vector<Polynomial>& polynomialsvector0)
 
 
 void Chunk::Eval(dReal s, std::vector<dReal>&q){
-    assert(s >= 0);
-    assert(s <= duration);
+    assert(s >= -TINY);
+    assert(s <= duration+TINY);
     assert(dimension == q.size());
     for(int i=0; i<dimension; i++) {
         q[i] = polynomialsvector[i].Eval(s);
@@ -74,8 +74,8 @@ void Chunk::Eval(dReal s, std::vector<dReal>&q){
 }
 
 void Chunk::Evald(dReal s, std::vector<dReal>&qd){
-    assert(s >= 0);
-    assert(s <= duration);
+    assert(s >= -TINY);
+    assert(s <= duration+TINY);
     assert(dimension == qd.size());
     for(int i=0; i<dimension; i++) {
         qd[i] = polynomialsvector[i].Evald(s);
@@ -83,8 +83,8 @@ void Chunk::Evald(dReal s, std::vector<dReal>&qd){
 }
 
 void Chunk::Evaldd(dReal s, std::vector<dReal>&qdd){
-    assert(s >= 0);
-    assert(s <= duration);
+    assert(s >= -TINY);
+    assert(s <= duration+TINY);
     assert(dimension == qdd.size());
     for(int i=0; i<dimension; i++) {
         qdd[i] = polynomialsvector[i].Evaldd(s);
@@ -137,8 +137,8 @@ void PiecewisePolynomialTrajectory::FindChunkIndex(dReal s, int& index, dReal& r
 }
 
 void PiecewisePolynomialTrajectory::Eval(dReal s, std::vector<dReal>&q){
-    assert(s >= 0);
-    assert(s <= duration);
+    assert(s >= -TINY);
+    assert(s <= duration+TINY);
     assert(dimension == q.size());
     int index;
     dReal remainder;
@@ -149,8 +149,8 @@ void PiecewisePolynomialTrajectory::Eval(dReal s, std::vector<dReal>&q){
 }
 
 void PiecewisePolynomialTrajectory::Evald(dReal s, std::vector<dReal>&qd){
-    assert(s >= 0);
-    assert(s <= duration);
+    assert(s >= 0-TINY);
+    assert(s <= duration+TINY);
     assert(dimension == qd.size());
     int index;
     dReal remainder;
@@ -161,8 +161,8 @@ void PiecewisePolynomialTrajectory::Evald(dReal s, std::vector<dReal>&qd){
 }
 
 void PiecewisePolynomialTrajectory::Evaldd(dReal s, std::vector<dReal>&qdd){
-    assert(s >= 0);
-    assert(s <= duration);
+    assert(s >= -TINY);
+    assert(s <= duration+TINY);
     assert(dimension == qdd.size());
     int index;
     dReal remainder;
@@ -174,12 +174,13 @@ void PiecewisePolynomialTrajectory::Evaldd(dReal s, std::vector<dReal>&qdd){
 
 
 void PiecewisePolynomialTrajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal sdd, const Chunk& currentchunk, Chunk& newchunk){
-    assert(currentchunk.degree == 2);
-    dReal a0, a1, a2, b0, b1, b2, b3, b4, u0, u1, u2;
+    assert(currentchunk.degree <= 3);
+    dReal a0, a1, a2, b0, b1, b2, b3, b4, c0, c1, c2, c3, c4, c5, c6, u0, u1, u2, u3;
     std::vector<dReal> coefficientsvector;
     std::vector<Polynomial> polynomialsvector;
-    // current chunk: u0 + u1*s + u2*s^2
-    // new chunk : c0 + c1*t + c2*t^2 + c3*t^3 + c4*t^4
+    // current chunk : u0 + u1*s + u2*s^2
+    // profile : s + sd*t + 0.5*sdd*t^2
+    // new chunk : v0 + v1*t + v2*t^2 + v3*t^3 + v4*t^4 + v5*t^5 + v6*t^6;
     a0 = s + sd*t0 + 0.5*sdd*t0*t0;
     a1 = sd + sdd*t0;
     a2 = 0.5*sdd;
@@ -188,16 +189,35 @@ void PiecewisePolynomialTrajectory::ComputeChunk(dReal t0, dReal tnext, dReal s,
     b2 = 2*a0*a2+a1*a1;
     b3 = 2*a1*a2;
     b4 = a2*a2;
+    c0 = b0*a0;
+    c1 = b1*a0 + b0*a1;
+    c2 = b2*a0 + b1*a1 + b0*a2;
+    c3 = b3*a0 + b2*a1 + b1*a2;
+    c4 = b4*a0 + b3*a1 + b2*a2;
+    c5 = b4*a1 + b3*a2;
+    c6 = b4*a2;
     for(int i=0; i<currentchunk.dimension; i++) {
         u0 = currentchunk.polynomialsvector[i].coefficientsvector[0];
-        u1 = currentchunk.polynomialsvector[i].coefficientsvector[1];
-        u2 = currentchunk.polynomialsvector[i].coefficientsvector[2];
+        u1 = 0;
+        if(currentchunk.degree>=1) {
+            u1 = currentchunk.polynomialsvector[i].coefficientsvector[1];
+        }
+        u2 = 0;
+        if(currentchunk.degree>=2) {
+            u2 = currentchunk.polynomialsvector[i].coefficientsvector[2];
+        }
+        u3 = 0;
+        if(currentchunk.degree>=3) {
+            u3 = currentchunk.polynomialsvector[i].coefficientsvector[3];
+        }
         coefficientsvector.resize(0);
-        coefficientsvector.push_back(u0 + u1*a0 + u2*b0); //c0
-        coefficientsvector.push_back(u1*a1 + u2*b1);      //c1
-        coefficientsvector.push_back(u1*a2 + u2*b2);      //c2
-        coefficientsvector.push_back(u2*b3);              //c3
-        coefficientsvector.push_back(u2*b4);              //c4
+        coefficientsvector.push_back(u3*c0 + u2*b0 + u1*a0 + u0); //v0
+        coefficientsvector.push_back(u3*c1 + u2*b1 + u1*a1);      //v1
+        coefficientsvector.push_back(u3*c2 + u2*b2 + u1*a2);      //v2
+        coefficientsvector.push_back(u3*c3 + u2*b3);              //v3
+        coefficientsvector.push_back(u3*c4 + u2*b4);              //v4
+        coefficientsvector.push_back(u3*c5);                      //v5
+        coefficientsvector.push_back(u3*c6);                      //v6
         polynomialsvector.push_back(Polynomial(coefficientsvector));
     }
     newchunk = Chunk(tnext-t0, polynomialsvector);
@@ -206,7 +226,7 @@ void PiecewisePolynomialTrajectory::ComputeChunk(dReal t0, dReal tnext, dReal s,
 
 void PiecewisePolynomialTrajectory::Reparameterize(const Profile& profile, PiecewisePolynomialTrajectory& newtrajectory){
     // For now, supports only reparameterization of 2nd order polynomial trajectories
-    assert(degree == 2);
+    assert(degree <= 3);
 
     if(chunkslist.size() == 0) {
         return;

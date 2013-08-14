@@ -92,7 +92,7 @@ void KinematicLimits::FindSingularSwitchPoints(){
         ptrajectory->Evald(discrsvect[i],qd);
         for(int j=0; j<ptrajectory->dimension; j++) {
             if(qd[i]*qdprev[i]<0) {
-                AddSwitchPoint(i,SP_SINGULAR);
+                AddSwitchPoint(i,SPT_SINGULAR);
                 continue;
             }
         }

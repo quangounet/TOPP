@@ -34,19 +34,25 @@ typedef double dReal;
 namespace TOPP {
 
 
-enum IntegrationReturnType {
-    RT_MAXSTEPS = 0,
-    RT_END = 1,
-    RT_BOTTOM = 2,
-    RT_MVC = 3
+
+////////////////////////////////////////////////////////////////////
+/////////////////////////// Tunings ////////////////////////////////
+////////////////////////////////////////////////////////////////////
+
+class Tunings {
+public:
+    Tunings(){
+    }
+    dReal discrtimestep;
+    dReal integrationtimestep;
 };
 
-enum SwitchPointType {
-    SP_TANGENT = 0,
-    SP_SINGULAR = 1,
-    SP_DISCONTINUOUS = 2
-};
 
+
+
+////////////////////////////////////////////////////////////////////
+/////////////////////////// Trajectory /////////////////////////////
+////////////////////////////////////////////////////////////////////
 
 class Trajectory {
 public:
@@ -63,34 +69,57 @@ public:
 };
 
 
-class Tunings {
-public:
-    Tunings(){
-    }
-    dReal discrtimestep;
-    dReal integrationtimestep;
+
+////////////////////////////////////////////////////////////////////
+/////////////////////////// Switch Point ///////////////////////////
+////////////////////////////////////////////////////////////////////
+
+enum SwitchPointType {
+    SPT_TANGENT = 0,
+    SPT_SINGULAR = 1,
+    SPT_DISCONTINUOUS = 2
 };
 
-
 class SwitchPoint {
+public:
+    SwitchPoint(dReal s0, int switchpointtype0){
+        s = s0;
+        switchpointtype = switchpointtype0;
+    }
     dReal s;
     int switchpointtype;
 };
 
 
+
+
+////////////////////////////////////////////////////////////////////
+/////////////////////////// Profile ////////////////////////////////
+////////////////////////////////////////////////////////////////////
+
 class Profile {
 public:
     Profile(std::list<dReal>& slist, std::list<dReal>& sdlist, std::list<dReal>&  sddlist, dReal integrationtimestep);
+    Profile(){
+    }
     std::vector<dReal> svect, sdvect, sddvect;
     dReal integrationtimestep;
     dReal duration;
     int nsteps;
+    int currentindex;
     bool FindTimestepIndex(dReal t, int& index, dReal& remainder);
+    bool Invert(dReal s,  dReal& t, bool searchbackward=false);
     dReal Eval(dReal t);
     dReal Evald(dReal t);
     dReal Evaldd(dReal t);
 };
 
+
+
+
+////////////////////////////////////////////////////////////////////
+/////////////////////////// Constraints ////////////////////////////
+////////////////////////////////////////////////////////////////////
 
 class Constraints {
 public:
@@ -102,8 +131,6 @@ public:
     std::vector<dReal> mvc;
     std::list<SwitchPoint> switchpointslist;
 
-
-
     //////////////////////// General ///////////////////////////
 
     Constraints(){
@@ -111,8 +138,6 @@ public:
     virtual void Preprocess(Trajectory& trajectory, const Tunings& tunings);
     void Discretize();
     void ComputeMVC();
-
-
 
     //////////////////////// Limits ///////////////////////////
 
@@ -129,8 +154,6 @@ public:
         throw "Virtual method not implemented";
     }
 
-
-
     ///////////////////////// Switch Points ///////////////////////
     void FindSwitchPoints();
     void AddSwitchPoint(int i, int switchpointtype);
@@ -145,11 +168,43 @@ public:
 };
 
 
-// Useful functions
+
+
+////////////////////////////////////////////////////////////////////
+//////////////////////// Integration ///////////////////////////////
+////////////////////////////////////////////////////////////////////
+
+enum IntegrationReturnType {
+    IRT_MAXSTEPS = 0,
+    IRT_END = 1,
+    IRT_BOTTOM = 2,
+    IRT_MVC = 3,
+    IRT_ABOVEPROFILES = 4
+};
+
+static std::list<Profile> voidprofileslist;
+
+int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, Profile& profile, int maxsteps=1e5, std::list<Profile>& testprofileslist = voidprofileslist);
+
+int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, Profile& profile, int maxsteps=1e5, std::list<Profile>& testprofileslist = voidprofileslist);
+
+int ComputeLimitingCurves();
+
+int IntegrateAllProfiles();
+
+
+
+
+////////////////////////////////////////////////////////////////////
+///////////////////////// Utilities ////////////////////////////////
+////////////////////////////////////////////////////////////////////
 
 //Solves a0 + a1*x + a2*x^2 = 0 in the interval [lowerbound,upperbound]
 //If more than one solution, returns the smallest
 bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal lowerbound, dReal upperbound, dReal& sol);
+
+bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>& testprofileslist, bool searchbackward=false);
+
 
 }
 
