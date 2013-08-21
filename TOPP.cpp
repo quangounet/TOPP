@@ -148,11 +148,47 @@ Profile::Profile(std::list<dReal>& slist, std::list<dReal>& sdlist, std::list<dR
     duration = integrationtimestep * (nsteps-1);
 }
 
-bool Profile::FindTimestepIndex(dReal t, int& index, dReal& remainder){
-    if (t < 0 || t > duration) {
+
+Profile::Profile(std::list<Profile>& profileslist, dReal integrationtimestep0){
+    integrationtimestep = integrationtimestep0;
+    std::vector<dReal> svect, sdvect, sddvect;
+
+    // First, reinitalize the profiles for search
+    std::list<Profile>::iterator it = profileslist.begin();
+    while(it != profileslist.end()) {
+        it->currentindex = 0;
+        it++;
+    }
+
+    // Now integrate
+    dReal scur = 0, sd, t;
+    while(true) {
+        std::cout << scur << "\n";
+        if(!ComputeLowestSd(scur,sd,profileslist)) {
+            break;
+        }
+        svect.push_back(scur);
+        sdvect.push_back(sd);
+        sddvect.push_back(0);
+        scur += sd * integrationtimestep;
+    }
+
+    nsteps = svect.size();
+    duration = integrationtimestep * (nsteps-1);
+}
+
+
+bool Profile::FindTimestepIndex(dReal t, int &index, dReal& remainder){
+    if (t < -TINY || t > duration+TINY) {
         return false;
     }
-    if(duration-t <= 1e-10) {
+    if(t<0) {
+        t = 0;
+    }
+    if(t>duration) {
+        t = duration;
+    }
+    if(duration-t <= TINY) {
         index = nsteps-1;
     }
     else{
@@ -240,6 +276,12 @@ dReal Profile::Evaldd(dReal t){
     }
 }
 
+void Profile::Print(){
+    for(dReal t=0; t<=duration; t+=integrationtimestep) {
+        std::cout<< Eval(t) << " ; " << Evald(t) << " ; " << Evaldd(t) <<  "\n";
+    }
+}
+
 
 
 
@@ -249,7 +291,7 @@ dReal Profile::Evaldd(dReal t){
 ////////////////////////////////////////////////////////////////////
 
 
-int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, Profile& profile, int maxsteps, std::list<Profile>& testprofileslist){
+int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, Profile& profile, int maxsteps, std::list<Profile>&testprofileslist){
     dReal dt = constraints.tunings.integrationtimestep;
     dReal scur = sstart, sdcur = sdstart;
     std::list<dReal> slist, sdlist, sddlist;
@@ -313,7 +355,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, Prof
 
 
 
-int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, Profile& profile, int maxsteps, std::list<Profile>& testprofileslist){
+int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, Profile& profile, int maxsteps, std::list<Profile>&testprofileslist){
     dReal dt = constraints.tunings.integrationtimestep;
     dReal scur = sstart, sdcur = sdstart;
     std::list<dReal> slist, sdlist, sddlist;
@@ -359,7 +401,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, Pro
             std ::pair<dReal,dReal> sddlimits = constraints.SddLimits(scur,sdcur);
             dReal alpha = sddlimits.first;
             dReal beta = sddlimits.second;
-            sddlist.push_back(alpha);
+            sddlist.push_back(-alpha);
             dReal sdnext = sdcur - dt * alpha;
             dReal snext = scur - dt * sdcur + 0.5*dt*dt*alpha;
             scur = snext;
@@ -428,7 +470,7 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
 
 
 
-int ComputeLimitingCurves(Constraints& constraints, std::list<Profile>& resprofileslist){
+int ComputeLimitingCurves(Constraints& constraints, std::list<Profile>&resprofileslist){
     std::list<SwitchPoint> switchpointslist0(constraints.switchpointslist);
     Profile tmpprofile;
     dReal sswitch, sdswitch, sbackward, sdbackward, sforward, sdforward;
@@ -525,6 +567,20 @@ bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>&testprofileslist,
         it++;
     }
     return false;
+}
+
+
+bool ComputeLowestSd(dReal s, dReal& sd, std::list<Profile>&testprofileslist){
+    dReal t;
+    sd = INF;
+    std::list<Profile>::iterator it = testprofileslist.begin();
+    while(it != testprofileslist.end()) {
+        if(it->Invert(s,t)) {
+            sd = std::min(it->Evald(t),sd);
+        }
+        it++;
+    }
+    return sd < INF;
 }
 
 

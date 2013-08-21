@@ -103,6 +103,7 @@ public:
 class Profile {
 public:
     Profile(std::list<dReal>& slist, std::list<dReal>& sdlist, std::list<dReal>&  sddlist, dReal integrationtimestep);
+    Profile(std::list<Profile>& profileslist, dReal integrationtimestep0);
     Profile(){
     }
     std::vector<dReal> svect, sdvect, sddvect;
@@ -115,6 +116,7 @@ public:
     dReal Eval(dReal t);
     dReal Evald(dReal t);
     dReal Evaldd(dReal t);
+    void Print();
 };
 
 
@@ -214,6 +216,7 @@ bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal lowerbound, dRea
 
 bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>& testprofileslist, bool searchbackward=false, bool reinitialize=false);
 
+bool ComputeLowestSd(dReal s, dReal& sd, std::list<Profile>&testprofileslist);
 
 }
 

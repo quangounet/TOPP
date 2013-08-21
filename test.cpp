@@ -89,7 +89,7 @@ int main(){
     KinematicLimits kinconstraints;
 
     tunings.discrtimestep = 0.01;
-    tunings.integrationtimestep = 0.001;
+    tunings.integrationtimestep = 0.01;
     tunings.threshold = 0.01;
     tunings.passswitchpointnsteps = 10;
 
@@ -125,8 +125,25 @@ int main(){
     Profile profile;
     std::list<Profile> resprofileslist;
     ComputeLimitingCurves(kinconstraints,resprofileslist);
+    IntegrateForward(kinconstraints,0,1e-4,profile,1e5,resprofileslist);
+    resprofileslist.push_back(profile);
+    IntegrateBackward(kinconstraints,ptrajectory->duration,1e-4,profile,1e5,resprofileslist);
+    resprofileslist.push_back(profile);
+
 
     std::cout << "CLC: " << resprofileslist.size() << "\n";
+
+    std::list<Profile>::iterator itprof = resprofileslist.begin();
+    while(itprof != resprofileslist.end()) {
+        std::cout << itprof->nsteps << "\n";
+        if(itprof->nsteps > 10000) {
+            //itprof->Print();
+        }
+        itprof++;
+    }
+
+    Profile profilefinal(resprofileslist,0.01);
+
 
     std::cout << "Integrate: " << IntegrateForward(kinconstraints,0,1,profile) << "\n";
     std::cout << "Duration: " << profile.duration << "\n";
