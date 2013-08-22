@@ -21,7 +21,7 @@
 #include <iostream>
 #include <vector>
 #include <list>
-#include <math.h>
+#include <cmath>
 #include <stdlib.h>
 #include <assert.h>
 
@@ -109,6 +109,7 @@ public:
     std::vector<dReal> svect, sdvect, sddvect;
     dReal integrationtimestep;
     dReal duration;
+    bool forward;
     int nsteps;
     int currentindex;
     bool FindTimestepIndex(dReal t, int& index, dReal& remainder);
@@ -216,7 +217,7 @@ bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal lowerbound, dRea
 
 bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>& testprofileslist, bool searchbackward=false, bool reinitialize=false);
 
-bool ComputeLowestSd(dReal s, dReal& sd, std::list<Profile>&testprofileslist);
+bool ComputeLowestSd(dReal s, dReal& sd, dReal& sdd, std::list<Profile>&testprofileslist);
 
 }
 

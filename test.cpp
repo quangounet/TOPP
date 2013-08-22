@@ -144,43 +144,54 @@ int main(){
 
     Profile profilefinal(resprofileslist,0.01);
 
-
-    std::cout << "Integrate: " << IntegrateForward(kinconstraints,0,1,profile) << "\n";
-    std::cout << "Duration: " << profile.duration << "\n";
-
-    dReal tres;
-    int startindex = 0;
-    profile.currentindex = profile.nsteps-1;
-    assert(profile.Invert(0.11,tres,true));
-
-    std::cout << "Invert: " << tres << "\n";
-    std::cout << "Invert back: " << profile.Eval(tres) << "\n";
+    std::cout << "Profilefinal: " << profilefinal.duration << "\n";
 
     //PrintVector1d(profile.sdvect);
 
     PiecewisePolynomialTrajectory newtrajectory;
-    ptrajectory->Reparameterize(profile,newtrajectory);
+    ptrajectory->Reparameterize(profilefinal,newtrajectory);
 
-    std::cout << newtrajectory.duration << "\n";
+
+    std::cout << "\n\n\nq\n";
+    for(dReal t=0; t<newtrajectory.duration; t+=0.1) {
+        newtrajectory.Eval(t,q);
+        std::cout<< "--\n";
+        PrintVector1d(q);
+    }
+    std::cout << "\n\n\nqd\n";
+    for(dReal t=0; t<newtrajectory.duration; t+=0.1) {
+        newtrajectory.Evald(t,q);
+        std::cout<< "--\n";
+        PrintVector1d(q);
+    }
+    std::cout << "\n\n\nqdd\n";
+    for(dReal t=0; t<newtrajectory.duration; t+=0.1) {
+        newtrajectory.Evaldd(t,q);
+        std::cout<< "--\n";
+        PrintVector1d(q);
+    }
+
+
 
     // std::cout << "\n\n\nq\n";
-    // for(dReal t=0; t<newtrajectory.duration; t+=0.001) {
-    //     newtrajectory.Eval(t,q);
+    // for(dReal t=0; t<ptrajectory->duration; t+=0.1) {
+    //     ptrajectory->Eval(t,q);
     //     std::cout<< "--\n";
     //     PrintVector1d(q);
     // }
     // std::cout << "\n\n\nqd\n";
-    // for(dReal t=0; t<newtrajectory.duration; t+=0.001) {
-    //     newtrajectory.Evald(t,q);
+    // for(dReal t=0; t<ptrajectory->duration; t+=0.1) {
+    //     ptrajectory->Evald(t,q);
     //     std::cout<< "--\n";
     //     PrintVector1d(q);
     // }
     // std::cout << "\n\n\nqdd\n";
-    // for(dReal t=0; t<newtrajectory.duration; t+=0.001) {
-    //     newtrajectory.Evaldd(t,q);
+    // for(dReal t=0; t<ptrajectory->duration; t+=0.1) {
+    //     ptrajectory->Evaldd(t,q);
     //     std::cout<< "--\n";
     //     PrintVector1d(q);
     // }
+
 
 
     delete ptrajectory;
