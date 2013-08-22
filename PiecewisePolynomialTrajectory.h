@@ -50,6 +50,12 @@ public:
     void Evaldd(dReal s, std::vector<dReal>&qdd);
     void ComputeChunk(dReal t, dReal t0, dReal s, dReal sd, dReal sdd, const Chunk& currentchunk, Chunk& newchunk);
     void Reparameterize(const Profile& profile, PiecewisePolynomialTrajectory& newtrajectory);
+    void Reintegrate(dReal reintegrationtimestep, PiecewisePolynomialTrajectory& newtrajectory);
+    void Convert3(dReal chunklength, PiecewisePolynomialTrajectory& newtrajectory);
 
 };
+
+
+void Interpolate3(dReal T, const std::vector<dReal>& q0,const std::vector<dReal>& qd0, const std::vector<dReal>& qdd0, const std::vector<dReal>& q1,const std::vector<dReal>& qd1, const std::vector<dReal>& qdd1, std::list<Chunk>& reslist);
+
 }

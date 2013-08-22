@@ -225,7 +225,7 @@ void PiecewisePolynomialTrajectory::ComputeChunk(dReal t0, dReal tnext, dReal s,
 
 
 void PiecewisePolynomialTrajectory::Reparameterize(const Profile& profile, PiecewisePolynomialTrajectory& newtrajectory){
-    // For now, supports only reparameterization of 2nd order polynomial trajectories
+    // For now, supports only reparameterization of 3rd order polynomial trajectories
     assert(degree <= 3);
 
     if(chunkslist.size() == 0) {
@@ -279,6 +279,146 @@ void PiecewisePolynomialTrajectory::Reparameterize(const Profile& profile, Piece
     // Update trajectory
     newtrajectory = PiecewisePolynomialTrajectory(newchunkslist);
 }
+
+
+void PiecewisePolynomialTrajectory::Reintegrate(dReal reintegrationtimestep, PiecewisePolynomialTrajectory& newtrajectory){
+
+    dReal dt = reintegrationtimestep;
+    dReal dtsq = dt*dt;
+    dReal tcur = 0, a;
+
+    std::vector<dReal> qcur(dimension), qdcur(dimension), qdd(dimension);
+    std::vector<dReal> coefficientsvector(3);
+    std::vector<Polynomial> polynomialsvector(dimension);
+    std::list<Chunk> chunkslist;
+
+    Eval(0,qcur);
+    Evald(0,qdcur);
+
+    while(tcur<=duration) {
+        Evaldd(tcur,qdd);
+        for(int i=0; i<dimension; i++) {
+            a = qdd[i]*0.5;
+            coefficientsvector[0] = qcur[i];
+            coefficientsvector[1] = qdcur[i];
+            coefficientsvector[2] = a;
+            qcur[i] += qdcur[i]*dt+ 0.5*a*dtsq;
+            qdcur[i] += a*dt;
+            polynomialsvector[i] = Polynomial(coefficientsvector);
+        }
+        chunkslist.push_back(Chunk(dt,polynomialsvector));
+        tcur += dt;
+    }
+
+    // One last time
+    tcur = tcur-dt;
+    dt = duration-tcur;
+    dtsq = dt*dt;
+    Evaldd(tcur,qdd);
+    for(int i=0; i<dimension; i++) {
+        a = qdd[i]*0.5;
+        coefficientsvector[0] = qcur[i];
+        coefficientsvector[1] = qdcur[i];
+        coefficientsvector[2] = a;
+        qcur[i] += qdcur[i]*dt+ 0.5*a*dtsq;
+        qdcur[i] += a*dt;
+        polynomialsvector[i]=Polynomial(coefficientsvector);
+    }
+    chunkslist.push_back(Chunk(dt,polynomialsvector));
+
+
+    newtrajectory = PiecewisePolynomialTrajectory(chunkslist);
+
+
+}
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////
+
+void PiecewisePolynomialTrajectory::Convert3(dReal chunklength, PiecewisePolynomialTrajectory& newtrajectory){
+    assert(duration>3*chunklength);
+    int n3chunks = (int) duration/3/chunklength;
+    dReal T = duration/n3chunks;
+    std::list<Chunk> reslist, finalreslist;
+
+    std::vector<dReal> q0(dimension), qd0(dimension), qdd0(dimension), q1(dimension), qd1(dimension), qdd1(dimension);
+
+    Eval(0,q0);
+    Evald(0,qd0);
+    Evaldd(0,qdd0);
+    dReal tnext;
+
+    for(int i=0; i<n3chunks; i++) {
+        tnext = (i+1)*T;
+        Eval(tnext,q1);
+        Evald(tnext,qd1);
+        Evaldd(tnext,qdd1);
+        Interpolate3(T,q0,qd0,qdd0,q1,qd1,qdd1,reslist);
+        finalreslist.splice(finalreslist.end(),reslist);
+        std::swap(q0,q1);
+    }
+
+    newtrajectory = PiecewisePolynomialTrajectory(finalreslist);
+}
+
+void Interpolate3(dReal T, const std::vector<dReal>& q0,const std::vector<dReal>& qd0, const std::vector<dReal>& qdd0, const std::vector<dReal>& q1,const std::vector<dReal>& qd1, const std::vector<dReal>& qdd1, std::list<Chunk>& reslist){
+
+    std::vector<Polynomial> polyvector0, polyvector1, polyvector2;
+    std::vector<dReal> coefficientsvector(4);
+
+    //Chunk0 : a0*t^3+b0*t^2+c0*t+d0
+    arma::mat A,B,X;
+    dReal t = T/3;
+    dReal t2 = t*t;
+    dReal t3 = t*t2;
+
+    //  a0   b0   c0   d0   a1   b1   c1   d1   a2   b2   c2   d2
+    A << 0 << 0 << 0 << 1 << 0 << 0 << 0 << 0 << 0 << 0 << 0 << 0 << arma::endr
+      << 0 << 0 << 1 << 0 << 0 << 0 << 0 << 0 << 0 << 0 << 0 << 0 << arma::endr
+      << 0 << 2 << 0 << 0 << 0 << 0 << 0 << 0 << 0 << 0 << 0 << 0 << arma::endr
+      << t3<< t2<< t << 1 << 0 << 0 << 0 << -1<< 0 << 0 << 0 << 0 << arma::endr
+      <<3*t2<<2*t<<1 << 0 << 0 << 0 << -1 << 0 << 0 << 0 << 0 << 0 << arma::endr
+      <<6*t<< 2 << 0 << 0 << 0 << -2 << 0 << 0 << 0 << 0 << 0 << 0 << arma::endr
+      << 0 << 0 << 0 << 0 << t3<< t2<< t << 1 << 0 << 0 << 0 << -1<< arma::endr
+      << 0 << 0 << 0 << 0 <<3*t2<<2*t<<1 << 0 << 0 << 0 << -1 << 0 << arma::endr
+      << 0 << 0 << 0 << 0 <<6*t<< 2 << 0 << 0 << 0 << -2 << 0 << 0 << arma::endr
+      << 0 << 0 << 0 << 0 << 0 << 0 << 0 << 0 << t3<< t2<< t << 1 << arma::endr
+      << 0 << 0 << 0 << 0 << 0 << 0 << 0 << 0 << 3*t2<<2*t<<1 << 0<< arma::endr
+      << 0 << 0 << 0 << 0 << 0 << 0 << 0 << 0 << 6*t<< 2 << 0 << 0<< arma::endr;
+
+    for(int i=0; i<q0.size(); i++) {
+        B.set_size(0);
+        B << q0[i] << qd0[i] << qdd0[i] << 0 << 0 << 0 << 0 << 0 << 0 << q1[i] << qd1[i] << qdd1[i] << arma::endr;
+        X = arma::solve(A,arma::trans(B));
+        coefficientsvector[0] = X[3];
+        coefficientsvector[1] = X[2];
+        coefficientsvector[2] = X[1];
+        coefficientsvector[3] = X[0];
+        polyvector0.push_back(Polynomial(coefficientsvector));
+        coefficientsvector[0] = X[7];
+        coefficientsvector[1] = X[6];
+        coefficientsvector[2] = X[5];
+        coefficientsvector[3] = X[4];
+        polyvector1.push_back(Polynomial(coefficientsvector));
+        coefficientsvector[0] = X[11];
+        coefficientsvector[1] = X[10];
+        coefficientsvector[2] = X[9];
+        coefficientsvector[3] = X[8];
+        polyvector2.push_back(Polynomial(coefficientsvector));
+    }
+
+    reslist.resize(0);
+    reslist.push_back(Chunk(t,polyvector0));
+    reslist.push_back(Chunk(t,polyvector1));
+    reslist.push_back(Chunk(t,polyvector2));
+
+}
+
 
 
 } // End namespace TOPP

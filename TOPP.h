@@ -22,6 +22,7 @@
 #include <vector>
 #include <list>
 #include <cmath>
+#include <armadillo>
 #include <stdlib.h>
 #include <assert.h>
 
