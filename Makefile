@@ -4,7 +4,7 @@ LIB = -larmadillo -lblas
 CC = g++
 
 TOPP: $(SOURCE)
-	$(CC) $(SOURCE) -o $(TARGET) $(LIB)
+	$(CC) $(SOURCE) -o $(TARGET)
 
 debug: $(SOURCE)
-	$(CC) -g $(SOURCE) -o $(TARGET)	$(LIB)
+	$(CC) -g $(SOURCE) -o $(TARGET)

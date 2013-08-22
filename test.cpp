@@ -191,12 +191,12 @@ int main(){
     dReal dt = 0.01;
     dReal diff;
 
-    for(dReal t=0; t<0.1; t+=dt) {
-        newtrajectory.Eval(t,q);
-        newtrajectory.Eval(t+dt,qn);
-        newtrajectory.Evald(t+dt,qd);
-        diff = (qn[0]-q[0])/dt - qd[0];
-        std::cout << diff << "\n";
+    for(dReal t=0; t<0.5; t+=dt) {
+        newtrajectory.Evald(t,q);
+        newtrajectory.Evald(t+dt,qn);
+        newtrajectory.Evaldd(t+dt,qd);
+        diff = (qn[0]-q[0])/dt;
+        std::cout << diff << "----" << qd[0] << "\n";
     }
 
     // std::cout << "\n\n\nqd\n";
