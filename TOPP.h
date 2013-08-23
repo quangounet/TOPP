@@ -218,7 +218,7 @@ bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal lowerbound, dRea
 
 bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>& testprofileslist, bool searchbackward=false, bool reinitialize=false);
 
-bool ComputeLowestSd(dReal s, dReal& sd, dReal& sdd, std::list<Profile>&testprofileslist);
+bool ComputeLowestSd(dReal s, Profile& profile, dReal& tres, std::list<Profile>&testprofileslist);
 
 }
 

@@ -160,18 +160,40 @@ Profile::Profile(std::list<Profile>& profileslist, dReal integrationtimestep0){
     }
 
     // Now integrate
-    dReal scur = 0, sd, sdd, t;
-    dReal dt = integrationtimestep;
+    dReal scur = 0, sdcur, sd, sdd, t;
+    dReal dt = 0.01;
     dReal dtsq = dt*dt;
+
+    dReal ks = 0;
+    dReal ksd = 0;
+
+    Profile profile;
+    dReal tres;
+
+    //if(ComputeLowestSd(scur,sdcur,sdd,profileslist)) {
+    scur = 0.1;
+
+    ComputeLowestSd(scur,profile,tres,profileslist);
+    sdcur = profile.Evald(tres);
     while(true) {
-        if(!ComputeLowestSd(scur,sd,sdd,profileslist)) {
+        std::cout << scur << " " << sdcur << "   " << "\n";
+        if(!ComputeLowestSd(scur,profile,tres,profileslist)) {
             break;
         }
+        sd = profile.Evald(tres);
+        sdd = profile.Evaldd(tres);
+        if(profile.Eval(tres+dt)<INF) {
+            sdd += ks*(profile.Eval(tres+dt)-scur) + ksd*(profile.Evald(tres+dt)-sdcur);
+        }
         svect.push_back(scur);
-        sdvect.push_back(sd);
+        sdvect.push_back(sdcur);
         sddvect.push_back(sdd);
-        scur += sd*dt + 0.5*sdd*dtsq;
+        scur += sdcur*dt + 0.5*sdd*dtsq;
+        sdcur += sdd*dt;
+        std::cout << scur << " " << sdcur << "   " << "\n\n";
+
     }
+    //}
 
     nsteps = svect.size();
     duration = dt * (nsteps-1);
@@ -576,22 +598,38 @@ bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>&testprofileslist,
 }
 
 
-bool ComputeLowestSd(dReal s, dReal& sd, dReal& sdd, std::list<Profile>&testprofileslist){
+bool ComputeLowestSd(dReal s, Profile& profile, dReal& tres, std::list<Profile>&testprofileslist){
     dReal t;
-    dReal sdtmp;
-    sd = INF;
+    dReal sdmin;
+    dReal sdtmp,sdd;
+    int i = 0;
+    int finali = 0;
+    sdmin = INF;
+    dReal snext,sdnext,snext2,sdnext2;
+
+    dReal dt = 0.01;
+
     std::list<Profile>::iterator it = testprofileslist.begin();
     while(it != testprofileslist.end()) {
         if(it->Invert(s,t)) {
             sdtmp = it->Evald(t);
-            if(sdtmp < sd) {
-                sd = sdtmp;
+            if(sdtmp < sdmin) {
+                sdmin = sdtmp;
+                profile = *it;
+                tres = t;
                 sdd = it->Evaldd(t);
+                snext = it->Eval(t+dt);
+                sdnext = it->Evald(t+dt);
+                snext2 = s + dt*sdmin + 0.5*sdd*dt*dt;
+                sdnext2 = sdmin + dt*sdd;
+                finali = i;
             }
         }
         it++;
+        i++;
     }
-    return sd < INF;
+    std::cout << s << "/" << snext << "/" << snext2 << "  " << sdmin << "/" << sdnext << "/" << sdnext2 << " index: " << finali << "\n";
+    return sdmin < INF;
 }
 
 
