@@ -171,7 +171,7 @@ Profile::Profile(std::list<Profile>& profileslist, dReal integrationtimestep0){
     dReal tres;
 
     //if(ComputeLowestSd(scur,sdcur,sdd,profileslist)) {
-    scur = 0.1;
+    scur = 0.01;
 
     ComputeLowestSd(scur,profile,tres,profileslist);
     sdcur = profile.Evald(tres);

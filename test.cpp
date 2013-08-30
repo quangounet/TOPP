@@ -180,24 +180,24 @@ int main(){
 
 
 
-    std::cout << "\n\n\nq\n";
-    for(dReal t=0; t<newtrajectory2.duration; t+=0.1) {
-        newtrajectory2.Eval(t,q);
-        std::cout<< "--\n";
-        PrintVector1d(q);
-    }
-    std::cout << "\n\n\nqd\n";
-    for(dReal t=0; t<newtrajectory2.duration; t+=0.1) {
-        newtrajectory2.Evald(t,q);
-        std::cout<< "--\n";
-        PrintVector1d(q);
-    }
-    std::cout << "\n\n\nqdd\n";
-    for(dReal t=0; t<newtrajectory2.duration; t+=0.1) {
-        newtrajectory2.Evaldd(t,q);
-        std::cout<< "--\n";
-        PrintVector1d(q);
-    }
+    // std::cout << "\n\n\nq\n";
+    // for(dReal t=0; t<newtrajectory2.duration; t+=0.1) {
+    //     newtrajectory2.Eval(t,q);
+    //     std::cout<< "--\n";
+    //     PrintVector1d(q);
+    // }
+    // std::cout << "\n\n\nqd\n";
+    // for(dReal t=0; t<newtrajectory2.duration; t+=0.1) {
+    //     newtrajectory2.Evald(t,q);
+    //     std::cout<< "--\n";
+    //     PrintVector1d(q);
+    // }
+    // std::cout << "\n\n\nqdd\n";
+    // for(dReal t=0; t<newtrajectory2.duration; t+=0.1) {
+    //     newtrajectory2.Evaldd(t,q);
+    //     std::cout<< "--\n";
+    //     PrintVector1d(q);
+    // }
 
 
     // std::list<Chunk> reslist;
