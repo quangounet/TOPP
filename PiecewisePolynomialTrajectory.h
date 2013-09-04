@@ -26,6 +26,7 @@ public:
     int dimension;
     int degree;
     dReal duration;
+    dReal sbegin, send;
     std::vector<Polynomial> polynomialsvector;
     void Eval(dReal s, std::vector<dReal>&q);
     void Evald(dReal s, std::vector<dReal>&qd);
@@ -49,6 +50,9 @@ public:
     void Evald(dReal s, std::vector<dReal>&qd);
     void Evaldd(dReal s, std::vector<dReal>&qdd);
     void ComputeChunk(dReal t, dReal t0, dReal s, dReal sd, dReal sdd, const Chunk& currentchunk, Chunk& newchunk);
+    void SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int& currentchunkindex, dReal& processedcursor, std::list<Chunk>::iterator& itcurrentchunk, std::list<Chunk>& chunkslist);
+    void Reparameterize2(std::list<Profile>& profileslist, dReal integrationtimestep, PiecewisePolynomialTrajectory& newtrajectory);
+
     void Reparameterize(const Profile& profile, PiecewisePolynomialTrajectory& newtrajectory);
     void Reintegrate(dReal reintegrationtimestep, PiecewisePolynomialTrajectory& newtrajectory);
     void Convert3(dReal chunklength, PiecewisePolynomialTrajectory& newtrajectory);

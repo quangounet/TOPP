@@ -173,11 +173,11 @@ Profile::Profile(std::list<Profile>& profileslist, dReal integrationtimestep0){
     //if(ComputeLowestSd(scur,sdcur,sdd,profileslist)) {
     scur = 0.01;
 
-    ComputeLowestSd(scur,profile,tres,profileslist);
+    FindLowestProfile(scur,profile,tres,profileslist);
     sdcur = profile.Evald(tres);
     while(true) {
         std::cout << scur << " " << sdcur << "   " << "\n";
-        if(!ComputeLowestSd(scur,profile,tres,profileslist)) {
+        if(!FindLowestProfile(scur,profile,tres,profileslist)) {
             break;
         }
         sd = profile.Evald(tres);
@@ -598,7 +598,7 @@ bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>&testprofileslist,
 }
 
 
-bool ComputeLowestSd(dReal s, Profile& profile, dReal& tres, std::list<Profile>&testprofileslist){
+bool FindLowestProfile(dReal s, Profile& profile, dReal& tres, std::list<Profile>&testprofileslist){
     dReal t;
     dReal sdmin;
     dReal sdtmp,sdd;

@@ -30,6 +30,7 @@
 typedef double dReal;
 
 #define TINY 1e-10
+#define TINY2 1e-5
 #define INF 1e15
 
 namespace TOPP {
@@ -218,7 +219,7 @@ bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal lowerbound, dRea
 
 bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>& testprofileslist, bool searchbackward=false, bool reinitialize=false);
 
-bool ComputeLowestSd(dReal s, Profile& profile, dReal& tres, std::list<Profile>&testprofileslist);
+bool FindLowestProfile(dReal s, Profile& profile, dReal& tres, std::list<Profile>&testprofileslist);
 
 }
 

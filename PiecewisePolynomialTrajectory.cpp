@@ -110,8 +110,10 @@ PiecewisePolynomialTrajectory::PiecewisePolynomialTrajectory(const std::list<Chu
         dReal chunkduration = itchunk->duration;
         if(chunkduration > TINY) {
             chunkdurationslist.push_back(chunkduration);
-            chunkcumulateddurationslist.push_back(duration);
+            chunkcumulateddurationslist.push_back(duration);  // Cumulated durations list starts with a 0
+            itchunk->sbegin = duration;
             duration += chunkduration;
+            itchunk->send = duration;
         }
         itchunk++;
     }
@@ -224,6 +226,86 @@ void PiecewisePolynomialTrajectory::ComputeChunk(dReal t0, dReal tnext, dReal s,
 }
 
 
+
+void PiecewisePolynomialTrajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int& currentchunkindex, dReal& processedcursor, std::list<Chunk>::iterator& itcurrentchunk, std::list<Chunk>& chunkslist){
+
+    dReal t = 0, tnext;
+    dReal snext = s + T*sd + 0.5*T*T*sdd;
+    int chunkindex;
+    dReal remainder;
+    Chunk newchunk;
+
+    FindChunkIndex(snext,chunkindex,remainder);
+
+    // Process all chunks that have been overpassed
+    while(currentchunkindex<chunkindex) {
+        if(itcurrentchunk->duration-processedcursor>=TINY) {
+            assert(SolveQuadraticEquation(s-itcurrentchunk->send,sd,0.5*sdd,t,T,tnext));
+            ComputeChunk(t,tnext,s-itcurrentchunk->sbegin,sd,sdd,*itcurrentchunk,newchunk);
+            chunkslist.push_back(newchunk);
+            t = tnext;
+        }
+        currentchunkindex++;
+        itcurrentchunk++;
+        processedcursor = 0;
+    }
+
+    // Process current chunk
+    assert(SolveQuadraticEquation((s-itcurrentchunk->sbegin)-remainder,sd,0.5*sdd,t,T,tnext));
+    ComputeChunk(t,tnext,s-itcurrentchunk->sbegin,sd,sdd,*itcurrentchunk,newchunk);
+    chunkslist.push_back(newchunk);
+    processedcursor = remainder;
+}
+
+void PiecewisePolynomialTrajectory::Reparameterize2(std::list<Profile>& profileslist, dReal integrationtimestep, PiecewisePolynomialTrajectory& newtrajectory){
+
+    dReal scur, sdcur, snext, sdnext, sdnext2, sdd;
+    dReal dt = integrationtimestep;
+    dReal dtsq = dt*dt;
+    dReal dtmod;
+    Profile profile;
+    dReal tres;
+    std::list<Chunk> newchunkslist;
+
+    std::list<Chunk>::iterator itcurrentchunk = chunkslist.begin();
+    int currentchunkindex = 0;
+    dReal processedcursor = 0;
+
+
+    // Reset currentindex
+    std::list<Profile>::iterator it = profileslist.begin();
+    while(it != profileslist.end()) {
+        it->currentindex = 0;
+        it++;
+    }
+
+    scur = 0;
+    FindLowestProfile(scur,profile,tres,profileslist);
+    sdcur = profile.Evald(tres);
+
+    while(scur<duration) {
+        std::cout << scur << " " << sdcur << "   " << "\n";
+        sdd = profile.Evaldd(tres);
+        sdnext = sdcur + dt*sdd;
+        snext = scur + dt*sdcur + 0.5*dtsq*sdd;
+        if(FindLowestProfile(snext,profile,tres,profileslist)) {
+            sdnext2 = profile.Evald(tres);
+            dtmod = dt;
+            if(std::abs(sdnext-sdnext2)>TINY2) {
+                std::cout << "Mod : " << std::abs(sdnext-sdnext2)  << " \n\n";
+                dtmod = 2*(snext-scur)/(sdnext2+sdcur);
+                sdd = (sdnext2-sdcur)/dtmod;
+            }
+            SPieceToChunks(scur,sdcur,sdd,dtmod,currentchunkindex,processedcursor,itcurrentchunk,newchunkslist);
+        }
+        scur = snext;
+        sdcur = sdnext2;
+    }
+    newtrajectory = PiecewisePolynomialTrajectory(newchunkslist);
+}
+
+
+
 void PiecewisePolynomialTrajectory::Reparameterize(const Profile& profile, PiecewisePolynomialTrajectory& newtrajectory){
     // For now, supports only reparameterization of 3rd order polynomial trajectories
     assert(degree <= 3);
@@ -232,10 +314,10 @@ void PiecewisePolynomialTrajectory::Reparameterize(const Profile& profile, Piece
         return;
     }
 
-    dReal ps, psd, psdd, psnext, s0, t, tnext;
+    dReal ps, psd, psdd, psnext, t, tnext;
     dReal sbeginchunk;
     int currentchunkindex, chunkindex;
-    dReal processedcursor, remainingduration, remainder;
+    dReal processedcursor, remainder;
     Chunk newchunk;
     std::list<Chunk> newchunkslist;
 
