@@ -19,6 +19,10 @@
 #define TOPP_H
 
 #include <iostream>
+#include <sstream>
+#include <string>
+#include <iomanip>
+
 #include <vector>
 #include <list>
 #include <cmath>

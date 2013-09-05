@@ -176,7 +176,7 @@ Profile::Profile(std::list<Profile>& profileslist, dReal integrationtimestep0){
     FindLowestProfile(scur,profile,tres,profileslist);
     sdcur = profile.Evald(tres);
     while(true) {
-        std::cout << scur << " " << sdcur << "   " << "\n";
+        //std::cout << scur << " " << sdcur << "   " << "\n";
         if(!FindLowestProfile(scur,profile,tres,profileslist)) {
             break;
         }
@@ -190,7 +190,7 @@ Profile::Profile(std::list<Profile>& profileslist, dReal integrationtimestep0){
         sddvect.push_back(sdd);
         scur += sdcur*dt + 0.5*sdd*dtsq;
         sdcur += sdd*dt;
-        std::cout << scur << " " << sdcur << "   " << "\n\n";
+        //std::cout << scur << " " << sdcur << "   " << "\n\n";
 
     }
     //}
@@ -628,7 +628,7 @@ bool FindLowestProfile(dReal s, Profile& profile, dReal& tres, std::list<Profile
         it++;
         i++;
     }
-    std::cout << s << "/" << snext << "/" << snext2 << "  " << sdmin << "/" << sdnext << "/" << sdnext2 << " index: " << finali << "\n";
+    //std::cout << s << "/" << snext << "/" << snext2 << "  " << sdmin << "/" << sdnext << "/" << sdnext2 << " index: " << finali << "\n";
     return sdmin < INF;
 }
 

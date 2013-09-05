@@ -28,62 +28,14 @@ void PrintPair(const std::pair<dReal,dReal>& p){
 
 int main(){
 
-    std::vector<dReal> coefficientsvector;
-    std::vector<Polynomial> polynomialsvector;
-
-    coefficientsvector.resize(0);
-    coefficientsvector.push_back(1);
-    coefficientsvector.push_back(1);
-    coefficientsvector.push_back(0);
-    coefficientsvector.push_back(1);
-    Polynomial P0(coefficientsvector);
-
-    coefficientsvector.resize(0);
-    coefficientsvector.push_back(0);
-    coefficientsvector.push_back(2);
-    coefficientsvector.push_back(0);
-    coefficientsvector.push_back(-1);
-    Polynomial P1(coefficientsvector);
-
-    coefficientsvector.resize(0);
-    coefficientsvector.push_back(11);
-    coefficientsvector.push_back(13);
-    coefficientsvector.push_back(6);
-    coefficientsvector.push_back(1/6.);
-    Polynomial P2(coefficientsvector);
-
-    coefficientsvector.resize(0);
-    coefficientsvector.push_back(-4);
-    coefficientsvector.push_back(-10);
-    coefficientsvector.push_back(-6);
-    coefficientsvector.push_back(0.5);
-    Polynomial P3(coefficientsvector);
-
-    polynomialsvector.resize(0);
-    polynomialsvector.push_back(P0);
-    polynomialsvector.push_back(P1);
-    Chunk chunk0(2.,polynomialsvector);
-
-    polynomialsvector.resize(0);
-    polynomialsvector.push_back(P2);
-    polynomialsvector.push_back(P3);
-    Chunk chunk1(3,polynomialsvector);
-
-    std::list<Chunk> chunkslist;
-    chunkslist.push_back(chunk0);
-    chunkslist.push_back(chunk1);
+    std::string s="2 \n 2\n 1 1 0 1\n 0 2 0 -1\n 3\n 2\n 11 13 6 0.1666666666666\n -4 -10 -6 0.5";
 
     PiecewisePolynomialTrajectory* ptrajectory;
-    ptrajectory = new PiecewisePolynomialTrajectory(chunkslist);
+    ptrajectory = new PiecewisePolynomialTrajectory(s);
 
-    std::vector<dReal> q(2);
-
-    ptrajectory->Evaldd(1.9999,q);
-    //    std::cout << q[0] << "," << q[1] << "\n";
-    ptrajectory->Evaldd(2.0001,q);
-    //    std::cout << q[0] << "," << q[1] << "\n";
-
-
+    std::stringstream ss;
+    ptrajectory->Write(ss);
+    std::cout << "Trajectory:\n" << ss.str() << "\n";
 
     Tunings tunings;
     KinematicLimits kinconstraints;
@@ -142,74 +94,18 @@ int main(){
         itprof++;
     }
 
-    //Profile profilefinal(resprofileslist,0.1);
 
-    // std::cout << "\n\n\n";
-
-    // dReal dt = 0.001;
-
-    // std::list<Profile>::iterator itp = resprofileslist.begin();
-    // itp++;
-    // itp++;
-    // itp++;
-    // itp++;
-    // Profile p = *itp;
-    // dReal scur,sdcur,sdd,s,sd;
-
-    // scur = p.Eval(0);
-    // sdcur = p.Evald(0);
-
-    // // for(dReal t=0; t<0.1; t+=dt) {
-    // //     s = p.Eval(t);
-    // //     sd = p.Evald(t);
-    // //     std::cout << s << "/"  << scur << " **  "<< sd << "/" << sdcur << "\n";
-    // //     sdd = p.Evaldd(t);
-    // //     scur += sdcur*dt + sdd*dt*dt*0.5;
-    // //     sdcur += sdd*dt;
-    // // }
-
-
-    // std::cout << "Profilefinal: " << profilefinal.duration << "\n";
-
-    //PrintVector1d(profile.sdvect);
 
     PiecewisePolynomialTrajectory newtrajectory;
     ptrajectory->Reparameterize2(resprofileslist,0.01,newtrajectory);
-    //PiecewisePolynomialTrajectory newtrajectory2;
-    //newtrajectory.Reintegrate(0.001,newtrajectory2);
-
-
-
-    std::cout << "\n\n\nq\n";
-    for(dReal t=0; t<newtrajectory.duration; t+=0.1) {
-        newtrajectory.Eval(t,q);
-        std::cout<< "--\n";
-        PrintVector1d(q);
-    }
-    std::cout << "\n\n\nqd\n";
-    for(dReal t=0; t<newtrajectory.duration; t+=0.1) {
-        newtrajectory.Evald(t,q);
-        std::cout<< "--\n";
-        PrintVector1d(q);
-    }
-    std::cout << "\n\n\nqdd\n";
-    for(dReal t=0; t<newtrajectory.duration; t+=0.1) {
-        newtrajectory.Evaldd(t,q);
-        std::cout<< "--\n";
-        PrintVector1d(q);
-    }
-
-
-
-    std::cout << "\n\n\nq\n";
-    for(dReal t=0; t<ptrajectory->duration; t+=0.1) {
-        ptrajectory->Eval(t,q);
-        std::cout<< "--\n";
-        PrintVector1d(q);
-    }
-
 
     std::cout << newtrajectory.duration << " " << ptrajectory->duration << "\n";
+
+    std::stringstream ss2;
+    newtrajectory.Write(ss2);
+    std::cout << "Trajectory:\n" << ss2.str() << "\n";
+
+
 
 
     delete ptrajectory;

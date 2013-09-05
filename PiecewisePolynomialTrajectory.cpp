@@ -20,6 +20,31 @@ Polynomial::Polynomial(const std::vector<dReal>& coefficientsvector0){
     }
 }
 
+Polynomial::Polynomial(const std::string& s){
+    std::istringstream iss(s);
+    std::string sub;
+    dReal value;
+    coefficientsvector.resize(0);
+
+    while(iss.good()) {
+        iss >> sub;
+        value = atof(sub.c_str());
+        coefficientsvector.push_back(value);
+    };
+
+    degree = coefficientsvector.size()-1;
+
+    // Construct first- and second-order derivative polynomials
+    coefficientsvectord.resize(0);
+    coefficientsvectordd.resize(0);
+    for(int i=1; i<=degree; i++) {
+        coefficientsvectord.push_back(i*coefficientsvector[i]);
+    }
+    for(int i=1; i<=degree-1; i++) {
+        coefficientsvectordd.push_back(i*coefficientsvectord[i]);
+    }
+}
+
 // Evaluate polynomials using Horner's method
 dReal Polynomial::Eval(dReal s){
     dReal res = 0;
@@ -44,6 +69,12 @@ dReal Polynomial::Evaldd(dReal s){
         res = res*s + coefficientsvectordd[i];
     }
     return res;
+}
+
+void Polynomial::Write(std::stringstream& ss){
+    for(int i=0; i<=degree; i++) {
+        ss << std::setprecision(17) << coefficientsvector[i] << " ";
+    }
 }
 
 
@@ -91,11 +122,21 @@ void Chunk::Evaldd(dReal s, std::vector<dReal>&qdd){
     }
 }
 
+void Chunk::Write(std::stringstream& ss){
+    ss << std::setprecision(17) <<  duration << "\n";
+    ss << dimension << "\n";
+    for(int i=0; i<dimension; i++) {
+        polynomialsvector[i].Write(ss);
+        ss << "\n";
+    }
+}
+
 
 
 /////////////// PiecewisePolynomialTrajectory ///////////////////////
 
-PiecewisePolynomialTrajectory::PiecewisePolynomialTrajectory(const std::list<Chunk>& chunkslist0){
+
+void PiecewisePolynomialTrajectory::InitFromChunksList(const std::list<Chunk>&chunkslist0){
     chunkslist = chunkslist0;
     assert(chunkslist.size()>0);
     dimension = chunkslist.front().dimension;
@@ -118,7 +159,39 @@ PiecewisePolynomialTrajectory::PiecewisePolynomialTrajectory(const std::list<Chu
         itchunk++;
     }
     chunkcumulateddurationslist.push_back(duration);
+
 }
+
+
+PiecewisePolynomialTrajectory::PiecewisePolynomialTrajectory(const std::list<Chunk>& chunkslist0){
+    InitFromChunksList(chunkslist0);
+}
+
+PiecewisePolynomialTrajectory::PiecewisePolynomialTrajectory(const std::string& s){
+    int buffsize = 255;
+    char buff[buffsize];
+    std::istringstream iss(s);
+    int dimension;
+    dReal duration;
+    std::vector<Polynomial> polynomialsvector;
+    std::list<Chunk> chunkslist0;
+    while(iss.good()) {
+        iss.getline(buff,buffsize);
+        duration = atof(buff);
+        iss.getline(buff,buffsize);
+        dimension = atoi(buff);
+        polynomialsvector.resize(0);
+        for(int i=0; i<dimension; i++) {
+            iss.getline(buff,buffsize);
+            polynomialsvector.push_back(Polynomial(std::string(buff)));
+        }
+        chunkslist0.push_back(Chunk(duration,polynomialsvector));
+    }
+    InitFromChunksList(chunkslist0);
+}
+
+
+
 
 void PiecewisePolynomialTrajectory::FindChunkIndex(dReal s, int& index, dReal& remainder){
     std::list<dReal>::iterator it = chunkcumulateddurationslist.begin();
@@ -284,7 +357,7 @@ void PiecewisePolynomialTrajectory::Reparameterize2(std::list<Profile>& profiles
     sdcur = profile.Evald(tres);
 
     while(scur<duration) {
-        std::cout << scur << " " << sdcur << "   " << "\n";
+        //std::cout << scur << " " << sdcur << "   " << "\n";
         sdd = profile.Evaldd(tres);
         sdnext = sdcur + dt*sdd;
         snext = scur + dt*sdcur + 0.5*dtsq*sdd;
@@ -292,7 +365,7 @@ void PiecewisePolynomialTrajectory::Reparameterize2(std::list<Profile>& profiles
             sdnext2 = profile.Evald(tres);
             dtmod = dt;
             if(std::abs(sdnext-sdnext2)>TINY2) {
-                std::cout << "Mod : " << std::abs(sdnext-sdnext2)  << " \n\n";
+                //std::cout << "Mod : " << std::abs(sdnext-sdnext2)  << " \n\n";
                 dtmod = 2*(snext-scur)/(sdnext2+sdcur);
                 sdd = (sdnext2-sdcur)/dtmod;
             }
@@ -415,6 +488,15 @@ void PiecewisePolynomialTrajectory::Reintegrate(dReal reintegrationtimestep, Pie
 }
 
 
+
+void PiecewisePolynomialTrajectory::Write(std::stringstream& ss){
+    std::list<Chunk>::iterator itchunk = chunkslist.begin();
+    while(itchunk!=chunkslist.end()) {
+        itchunk->Write(ss);
+        ss << "\n";
+        itchunk++;
+    }
+}
 
 
 

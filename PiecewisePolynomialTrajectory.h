@@ -6,6 +6,7 @@ namespace TOPP {
 class Polynomial {
 public:
     Polynomial(const std::vector<dReal>& coefficientsvector);
+    Polynomial(const std::string& s);
     Polynomial(){
     }
     int degree;
@@ -15,6 +16,7 @@ public:
     dReal Eval(dReal s);
     dReal Evald(dReal s);
     dReal Evaldd(dReal s);
+    void Write(std::stringstream& ss);
 };
 
 
@@ -31,15 +33,17 @@ public:
     void Eval(dReal s, std::vector<dReal>&q);
     void Evald(dReal s, std::vector<dReal>&qd);
     void Evaldd(dReal s, std::vector<dReal>&qdd);
-
+    void Write(std::stringstream& ss);
 };
 
 
 class PiecewisePolynomialTrajectory : public Trajectory {
 public:
     PiecewisePolynomialTrajectory(const std::list<Chunk>& chunkslist);
+    PiecewisePolynomialTrajectory(const std::string& s);
     PiecewisePolynomialTrajectory(){
     }
+    void InitFromChunksList(const std::list<Chunk>&chunkslist);
     int degree;
     std::list<Chunk> chunkslist;
     std::list<dReal> chunkdurationslist;
@@ -56,7 +60,7 @@ public:
     void Reparameterize(const Profile& profile, PiecewisePolynomialTrajectory& newtrajectory);
     void Reintegrate(dReal reintegrationtimestep, PiecewisePolynomialTrajectory& newtrajectory);
     void Convert3(dReal chunklength, PiecewisePolynomialTrajectory& newtrajectory);
-
+    void Write(std::stringstream& ss);
 };
 
 
