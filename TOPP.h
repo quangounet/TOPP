@@ -35,7 +35,7 @@ typedef double dReal;
 
 #define TINY 1e-10
 #define TINY2 1e-5
-#define INF 1e15
+#define INF 1.0e15
 
 namespace TOPP {
 
@@ -49,10 +49,12 @@ class Tunings {
 public:
     Tunings(){
     }
+    Tunings(const std::string& tuningsstring);
     dReal discrtimestep;
     dReal integrationtimestep;
     dReal threshold;
     int passswitchpointnsteps;
+    dReal reparamtimestep;
 };
 
 
@@ -66,6 +68,8 @@ class Trajectory {
 public:
     Trajectory(){
     };
+    Trajectory(const std::string& trajectorystring){
+    }
     int dimension;
     dReal duration;
     virtual void Eval(dReal s, std::vector<dReal>& q){
@@ -73,6 +77,8 @@ public:
     virtual void Evald(dReal s, std::vector<dReal>& qd){
     }
     virtual void Evaldd(dReal s, std::vector<dReal>& qdd){
+    }
+    virtual void Write(std::stringstream& ss){
     }
 };
 
@@ -217,9 +223,13 @@ int IntegrateAllProfiles();
 ///////////////////////// Utilities ////////////////////////////////
 ////////////////////////////////////////////////////////////////////
 
+// Read a vector of dReal from a space separated string
+void VectorFromString(const std::string& s,std::vector<dReal>& resvect);
+
+
 //Solves a0 + a1*x + a2*x^2 = 0 in the interval [lowerbound,upperbound]
 //If more than one solution, returns the smallest
-bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal lowerbound, dReal upperbound, dReal& sol);
+bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal& sol, dReal lowerbound=-INF, dReal upperbound=INF);
 
 bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>& testprofileslist, bool searchbackward=false, bool reinitialize=false);
 

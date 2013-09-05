@@ -3,6 +3,17 @@
 
 namespace TOPP {
 
+KinematicLimits::KinematicLimits(const std::string& constraintsstring){
+    int buffsize = 255;
+    char buff[buffsize];
+    std::istringstream iss(constraintsstring);
+    iss.getline(buff,buffsize);
+    VectorFromString(std::string(buff),amax);
+    iss.getline(buff,buffsize);
+    VectorFromString(std::string(buff),vmax);
+}
+
+
 void KinematicLimits::Preprocess(Trajectory& trajectory, const Tunings& tunings){
     Constraints::Preprocess(trajectory, tunings);
 }

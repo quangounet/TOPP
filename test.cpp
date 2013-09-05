@@ -97,7 +97,7 @@ int main(){
 
 
     PiecewisePolynomialTrajectory newtrajectory;
-    ptrajectory->Reparameterize2(resprofileslist,0.01,newtrajectory);
+    ptrajectory->Reparameterize(resprofileslist,0.01,newtrajectory);
 
     std::cout << newtrajectory.duration << " " << ptrajectory->duration << "\n";
 

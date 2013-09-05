@@ -25,6 +25,29 @@ namespace TOPP {
 /////////////////////////// Constraints ////////////////////////////
 ////////////////////////////////////////////////////////////////////
 
+Tunings::Tunings(const std::string& tuningsstring){
+    std::istringstream iss(tuningsstring);
+    std::string sub;
+    iss >> sub;
+    discrtimestep = atof(sub.c_str());
+    iss >> sub;
+    integrationtimestep = atof(sub.c_str());
+    iss >> sub;
+    threshold = atof(sub.c_str());
+    iss >> sub;
+    passswitchpointnsteps = atof(sub.c_str());
+    iss >> sub;
+    reparamtimestep = atof(sub.c_str());
+}
+
+
+
+
+
+////////////////////////////////////////////////////////////////////
+/////////////////////////// Constraints ////////////////////////////
+////////////////////////////////////////////////////////////////////
+
 void Constraints::Preprocess(Trajectory& trajectory0, const Tunings& tunings0){
     ptrajectory = &trajectory0;
     tunings = tunings0;
@@ -240,7 +263,7 @@ bool Profile::Invert(dReal s,  dReal& t, bool searchbackward){
             return false;
         }
         dReal tres;
-        assert(SolveQuadraticEquation(svect[currentindex]-s,sdvect[currentindex],0.5*sddvect[currentindex],0,integrationtimestep,tres));
+        assert(SolveQuadraticEquation(svect[currentindex]-s,sdvect[currentindex],0.5*sddvect[currentindex],tres,0,integrationtimestep));
         t = currentindex*integrationtimestep + tres;
         return true;
     }
@@ -255,7 +278,7 @@ bool Profile::Invert(dReal s,  dReal& t, bool searchbackward){
             return false;
         }
         dReal tres;
-        assert(SolveQuadraticEquation(svect[currentindex-1]-s,sdvect[currentindex-1],0.5*sddvect[currentindex-1],0,integrationtimestep,tres));
+        assert(SolveQuadraticEquation(svect[currentindex-1]-s,sdvect[currentindex-1],0.5*sddvect[currentindex-1],tres,0,integrationtimestep));
         t = (currentindex-1)*integrationtimestep + tres;
         return true;
     }
@@ -549,7 +572,20 @@ int IntegrateAllProfiles(Constraints& constraints, std::list<Profile>&resprofile
 ////////////////////////////////////////////////////////////////////
 
 
-bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal lowerbound, dReal upperbound, dReal& sol){
+void VectorFromString(const std::string& s,std::vector<dReal>& resvect){
+    std::istringstream iss(s);
+    std::string sub;
+    dReal value;
+    resvect.resize(0);
+    while(iss.good()) {
+        iss >> sub;
+        value = atof(sub.c_str());
+        resvect.push_back(value);
+    }
+}
+
+
+bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal& sol, dReal lowerbound, dReal upperbound){
     dReal delta = a1*a1- 4*a0*a2;
     if(delta<0) {
         return false;
