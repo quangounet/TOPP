@@ -130,6 +130,8 @@ public:
     dReal Evald(dReal t);
     dReal Evaldd(dReal t);
     void Print();
+    void Write(std::stringstream& ss, dReal dt=0.01);
+
 };
 
 

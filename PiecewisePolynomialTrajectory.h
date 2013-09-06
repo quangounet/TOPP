@@ -9,6 +9,7 @@ public:
     Polynomial(const std::string& s);
     Polynomial(){
     }
+    void InitFromCoefficientsVector(const std::vector<dReal>&coefficientsvector);
     int degree;
     std::vector<dReal> coefficientsvector;
     std::vector<dReal> coefficientsvectord;

@@ -6,7 +6,7 @@ namespace TOPP {
 
 ///////////////////////// Polynomial ///////////////////////
 
-Polynomial::Polynomial(const std::vector<dReal>& coefficientsvector0){
+void Polynomial::InitFromCoefficientsVector(const std::vector<dReal>&coefficientsvector0){
     coefficientsvector = coefficientsvector0;
     degree = coefficientsvector.size()-1;
     // Construct first- and second-order derivative polynomials
@@ -20,21 +20,16 @@ Polynomial::Polynomial(const std::vector<dReal>& coefficientsvector0){
     }
 }
 
+
+
+Polynomial::Polynomial(const std::vector<dReal>& coefficientsvector0){
+    InitFromCoefficientsVector(coefficientsvector0);
+}
+
 Polynomial::Polynomial(const std::string& s){
-
     VectorFromString(s,coefficientsvector);
+    InitFromCoefficientsVector(coefficientsvector);
 
-    degree = coefficientsvector.size()-1;
-
-    // Construct first- and second-order derivative polynomials
-    coefficientsvectord.resize(0);
-    coefficientsvectordd.resize(0);
-    for(int i=1; i<=degree; i++) {
-        coefficientsvectord.push_back(i*coefficientsvector[i]);
-    }
-    for(int i=1; i<=degree-1; i++) {
-        coefficientsvectordd.push_back(i*coefficientsvectord[i]);
-    }
 }
 
 // Evaluate polynomials using Horner's method
@@ -324,10 +319,10 @@ void PiecewisePolynomialTrajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd,
 
 
 
-void PiecewisePolynomialTrajectory::Reparameterize(std::list<Profile>& profileslist, dReal integrationtimestep, PiecewisePolynomialTrajectory& newtrajectory){
+void PiecewisePolynomialTrajectory::Reparameterize(std::list<Profile>& profileslist, dReal reparamtimestep, PiecewisePolynomialTrajectory& newtrajectory){
 
     dReal scur, sdcur, snext, sdnext, sdnext2, sdd;
-    dReal dt = integrationtimestep;
+    dReal dt = reparamtimestep;
     dReal dtsq = dt*dt;
     dReal dtmod;
     Profile profile;
@@ -347,6 +342,7 @@ void PiecewisePolynomialTrajectory::Reparameterize(std::list<Profile>& profilesl
     }
 
     scur = 0;
+    dReal t = 0;
     FindLowestProfile(scur,profile,tres,profileslist);
     sdcur = profile.Evald(tres);
 
@@ -354,15 +350,24 @@ void PiecewisePolynomialTrajectory::Reparameterize(std::list<Profile>& profilesl
         sdd = profile.Evaldd(tres);
         sdnext = sdcur + dt*sdd;
         snext = scur + dt*sdcur + 0.5*dtsq*sdd;
-        if(FindLowestProfile(snext,profile,tres,profileslist)) {
+        if(snext >= scur+TINY && FindLowestProfile(snext,profile,tres,profileslist)) {
             sdnext2 = profile.Evald(tres);
             dtmod = dt;
             if(std::abs(sdnext-sdnext2)>TINY2) {
                 dtmod = 2*(snext-scur)/(sdnext2+sdcur);
+                //std::cout << t << ": " << sdcur << " " << sdnext << "/" << sdnext2 << "   " << sdd << " ";
                 sdd = (sdnext2-sdcur)/dtmod;
+                //std::cout << sdd << "\n";
+            }
+            else{
+                //std::cout << t << ": " << sdcur << " " << sdnext << "   " << sdd << "---------\n";
             }
             SPieceToChunks(scur,sdcur,sdd,dtmod,currentchunkindex,processedcursor,itcurrentchunk,newchunkslist);
         }
+        else{
+            break;
+        }
+        t+= dtmod;
         scur = snext;
         sdcur = sdnext2;
     }
@@ -377,7 +382,6 @@ void PiecewisePolynomialTrajectory::Write(std::stringstream& ss){
     std::list<Chunk>::iterator itchunk = chunkslist.begin();
     while(itchunk!=chunkslist.end()) {
         itchunk->Write(ss);
-        ss << "\n";
         itchunk++;
     }
 }

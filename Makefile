@@ -8,8 +8,8 @@ CC = g++
 TOPP: $(SOURCE)
 	$(CC) $(SOURCE) -o $(TARGET)
 
-debug: $(SOURCE)
-	$(CC) -g $(SOURCE) -o $(TARGET)
-
 so: $(SOURCE) 
 	$(CC) $(INCLUDE) $(SOURCE) -shared -o $(SO) $(LIB)
+
+debug: $(SOURCE) 
+	$(CC) -g $(INCLUDE) $(SOURCE) -shared -o $(SO) $(LIB)

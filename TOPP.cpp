@@ -329,6 +329,18 @@ void Profile::Print(){
 
 
 
+void Profile::Write(std::stringstream& ss, dReal dt){
+    ss << duration << " " << dt << "\n";
+    for(dReal t=0; t<=duration; t+=dt) {
+        ss << Eval(t) << " ";
+    }
+    ss << "\n";
+    for(dReal t=0; t<=duration; t+=dt) {
+        ss << Evald(t) << " ";
+    }
+}
+
+
 
 
 ////////////////////////////////////////////////////////////////////
@@ -624,7 +636,7 @@ bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>&testprofileslist,
             }
         }
         if(it->Invert(s,t,searchbackward)) {
-            if(sd > it->Eval(t)) {
+            if(sd > it->Evald(t)) {
                 return true;
             }
         }
