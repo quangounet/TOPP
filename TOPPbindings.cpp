@@ -28,18 +28,6 @@ public:
 
     void Solve(){
         constraints.Preprocess(*ptrajectory,tunings);
-
-
-
-        std::list<SwitchPoint>::iterator itsw = constraints.switchpointslist.begin();
-        while(itsw!=constraints.switchpointslist.end()) {
-            std::cout << "Type " << itsw->switchpointtype << ": (" << itsw->s <<"," << itsw->sd << ")\n";
-            itsw++;
-        }
-
-
-
-
         Profile resprofile;
         ComputeLimitingCurves(constraints,resprofileslist);
         IntegrateForward(constraints,0,1e-4,constraints.tunings.integrationtimestep,resprofile,1e5,resprofileslist);
@@ -76,7 +64,7 @@ public:
 
 
 
-BOOST_PYTHON_MODULE(TOPP)
+BOOST_PYTHON_MODULE(TOPPbindings)
 {
     using namespace boost::python;
     class_<TOPPProblem>("TOPPProblem", init<std::string,std::string,std::string>())

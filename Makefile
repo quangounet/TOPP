@@ -1,6 +1,6 @@
-SOURCE = TOPP.h KinematicLimits.h PiecewisePolynomialTrajectory.h  TOPP.cpp KinematicLimits.cpp PiecewisePolynomialTrajectory.cpp TOPP_bindings.cpp
+SOURCE = TOPP.h KinematicLimits.h PiecewisePolynomialTrajectory.h  TOPP.cpp KinematicLimits.cpp PiecewisePolynomialTrajectory.cpp TOPPbindings.cpp
 TARGET = TOPP
-SO = TOPP.so
+SO = TOPPbindings.so
 LIB = -lboost_python
 INCLUDE = -I/usr/include/python2.7/
 CC = g++

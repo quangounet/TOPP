@@ -100,7 +100,7 @@ class Chunk():
 
 
 
-class PieceWisePolyTrajectory():
+class PiecewisePolynomialTrajectory():
     
     def __init__(self,trajectorystring):
         buff = StringIO.StringIO(trajectorystring)
