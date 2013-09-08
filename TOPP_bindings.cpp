@@ -28,12 +28,24 @@ public:
 
     void Solve(){
         constraints.Preprocess(*ptrajectory,tunings);
-        Profile profile;
+
+
+
+        std::list<SwitchPoint>::iterator itsw = constraints.switchpointslist.begin();
+        while(itsw!=constraints.switchpointslist.end()) {
+            std::cout << "Type " << itsw->switchpointtype << ": (" << itsw->s <<"," << itsw->sd << ")\n";
+            itsw++;
+        }
+
+
+
+
+        Profile resprofile;
         ComputeLimitingCurves(constraints,resprofileslist);
-        IntegrateForward(constraints,0,1e-4,profile,1e5,resprofileslist);
-        resprofileslist.push_back(profile);
-        IntegrateBackward(constraints,ptrajectory->duration,1e-4,profile,1e5,resprofileslist);
-        resprofileslist.push_back(profile);
+        IntegrateForward(constraints,0,1e-4,constraints.tunings.integrationtimestep,resprofile,1e5,resprofileslist);
+        resprofileslist.push_back(resprofile);
+        IntegrateBackward(constraints,ptrajectory->duration,1e-4,constraints.tunings.integrationtimestep,resprofile,1e5,resprofileslist);
+        resprofileslist.push_back(resprofile);
         ptrajectory->Reparameterize(resprofileslist,tunings.reparamtimestep,restrajectory);
         resduration = restrajectory.duration;
     }
@@ -47,6 +59,8 @@ public:
     void WriteProfilesList(){
         std::list<Profile>::iterator itprofile = resprofileslist.begin();
         std::stringstream ss;
+        constraints.WriteMVC(ss);
+        ss << "\n";
         while(itprofile!=resprofileslist.end()) {
             itprofile->Write(ss);
             ss << "\n";

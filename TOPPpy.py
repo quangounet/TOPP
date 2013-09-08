@@ -4,19 +4,24 @@ import StringIO
 import bisect
 
 
+
+def ProfileFromLines(lines):
+    l = lines[0]
+    [duration,dt] = [double(x) for x in l.split(' ')]
+    l = lines[1]
+    sarray = array([double(x) for x in l.split(' ')])
+    l = lines[2]
+    sdarray = array([double(x) for x in l.split(' ')])
+    return [duration,dt,sarray,sdarray]
+
+
 def ProfilesFromString(s):
     s = s.strip(" \n")
     profileslist = []
     lines = [l.strip(" \n") for l in s.split('\n')]
     n = len(lines) / 3
-    for i in range(n):
-        l = lines[3*i]
-        [duration,dt] = [double(x) for x in l.split(' ')]
-        l = lines[3*i+1]
-        sarray = array([double(x) for x in l.split(' ')])
-        l = lines[3*i+2]
-        sdarray = array([double(x) for x in l.split(' ')])
-        profileslist.append([duration,dt,sarray,sdarray])
+    for i in range(n):        
+        profileslist.append(ProfileFromLines(lines[3*i:3*i+3]))
     return profileslist
 
 

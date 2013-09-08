@@ -52,7 +52,7 @@ public:
     Tunings(const std::string& tuningsstring);
     dReal discrtimestep;
     dReal integrationtimestep;
-    dReal threshold;
+    dReal switchpointsdprecision;
     int passswitchpointnsteps;
     dReal reparamtimestep;
 };
@@ -115,7 +115,6 @@ public:
 class Profile {
 public:
     Profile(std::list<dReal>& slist, std::list<dReal>& sdlist, std::list<dReal>&  sddlist, dReal integrationtimestep);
-    Profile(std::list<Profile>& profileslist, dReal integrationtimestep0);
     Profile(){
     }
     std::vector<dReal> svect, sdvect, sddvect;
@@ -158,6 +157,8 @@ public:
     virtual void Preprocess(Trajectory& trajectory, const Tunings& tunings);
     void Discretize();
     void ComputeMVC();
+    void WriteMVC(std::stringstream& ss, dReal dt=0.01);
+
 
     //////////////////////// Limits ///////////////////////////
 
@@ -210,9 +211,9 @@ enum CLCReturnType {
 
 static std::list<Profile> voidprofileslist;
 
-int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, Profile& profile, int maxsteps=1e5, std::list<Profile>& testprofileslist = voidprofileslist);
+int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, std::list<Profile>& testprofileslist = voidprofileslist);
 
-int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, Profile& profile, int maxsteps=1e5, std::list<Profile>& testprofileslist = voidprofileslist);
+int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, std::list<Profile>& testprofileslist = voidprofileslist);
 
 int ComputeLimitingCurves(Constraints& constraints, std::list<Profile>& resprofileslist);
 

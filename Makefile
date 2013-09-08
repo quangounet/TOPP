@@ -1,4 +1,4 @@
-SOURCE = TOPP.h KinematicLimits.h PiecewisePolynomialTrajectory.h  TOPP.cpp KinematicLimits.cpp PiecewisePolynomialTrajectory.cpp test.cpp TOPP_bindings.cpp
+SOURCE = TOPP.h KinematicLimits.h PiecewisePolynomialTrajectory.h  TOPP.cpp KinematicLimits.cpp PiecewisePolynomialTrajectory.cpp TOPP_bindings.cpp
 TARGET = TOPP
 SO = TOPP.so
 LIB = -lboost_python

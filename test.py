@@ -4,7 +4,7 @@ import time
 from pylab import *
 
 constraintstring = "4 4\n  0 0";
-tuningsstring = "0.01 0.01 0.01 10 0.01";
+tuningsstring = "0.01 0.01 0.01 20 0.01";
 trajectorystring = "2 \n 2\n 1 1 0 1\n 0 2 0 -1\n 3\n 2\n 11 13 6 0.1666666666666\n -4 -10 -6 0.5";
 
 
@@ -57,8 +57,13 @@ traj1.Plotdd(dt,'--')
 figure(3)
 clf()
 hold('on')
+mvc = profileslist.pop(0)
+plot(mvc[2],mvc[3],'k',linewidth=2)
 for p in profileslist:
     plot(p[2],p[3])
+
+axis([0,mvc[0],0,2*max([max(p[3]) for p in profileslist])])
+
 
 
 
