@@ -15,7 +15,7 @@ start = time.time()
 reps = 10
 for i in range(reps):
     x = TOPPbindings.TOPPProblem(constraintstring,trajectorystring,tuningsstring);
-    x.Solve()
+    x.Solve(1,1)
 
 print "Computation time: ", (time.time()-start)/reps
 print "Trajectory duration: ", x.resduration

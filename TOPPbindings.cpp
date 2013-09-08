@@ -26,16 +26,21 @@ public:
     std::string resprofilesliststring;
     dReal resduration;
 
-    void Solve(){
+    void Solve(dReal sdbeg, dReal sdend){
         constraints.Preprocess(*ptrajectory,tunings);
         Profile resprofile;
         ComputeLimitingCurves(constraints,resprofileslist);
-        IntegrateForward(constraints,0,1e-4,constraints.tunings.integrationtimestep,resprofile,1e5,resprofileslist);
+        IntegrateForward(constraints,0,sdbeg,constraints.tunings.integrationtimestep,resprofile,1e5,resprofileslist);
         resprofileslist.push_back(resprofile);
-        IntegrateBackward(constraints,ptrajectory->duration,1e-4,constraints.tunings.integrationtimestep,resprofile,1e5,resprofileslist);
+        IntegrateBackward(constraints,ptrajectory->duration,sdend,constraints.tunings.integrationtimestep,resprofile,1e5,resprofileslist);
         resprofileslist.push_back(resprofile);
         ptrajectory->Reparameterize(resprofileslist,tunings.reparamtimestep,restrajectory);
         resduration = restrajectory.duration;
+    }
+
+
+    void VIP(dReal sdbegmin, dReal sdbegmax){
+
     }
 
     void WriteResultTrajectory(){
