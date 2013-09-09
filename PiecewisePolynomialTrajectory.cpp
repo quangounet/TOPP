@@ -355,12 +355,9 @@ void PiecewisePolynomialTrajectory::Reparameterize(std::list<Profile>& profilesl
             dtmod = dt;
             if(std::abs(sdnext-sdnext2)>TINY2) {
                 dtmod = 2*(snext-scur)/(sdnext2+sdcur);
-                //std::cout << t << ": " << sdcur << " " << sdnext << "/" << sdnext2 << "   " << sdd << " ";
                 sdd = (sdnext2-sdcur)/dtmod;
-                //std::cout << sdd << "\n";
             }
             else{
-                //std::cout << t << ": " << sdcur << " " << sdnext << "   " << sdd << "---------\n";
             }
             SPieceToChunks(scur,sdcur,sdd,dtmod,currentchunkindex,processedcursor,itcurrentchunk,newchunkslist);
         }
