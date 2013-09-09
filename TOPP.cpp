@@ -493,7 +493,6 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
     }
     else{
         // here switchpointtype == SP_SINGULAR
-        std::cout << "Cool\n";
         dt = constraints.tunings.discrtimestep/2;
         ret = IntegrateBackward(constraints,s,sd,dt,resprofile,constraints.tunings.passswitchpointnsteps);
         if(ret==IRT_MAXSTEPS||ret==IRT_END) {

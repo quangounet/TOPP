@@ -1,28 +1,28 @@
-import TOPP
+import TOPPbindings
 import TOPPpy
 import time
 from pylab import *
 
-constraintstring = "4 4\n  0 0";
+constraintstring = "15 10\n  0 0";
 tuningsstring = "0.01 0.01 0.01 20 0.01";
 trajectorystring = "2 \n 2\n 1 1 0 1\n 0 2 0 -1\n 3\n 2\n 11 13 6 0.1666666666666\n -4 -10 -6 0.5";
 
 
-traj0 = TOPPpy.PieceWisePolyTrajectory(trajectorystring)
+traj0 = TOPPpy.PiecewisePolynomialTrajectory(trajectorystring)
 
 start = time.time()
 
 reps = 10
 for i in range(reps):
-    x = TOPP.TOPPProblem(constraintstring,trajectorystring,tuningsstring);
-    x.Solve()
+    x = TOPPbindings.TOPPProblem(constraintstring,trajectorystring,tuningsstring);
+    x.Solve(1,1)
 
 print "Computation time: ", (time.time()-start)/reps
 print "Trajectory duration: ", x.resduration
 
 
 x.WriteResultTrajectory()
-traj1 = TOPPpy.PieceWisePolyTrajectory(x.restrajectorystring)
+traj1 = TOPPpy.PiecewisePolynomialTrajectory(x.restrajectorystring)
 x.WriteProfilesList()
 profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
 
