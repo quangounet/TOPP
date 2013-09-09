@@ -14,27 +14,26 @@ start = time.time()
 
 reps = 10
 for i in range(reps):
-    x = TOPPbindings.TOPPProblem(constraintstring,trajectorystring,tuningsstring);
-    x.Solve(1,1)
+    x = TOPPbindings.TOPPProblem("KinematicLimits",constraintstring,trajectorystring,tuningsstring);
+    x.RunPP(1e-4,1e-4)
+    #x.RunVIP(1,2)
 
 print "Computation time: ", (time.time()-start)/reps
 print "Trajectory duration: ", x.resduration
+#print "[sdendmin,sdendmax] = [", x.sdendmin ,",", x.sdendmax, "]"
+
+
+ion()
+dt = 0.1
 
 
 x.WriteResultTrajectory()
 traj1 = TOPPpy.PiecewisePolynomialTrajectory(x.restrajectorystring)
-x.WriteProfilesList()
-profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
 
 dt = 0.1
 tvect = arange(0,traj1.duration+dt,dt)
 qdd = array([traj1.Evaldd(t) for t in tvect])
 print "Max qdd: ", max(abs(qdd[:,0])) ,"," , max(abs(qdd[:,1])) 
-
-
-
-
-ion()
 
 figure(0)
 clf()
@@ -54,6 +53,9 @@ hold('on')
 traj0.Plotdd(dt)
 traj1.Plotdd(dt,'--')
 
+
+x.WriteProfilesList()
+profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
 figure(3)
 clf()
 hold('on')

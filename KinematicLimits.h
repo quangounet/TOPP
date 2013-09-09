@@ -9,10 +9,10 @@ public:
     }
     KinematicLimits(const std::string& constraintsstring);
     std::vector<dReal> amax, vmax;
-    void Preprocess(Trajectory& trajectory, const Tunings& tunings);
     std::pair<dReal,dReal> SddLimits(dReal s, dReal sd);
+    void DiscretizeDynamics(){
+    };
     dReal SdLimitMVC(dReal s);
     void FindSingularSwitchPoints();
-
 };
 }

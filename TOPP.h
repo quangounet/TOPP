@@ -37,6 +37,8 @@ typedef double dReal;
 #define TINY2 1e-5
 #define INF 1.0e15
 
+
+
 namespace TOPP {
 
 
@@ -52,7 +54,7 @@ public:
     Tunings(const std::string& tuningsstring);
     dReal discrtimestep;
     dReal integrationtimestep;
-    dReal switchpointsdprecision;
+    dReal sdprecision;
     int passswitchpointnsteps;
     dReal reparamtimestep;
 };
@@ -61,37 +63,13 @@ public:
 
 
 ////////////////////////////////////////////////////////////////////
-/////////////////////////// Trajectory /////////////////////////////
-////////////////////////////////////////////////////////////////////
-
-class Trajectory {
-public:
-    Trajectory(){
-    };
-    Trajectory(const std::string& trajectorystring){
-    }
-    int dimension;
-    dReal duration;
-    virtual void Eval(dReal s, std::vector<dReal>& q){
-    }
-    virtual void Evald(dReal s, std::vector<dReal>& qd){
-    }
-    virtual void Evaldd(dReal s, std::vector<dReal>& qdd){
-    }
-    virtual void Write(std::stringstream& ss){
-    }
-};
-
-
-
-////////////////////////////////////////////////////////////////////
 /////////////////////////// Switch Point ///////////////////////////
 ////////////////////////////////////////////////////////////////////
 
 enum SwitchPointType {
-    SPT_TANGENT = 0,
-    SPT_SINGULAR = 1,
-    SPT_DISCONTINUOUS = 2
+    SP_TANGENT = 0,
+    SP_SINGULAR = 1,
+    SP_DISCONTINUOUS = 2
 };
 
 class SwitchPoint {
@@ -114,7 +92,7 @@ public:
 
 class Profile {
 public:
-    Profile(std::list<dReal>& slist, std::list<dReal>& sdlist, std::list<dReal>&  sddlist, dReal integrationtimestep);
+    Profile(std::list<dReal>&slist, std::list<dReal>&sdlist, std::list<dReal>&sddlist, dReal integrationtimestep);
     Profile(){
     }
     std::vector<dReal> svect, sdvect, sddvect;
@@ -123,7 +101,7 @@ public:
     bool forward;
     int nsteps;
     int currentindex;
-    bool FindTimestepIndex(dReal t, int& index, dReal& remainder);
+    bool FindTimestepIndex(dReal t, int &index, dReal& remainder);
     bool Invert(dReal s,  dReal& t, bool searchbackward=false);
     dReal Eval(dReal t);
     dReal Evald(dReal t);
@@ -135,6 +113,75 @@ public:
 
 
 
+////////////////////////////////////////////////////////////////////
+/////////////////////////// Trajectory /////////////////////////////
+////////////////////////////////////////////////////////////////////
+
+
+class Polynomial {
+public:
+    Polynomial(const std::vector<dReal>& coefficientsvector);
+    Polynomial(const std::string& s);
+    Polynomial(){
+    }
+    void InitFromCoefficientsVector(const std::vector<dReal>&coefficientsvector);
+    int degree;
+    std::vector<dReal> coefficientsvector;
+    std::vector<dReal> coefficientsvectord;
+    std::vector<dReal> coefficientsvectordd;
+    dReal Eval(dReal s);
+    dReal Evald(dReal s);
+    dReal Evaldd(dReal s);
+    void Write(std::stringstream& ss);
+};
+
+
+class Chunk {
+public:
+    Chunk(dReal duration, const std::vector<Polynomial>& polynomialsvector);
+    Chunk(){
+    };
+    int dimension;
+    int degree;
+    dReal duration;
+    dReal sbegin, send;
+    std::vector<Polynomial> polynomialsvector;
+    void Eval(dReal s, std::vector<dReal>&q);
+    void Evald(dReal s, std::vector<dReal>&qd);
+    void Evaldd(dReal s, std::vector<dReal>&qdd);
+    void Write(std::stringstream& ss);
+};
+
+
+class Trajectory {
+public:
+    Trajectory(const std::list<Chunk>& chunkslist);
+    Trajectory(const std::string& trajectorystring);
+    Trajectory(){
+    }
+    void InitFromChunksList(const std::list<Chunk>&chunkslist);
+
+    int dimension;
+    dReal duration;
+    int degree;
+
+    std::list<Chunk> chunkslist;
+    std::list<dReal> chunkdurationslist;
+    std::list<dReal> chunkcumulateddurationslist;
+
+    void FindChunkIndex(dReal s, int& index, dReal& remainder);
+    void Eval(dReal s, std::vector<dReal>&q);
+    void Evald(dReal s, std::vector<dReal>&qd);
+    void Evaldd(dReal s, std::vector<dReal>&qdd);
+    void ComputeChunk(dReal t, dReal t0, dReal s, dReal sd, dReal sdd, const Chunk& currentchunk, Chunk& newchunk);
+    void SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int& currentchunkindex, dReal& processedcursor, std::list<Chunk>::iterator& itcurrentchunk, std::list<Chunk>& chunkslist);
+    void Reparameterize(std::list<Profile>& profileslist, dReal integrationtimestep, Trajectory& restrajectory);
+    void Write(std::stringstream& ss);
+};
+
+
+
+
 
 ////////////////////////////////////////////////////////////////////
 /////////////////////////// Constraints ////////////////////////////
@@ -143,7 +190,7 @@ public:
 class Constraints {
 public:
 
-    Trajectory* ptrajectory;
+    Trajectory trajectory;
     Tunings tunings;
     int ndiscrsteps;
     std::vector<dReal> discrsvect;
@@ -154,16 +201,23 @@ public:
 
     Constraints(){
     }
-    virtual void Preprocess(Trajectory& trajectory, const Tunings& tunings);
+    virtual void Preprocess(Trajectory& trajectory, const Tunings &tunings);
     void Discretize();
     void ComputeMVC();
     void WriteMVC(std::stringstream& ss, dReal dt=0.01);
 
+    // discretize dynamics
+    virtual void DiscretizeDynamics(){
+        std::cout << "Virtual method not implemented\n";
+        throw "Virtual method not implemented";
+    }
+
 
     //////////////////////// Limits ///////////////////////////
 
-    // upper limit on sd given by the MVC
+    // upper limit on sd given by acceleration constraints (MVC)
     virtual dReal SdLimitMVC(dReal s){
+        std::cout << "Virtual method not implemented\n";
         throw "Virtual method not implemented";
     }
 
@@ -172,6 +226,7 @@ public:
 
     // lower and upper limits on sdd
     virtual std::pair<dReal,dReal> SddLimits(dReal s, dReal sd){
+        std::cout << "Virtual method not implemented\n";
         throw "Virtual method not implemented";
     }
 
@@ -180,13 +235,12 @@ public:
     void AddSwitchPoint(int i, int switchpointtype);
     void FindTangentSwitchPoints();
     virtual void FindSingularSwitchPoints(){
+        std::cout << "Virtual method not implemented\n";
         throw "Virtual method not implemented";
     };
     void FindDiscontinuousSwitchPoints();
-    virtual void HandleSingularSwitchPoint(SwitchPoint sp){
-        throw "Virtual method not implemented";
-    }
 };
+
 
 
 
@@ -196,16 +250,17 @@ public:
 ////////////////////////////////////////////////////////////////////
 
 enum IntegrationReturnType {
-    IRT_MAXSTEPS = 0,
-    IRT_END = 1,
-    IRT_BOTTOM = 2,
-    IRT_MVC = 3,
-    IRT_ABOVEPROFILES = 4
+    INT_MAXSTEPS = 0,     // reached maximum number of steps
+    INT_END = 1,          // reached s = send (FW) or s = 0 (BW)
+    INT_BOTTOM = 2,       // crossed sd = 0
+    INT_MVC = 3,          // crossed the MVC
+    INT_PROFILE = 4       // crossed a profile
 };
 
 enum CLCReturnType {
-    CLC_OK = 0,   // no problem
-    CLC_SP = 1    // cannot cross a switchpoint
+    CLC_OK = 0,        // no problem
+    CLC_SWITCH = 1,    // could not pass a switchpoint
+    CLC_BOTTOM = 2     // crossed sd = 0
 };
 
 
@@ -215,9 +270,14 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
 
 int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, std::list<Profile>& testprofileslist = voidprofileslist);
 
-int ComputeLimitingCurves(Constraints& constraints, std::list<Profile>& resprofileslist);
+int ComputeLimitingCurves(Constraints& constraints, std::list<Profile>&resprofileslist);
 
-int IntegrateAllProfiles();
+// Path parameterization
+int PP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbeg, dReal sdend, Trajectory& restrajectory, std::list<Profile>&resprofileslist);
+
+// Velocity Interval Propagation
+int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbegmin, dReal sdbegmax, dReal& sdendmin, dReal& sdendmax, std::list<Profile>&resprofileslist);
+
 
 
 
@@ -227,15 +287,16 @@ int IntegrateAllProfiles();
 ////////////////////////////////////////////////////////////////////
 
 // Read a vector of dReal from a space separated string
-void VectorFromString(const std::string& s,std::vector<dReal>& resvect);
+void VectorFromString(const std::string& s,std::vector<dReal>&resvect);
 
-
-//Solves a0 + a1*x + a2*x^2 = 0 in the interval [lowerbound,upperbound]
+//Solve a0 + a1*x + a2*x^2 = 0 in the interval [lowerbound,upperbound]
 //If more than one solution, returns the smallest
 bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal& sol, dReal lowerbound=-INF, dReal upperbound=INF);
 
-bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>& testprofileslist, bool searchbackward=false, bool reinitialize=false);
+// Check whether the point (s,sd) is above at least one profile in the list
+bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>&testprofileslist, bool searchbackward=false, bool reinitialize=false);
 
+// Find the lowest profile at s
 bool FindLowestProfile(dReal s, Profile& profile, dReal& tres, std::list<Profile>&testprofileslist);
 
 }
