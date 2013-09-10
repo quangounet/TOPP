@@ -18,6 +18,7 @@ KinematicLimits::KinematicLimits(const std::string& constraintsstring){
 std::pair<dReal,dReal> KinematicLimits::SddLimits(dReal s, dReal sd){
     dReal alpha = -INF;
     dReal beta = INF;
+    dReal sdsq = sd*sd;
     dReal a_alpha_i, a_beta_i, alpha_i, beta_i;
     std::vector<dReal> qd(trajectory.dimension), qdd(trajectory.dimension);
     trajectory.Evald(s, qd);
@@ -31,8 +32,8 @@ std::pair<dReal,dReal> KinematicLimits::SddLimits(dReal s, dReal sd){
             a_alpha_i = amax[i];
             a_beta_i = -amax[i];
         }
-        alpha_i = (a_alpha_i-sd*sd*qdd[i])/qd[i];
-        beta_i = (a_beta_i-sd*sd*qdd[i])/qd[i];
+        alpha_i = (a_alpha_i-sdsq*qdd[i])/qd[i];
+        beta_i = (a_beta_i-sdsq*qdd[i])/qd[i];
         alpha = std::max(alpha,alpha_i);
         beta = std::min(beta,beta_i);
     }
@@ -74,7 +75,7 @@ dReal KinematicLimits::SdLimitMVC(dReal s){
                 }
             }
             num = qd[k]*a_alpha[m]-qd[m]*a_beta[k];
-            denum = qd[k]*qdd[m]-qd[m]*qdd[k];
+            denum = -denum;
             if(abs(denum) >= TINY) {
                 r = num/denum;
                 if(r>=0) {

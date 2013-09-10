@@ -68,9 +68,6 @@ axis([0,mvc[0],0,2*max([max(p[3]) for p in profileslist])])
 
 
 
-
-show()
-
 raw_input()
 
 

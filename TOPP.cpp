@@ -60,7 +60,6 @@ void Constraints::Preprocess(Trajectory& trajectory0, const Tunings& tunings0){
 
 void Constraints::Discretize(){
     ndiscrsteps = int((trajectory.duration+TINY)/tunings.discrtimestep);
-    tunings.discrtimestep = trajectory.duration/ndiscrsteps;
     ndiscrsteps++;
     discrsvect.resize(0);
     for(int i=0; i<ndiscrsteps; i++) {
@@ -204,7 +203,7 @@ bool Profile::FindTimestepIndex(dReal t, int &index, dReal& remainder){
         index = nsteps-1;
     }
     else{
-        index = (int) floor(t/integrationtimestep);
+        index = int(t/integrationtimestep);
     }
     remainder = t - index * integrationtimestep;
     return true;
