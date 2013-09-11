@@ -68,7 +68,7 @@ dReal KinematicLimits::SdLimitMVC(dReal s){
             dReal num, denum, r;
             num = qd[m]*a_alpha[k]-qd[k]*a_beta[m];
             denum = qd[m]*qdd[k]-qd[k]*qdd[m];
-            if(abs(denum) >= TINY) {
+            if(std::abs(denum) >= TINY) {
                 r = num/denum;
                 if(r>=0) {
                     sdmin = std::min(sdmin,sqrt(r));
@@ -76,7 +76,7 @@ dReal KinematicLimits::SdLimitMVC(dReal s){
             }
             num = qd[k]*a_alpha[m]-qd[m]*a_beta[k];
             denum = -denum;
-            if(abs(denum) >= TINY) {
+            if(std::abs(denum) >= TINY) {
                 r = num/denum;
                 if(r>=0) {
                     sdmin = std::min(sdmin,sqrt(r));

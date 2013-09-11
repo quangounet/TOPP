@@ -50,7 +50,7 @@ void TorqueLimits::Interpolate(dReal s, std::vector<dReal>& a, std::vector<dReal
         }
         return;
     }
-    int n = (int) s/tunings.discrtimestep;
+    int n = int(s/tunings.discrtimestep);
     dReal coef = (s-n*tunings.discrtimestep)/tunings.discrtimestep;
     for(int i=0; i<trajectory.dimension; i++) {
         a[i] = (1-coef)*avect[n][i] + coef*avect[n+1][i];
@@ -115,20 +115,20 @@ dReal TorqueLimits::SdLimitMVC(dReal s){
             dReal num, denum, r;
             num = a[k]*(tau_alpha[m]-c[m])-a[m]*(tau_beta[k]-c[k]);
             denum = a[k]*b[m]-a[m]*b[k];
-            if(abs(denum) >= TINY) {
-                r = num/denum;
-                if(r>=0) {
-                    sdmin = std::min(sdmin,sqrt(r));
-                }
+            // if(std::abs(denum) >= TINY) {
+            r = num/denum;
+            if(r>=0) {
+                sdmin = std::min(sdmin,sqrt(r));
             }
+            //}
             num = a[m]*(tau_alpha[k]-c[k])-a[k]*(tau_beta[m]-c[m]);
             denum = -denum;
-            if(abs(denum) >= TINY) {
-                r = num/denum;
-                if(r>=0) {
-                    sdmin = std::min(sdmin,sqrt(r));
-                }
+            //if(std::abs(denum) >= TINY) {
+            r = num/denum;
+            if(r>=0) {
+                sdmin = std::min(sdmin,sqrt(r));
             }
+            //}
         }
     }
     return sdmin;
@@ -141,6 +141,7 @@ void TorqueLimits::FindSingularSwitchPoints(){
     }
     int i = 0;
     std::vector<dReal> a,aprev,b,c;
+
     Interpolate(discrsvect[i],aprev,b,c);
 
     for(int i=1; i<ndiscrsteps-1; i++) {

@@ -412,6 +412,10 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
             returntype = INT_BOTTOM;
             break;
         }
+        else if(sdcur > constraints.SdLimitMVC(scur)) {
+            returntype = INT_MVC;
+            break;
+        }
         else if(IsAboveProfilesList(scur,sdcur,testprofileslist,searchbackward)) {
             slist.push_back(scur);
             sdlist.push_back(sdcur);
@@ -529,7 +533,7 @@ int ComputeLimitingCurves(Constraints& constraints, std::list<Profile>&resprofil
 
         // Address Switch Point
         if(!AddressSwitchPoint(constraints,switchpoint,sbackward,sdbackward,sforward,sdforward)) {
-            return CLC_SWITCH;
+            continue;
         }
 
         // Add middle part
