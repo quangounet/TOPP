@@ -314,7 +314,7 @@ void Profile::Write(std::stringstream& ss, dReal dt){
 ////////////////////////////////////////////////////////////////////
 
 
-int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt,  Profile& resprofile, int maxsteps, std::list<Profile>&testprofileslist){
+int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt,  Profile& resprofile, int maxsteps, std::list<Profile>&testprofileslist, bool testmvc){
     dReal dtsq = dt*dt;
     dReal scur = sstart, sdcur = sdstart;
     std::list<dReal> slist, sdlist, sddlist;
@@ -346,7 +346,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             returntype = INT_BOTTOM;
             break;
         }
-        else if(sdcur > constraints.SdLimitMVC(scur)) {
+        else if(testmvc && sdcur > constraints.SdLimitMVC(scur)) {
             //TODO: Zlajpah
             returntype = INT_MVC;
             break;
@@ -379,7 +379,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
 
 
 
-int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile,  int maxsteps, std::list<Profile>&testprofileslist){
+int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile,  int maxsteps, std::list<Profile>&testprofileslist, bool testmvc){
     dReal dtsq = dt*dt;
     dReal scur = sstart, sdcur = sdstart;
     std::list<dReal> slist, sdlist, sddlist;
@@ -412,7 +412,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
             returntype = INT_BOTTOM;
             break;
         }
-        else if(sdcur > constraints.SdLimitMVC(scur)) {
+        else if(testmvc && sdcur > constraints.SdLimitMVC(scur)) {
             returntype = INT_MVC;
             break;
         }
@@ -436,11 +436,13 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
             sdcur = sdnext;
         }
     }
-    slist.reverse();
-    sdlist.reverse();
-    sddlist.reverse();
-    sddlist.pop_front();
-    sddlist.push_back(0);
+    if(slist.size()>0) {
+        slist.reverse();
+        sdlist.reverse();
+        sddlist.reverse();
+        sddlist.pop_front();
+        sddlist.push_back(0);
+    }
     resprofile = Profile(slist,sdlist,sddlist,dt);
     resprofile.forward = false;
     return returntype;
@@ -480,6 +482,7 @@ dReal BisectionSearch(Constraints& constraints, dReal s, dReal sdbottom, dReal s
 bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint, dReal& sbackward, dReal& sdbackward, dReal& sforward, dReal& sdforward){
     dReal s = switchpoint.s;
     dReal sd = switchpoint.sd;
+    dReal discr = constraints.tunings.discrtimestep;
     dReal dt;
     int ret;
     Profile resprofile;
@@ -498,15 +501,21 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
     }
     else{
         // here switchpointtype == SP_SINGULAR
-        dt = constraints.tunings.discrtimestep/2;
-        ret = IntegrateBackward(constraints,s,sd,dt,resprofile,constraints.tunings.passswitchpointnsteps);
+        dt = discr/2;
+        ret = IntegrateBackward(constraints,s-discr,sd*0.9,dt,resprofile,constraints.tunings.passswitchpointnsteps,voidprofileslist,false);
         if(ret==INT_MAXSTEPS||ret==INT_END) {
             sbackward = resprofile.Eval(0);
             sdbackward = resprofile.Evald(0);
-            ret = IntegrateForward(constraints,s,sd,dt,resprofile,constraints.tunings.passswitchpointnsteps);
+            if(sdbackward>constraints.SdLimitMVC(sbackward)) {
+                return false;
+            }
+            ret = IntegrateForward(constraints,s+discr,sd*0.9,dt,resprofile,constraints.tunings.passswitchpointnsteps,voidprofileslist,false);
             if(ret==INT_MAXSTEPS||ret==INT_END) {
                 sforward = resprofile.Eval(resprofile.duration);
                 sdforward = resprofile.Evald(resprofile.duration);
+                if(sdforward>constraints.SdLimitMVC(sforward)) {
+                    return false;
+                }
                 return true;
             }
         }
@@ -575,11 +584,28 @@ int ComputeLimitingCurves(Constraints& constraints, std::list<Profile>&resprofil
 
 int PP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbeg, dReal sdend, Trajectory& restrajectory, std::list<Profile>& resprofileslist){
     constraints.Preprocess(trajectory,tunings);
+    if(VectorMin(constraints.mvc) <= TINY) {
+        std::cout << "MVC hit 0\n";
+        return 0;
+    }
     Profile resprofile;
-    ComputeLimitingCurves(constraints,resprofileslist);
-    IntegrateForward(constraints,0,sdbeg,constraints.tunings.integrationtimestep,resprofile,1e5,resprofileslist);
+    int ret;
+    ret = ComputeLimitingCurves(constraints,resprofileslist);
+    if(ret!=CLC_OK) {
+        std::cout << "CLC failed\n";
+        return 0;
+    }
+    ret = IntegrateForward(constraints,0,sdbeg,constraints.tunings.integrationtimestep,resprofile,1e5,resprofileslist);
+    if(ret==INT_BOTTOM) {
+        std::cout << "FW reached 0\n";
+        return 0;
+    }
     resprofileslist.push_back(resprofile);
-    IntegrateBackward(constraints,trajectory.duration,sdend,constraints.tunings.integrationtimestep,resprofile,1e5,resprofileslist);
+    ret = IntegrateBackward(constraints,trajectory.duration,sdend,constraints.tunings.integrationtimestep,resprofile,1e5,resprofileslist);
+    if(ret==INT_BOTTOM) {
+        std::cout << "BW reached 0\n";
+        return 0;
+    }
     resprofileslist.push_back(resprofile);
     trajectory.Reparameterize(resprofileslist,tunings.reparamtimestep,restrajectory);
     return 1;
@@ -677,6 +703,17 @@ void VectorFromString(const std::string& s,std::vector<dReal>& resvect){
         value = atof(sub.c_str());
         resvect.push_back(value);
     }
+}
+
+
+dReal VectorMin(const std::vector<dReal>& v){
+    std::vector<dReal>::const_iterator it = v.begin();
+    dReal res = INF;
+    while(it!=v.end()) {
+        res = std::min(res,*it);
+        it++;
+    }
+    return res;
 }
 
 

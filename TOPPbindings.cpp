@@ -1,3 +1,21 @@
+// -*- coding: utf-8 -*-
+// Copyright (C) 2013 Quang-Cuong Pham <cuong.pham@normalesup.org>
+//
+// This file is part of the Time-Optimal Path Parameterization (TOPP) library.
+// TOPP is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
 #include "TOPP.h"
 #include "KinematicLimits.h"
 #include "TorqueLimits.h"
@@ -34,14 +52,18 @@ public:
     dReal sdendmin,sdendmax;
 
 
-    void RunPP(dReal sdbeg, dReal sdend){
-        int res = PP(*pconstraints,*ptrajectory,tunings,sdbeg,sdend,restrajectory,resprofileslist);
-        resduration = restrajectory.duration;
+
+    int RunPP(dReal sdbeg, dReal sdend){
+        int ret = PP(*pconstraints,*ptrajectory,tunings,sdbeg,sdend,restrajectory,resprofileslist);
+        if(ret) {
+            resduration = restrajectory.duration;
+        }
+        return ret;
     }
 
     void RunVIP(dReal sdbegmin, dReal sdbegmax){
-        int res = VIP(*pconstraints,*ptrajectory,tunings,sdbegmin,sdbegmax,sdendmin,sdendmax,resprofileslist);
-        if(res == 0) {
+        int ret = VIP(*pconstraints,*ptrajectory,tunings,sdbegmin,sdbegmax,sdendmin,sdendmax,resprofileslist);
+        if(ret == 0) {
             sdendmin = -1;
             sdendmax = -1;
         }

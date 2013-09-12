@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
 #ifndef TOPP_H
 #define TOPP_H
 
@@ -29,7 +30,6 @@
 //#include <armadillo>
 #include <stdlib.h>
 #include <assert.h>
-
 
 typedef double dReal;
 
@@ -266,9 +266,9 @@ enum CLCReturnType {
 
 static std::list<Profile> voidprofileslist;
 
-int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, std::list<Profile>& testprofileslist = voidprofileslist);
+int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, std::list<Profile>& testprofileslist = voidprofileslist, bool testmvc=true);
 
-int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, std::list<Profile>& testprofileslist = voidprofileslist);
+int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, std::list<Profile>& testprofileslist = voidprofileslist, bool testmvc=true);
 
 int ComputeLimitingCurves(Constraints& constraints, std::list<Profile>&resprofileslist);
 
@@ -282,9 +282,12 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
 
 
 
-////////////////////////////////////////////////////////////////////
+//////// ////////////////////////////////////////////////////////////
 ///////////////////////// Utilities ////////////////////////////////
 ////////////////////////////////////////////////////////////////////
+
+// Find the smallest element of a vector
+dReal VectorMin(const std::vector<dReal>& v);
 
 // Read a vector of dReal from a space separated string
 void VectorFromString(const std::string& s,std::vector<dReal>&resvect);
