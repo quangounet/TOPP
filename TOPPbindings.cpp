@@ -79,7 +79,7 @@ public:
     void WriteProfilesList(){
         std::list<Profile>::iterator itprofile = resprofileslist.begin();
         std::stringstream ss;
-        pconstraints->WriteMVC(ss);
+        pconstraints->WriteMVCBobrow(ss);
         ss << "\n";
         while(itprofile!=resprofileslist.end()) {
             itprofile->Write(ss);

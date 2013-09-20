@@ -30,6 +30,9 @@ KinematicLimits::KinematicLimits(const std::string& constraintsstring){
     VectorFromString(std::string(buff),amax);
     iss.getline(buff,buffsize);
     VectorFromString(std::string(buff),vmax);
+    if(VectorMax(vmax) > TINY) {
+        hasvelocitylimits = true;
+    }
 }
 
 
@@ -56,13 +59,29 @@ std::pair<dReal,dReal> KinematicLimits::SddLimits(dReal s, dReal sd){
         alpha = std::max(alpha,alpha_i);
         beta = std::min(beta,beta_i);
     }
-    std::pair<dReal,dReal> result(alpha,beta);
-    return result;
+    std::pair<dReal,dReal> res(alpha,beta);
+    return res;
+}
+
+
+dReal KinematicLimits::SdLimitDirect(dReal s){
+    if(!hasvelocitylimits) {
+        return INF;
+    }
+    dReal res = INF;
+    std::vector<dReal> qd(trajectory.dimension);
+    trajectory.Evald(s, qd);
+    for(int i=0; i<trajectory.dimension; i++) {
+        if(std::abs(qd[i])>TINY) {
+            res = std::min(res,vmax[i]/std::abs(qd[i]));
+        }
+    }
+    return res;
 }
 
 
 
-dReal KinematicLimits::SdLimitMVC(dReal s){
+dReal KinematicLimits::SdLimitBobrow(dReal s){
     std::pair<dReal,dReal> sddlimits = KinematicLimits::SddLimits(s,0);
     if(sddlimits.first > sddlimits.second) {
         return 0;

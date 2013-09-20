@@ -53,7 +53,8 @@ void Constraints::Preprocess(Trajectory& trajectory0, const Tunings& tunings0){
     tunings = tunings0;
     Discretize();
     DiscretizeDynamics();
-    ComputeMVC();
+    ComputeMVCBobrow();
+    ComputeMVCDirect();
     FindSwitchPoints();
 }
 
@@ -68,15 +69,21 @@ void Constraints::Discretize(){
 }
 
 
-void Constraints::ComputeMVC(){
-    SdLimitMVC(0);
+void Constraints::ComputeMVCBobrow(){
     for(int i=0; i<ndiscrsteps; i++) {
-        mvc.push_back(SdLimitMVC(discrsvect[i]));
+        mvcdirect.push_back(SdLimitBobrow(discrsvect[i]));
+    }
+}
+
+void Constraints::ComputeMVCDirect(){
+    for(int i=0; i<ndiscrsteps; i++) {
+        mvcdirect.push_back(SdLimitDirect(discrsvect[i]));
     }
 }
 
 
-void Constraints::WriteMVC(std::stringstream& ss, dReal dt){
+
+void Constraints::WriteMVCBobrow(std::stringstream& ss, dReal dt){
     dReal duration = trajectory.duration;
     ss << duration << " " << dt << "\n";
     for(dReal t=0; t<=duration; t+=dt) {
@@ -84,17 +91,9 @@ void Constraints::WriteMVC(std::stringstream& ss, dReal dt){
     }
     ss << "\n";
     for(dReal t=0; t<=duration; t+=dt) {
-        ss << SdLimitMVC(t) << " ";
+        ss << SdLimitBobrow(t) << " ";
     }
 }
-
-
-
-
-dReal Constraints::SdLimitDirect(dReal s){
-    return 0;
-}
-
 
 
 void Constraints::FindSwitchPoints(){
@@ -105,17 +104,17 @@ void Constraints::FindSwitchPoints(){
 
 void Constraints::AddSwitchPoint(int i, int switchpointtype){
     int iadd = i+1;
-    if(mvc[i-1]<std::min(mvc[i],mvc[i+1])) {
+    if(mvcbobrow[i-1]<std::min(mvcbobrow[i],mvcbobrow[i+1])) {
         iadd = i-1;
     }
     else{
-        if(mvc[i]<mvc[i+1]) {
+        if(mvcbobrow[i]<mvcbobrow[i+1]) {
             iadd = i;
         }
     }
     std::list<SwitchPoint>::iterator it = switchpointslist.begin();
     dReal s = discrsvect[iadd];
-    dReal sd = mvc[iadd];
+    dReal sd = mvcbobrow[iadd];
     if(sd>=INF) {
         return;
     }
@@ -143,8 +142,8 @@ void Constraints::FindTangentSwitchPoints(){
 
     s = discrsvect[i];
     snext = discrsvect[i+1];
-    sd = SdLimitMVC(s);
-    sdnext = SdLimitMVC(snext);
+    sd = SdLimitBobrow(s);
+    sdnext = SdLimitBobrow(snext);
     sddlimits = SddLimits(s,sd);
     alpha = sddlimits.first;
     beta = sddlimits.second;
@@ -153,8 +152,8 @@ void Constraints::FindTangentSwitchPoints(){
     for(int i=2; i<ndiscrsteps-1; i++) {
         s = discrsvect[i];
         snext = discrsvect[i+1];
-        sd = SdLimitMVC(s);
-        sdnext = SdLimitMVC(snext);
+        sd = SdLimitBobrow(s);
+        sdnext = SdLimitBobrow(snext);
         sddlimits = SddLimits(s,sd);
         alpha = sddlimits.first;
         beta = sddlimits.second;
@@ -346,10 +345,65 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             returntype = INT_BOTTOM;
             break;
         }
-        else if(testmvc && sdcur > constraints.SdLimitMVC(scur)) {
-            //TODO: Zlajpah
-            returntype = INT_MVC;
-            break;
+        else if(testmvc && sdcur > std::min(constraints.SdLimitDirect(scur),constraints.SdLimitBobrow(scur))) {
+            if(constraints.SdLimitDirect(scur)>=constraints.SdLimitBobrow(scur)) {
+                returntype = INT_MVCBOBROW;
+                break;
+            }
+            //Here we have sddirect < sdcur < sdbobrow
+            bool cont2 = true;
+            while(cont2) {
+                // Last step before going above MVCDirect
+                if(slist.size()>=1) {
+                    scur = slist.back();
+                    sdcur = sdlist.back();
+                }
+                std ::pair<dReal,dReal> sddlimits = constraints.SddLimits(scur,sdcur);
+                dReal alpha = sddlimits.first, beta = sddlimits.second;
+                dReal snextalpha, sdnextalpha, sdnextdirectalpha, snextbeta, sdnextbeta, sdnextdirectbeta;
+                sdnextalpha = sdcur + dt * alpha;
+                snextalpha = scur + dt * sdcur + 0.5*dtsq*alpha;
+                sdnextdirectalpha = constraints.SdLimitDirect(snextalpha);
+                sdnextbeta = sdcur + dt * beta;
+                snextbeta = scur + dt * sdcur + 0.5*dtsq*beta;
+                sdnextdirectbeta = constraints.SdLimitDirect(snextbeta);
+                if(sdnextbeta<=sdnextdirectbeta) {
+                    // Beta points below MVCDirect
+                    // Follow beta
+                    scur = snextbeta;
+                    sdcur = snextbeta;
+                    slist.push_back(scur);
+                    sdlist.push_back(sdcur);
+                    sddlist.push_back(beta);
+                    break;
+                }
+                else if(sdnextalpha>=sdnextdirectalpha) {
+                    // Alpha points above MVCDirect
+                    // Follow MVCDirect until alpha points below MVCDirect
+                    // Then add this point to the switchpointslist
+                    while(scur+dt<=constraints.trajectory.duration) {
+                        scur += dt;
+                        sdcur = constraints.SdLimitDirect(scur);
+                        std ::pair<dReal,dReal> sddlimits2 = constraints.SddLimits(scur,sdcur);
+                        dReal alpha2 = sddlimits2.first;
+                        dReal snextalpha2, sdnextalpha2, sdnextdirectalpha2;
+                        sdnextalpha2 = sdcur + dt * alpha;
+                        snextalpha2 = scur + dt * sdcur + 0.5*dtsq*alpha2;
+                        sdnextdirectalpha2 = constraints.SdLimitDirect(snextalpha2);
+                        if(sdnextalpha<sdnextdirectalpha) {
+                            // Add point to switchpointlist
+                            constraints.zlajpahlist.push_back(SwitchPoint(scur,sdcur,SP_ZLAJPAH));
+                            cont = false;
+                            cont2 = false;
+                            break;
+                        }
+                    }
+                }
+                else{
+                    // MVCDirect is between beta and alpha
+                    // Slide along MVCDirect
+                }
+            }
         }
         else if(IsAboveProfilesList(scur,sdcur,testprofileslist)) {
             slist.push_back(scur);
@@ -412,8 +466,8 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
             returntype = INT_BOTTOM;
             break;
         }
-        else if(testmvc && sdcur > constraints.SdLimitMVC(scur)) {
-            returntype = INT_MVC;
+        else if(testmvc && sdcur > constraints.SdLimitBobrow(scur)) {
+            returntype = INT_MVCBOBROW;
             break;
         }
         else if(IsAboveProfilesList(scur,sdcur,testprofileslist,searchbackward)) {
@@ -487,7 +541,7 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
     int ret;
     Profile resprofile;
 
-    if(switchpoint.switchpointtype == SP_TANGENT || switchpoint.switchpointtype == SP_DISCONTINUOUS) {
+    if(switchpoint.switchpointtype == SP_TANGENT || switchpoint.switchpointtype == SP_DISCONTINUOUS || switchpoint.switchpointtype == SP_ZLAJPAH) {
         dReal sdtop = BisectionSearch(constraints,s,0,sd,dt,0);
         dt = constraints.tunings.discrtimestep/2;
         if(sdtop<=0) {
@@ -506,14 +560,14 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
         if(ret==INT_MAXSTEPS||ret==INT_END) {
             sbackward = resprofile.Eval(0);
             sdbackward = resprofile.Evald(0);
-            if(sdbackward>constraints.SdLimitMVC(sbackward)) {
+            if(sdbackward>constraints.SdLimitBobrow(sbackward)) {
                 return false;
             }
             ret = IntegrateForward(constraints,s+discr,sd*0.9,dt,resprofile,constraints.tunings.passswitchpointnsteps,voidprofileslist,false);
             if(ret==INT_MAXSTEPS||ret==INT_END) {
                 sforward = resprofile.Eval(resprofile.duration);
                 sdforward = resprofile.Evald(resprofile.duration);
-                if(sdforward>constraints.SdLimitMVC(sforward)) {
+                if(sdforward>constraints.SdLimitBobrow(sforward)) {
                     return false;
                 }
                 return true;
@@ -525,15 +579,22 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
 
 
 
-int ComputeLimitingCurves(Constraints& constraints, std::list<Profile>&resprofileslist){
-    std::list<SwitchPoint> switchpointslist0(constraints.switchpointslist);
+int ComputeLimitingCurves(Constraints& constraints, std::list<Profile>&resprofileslist, bool zlajpah){
+    std::list<SwitchPoint>* switchpointslist0;
+    if(zlajpah) {
+        *switchpointslist0 = std::list<SwitchPoint>(constraints.switchpointslist);
+    }
+    else{
+        switchpointslist0 = &(constraints.zlajpahlist);
+    }
+
     Profile tmpprofile;
     dReal sswitch, sdswitch, sbackward, sdbackward, sforward, sdforward;
     int integratestatus;
 
-    while(switchpointslist0.size()>0) {
-        SwitchPoint switchpoint = switchpointslist0.front();
-        switchpointslist0.pop_front();
+    while(switchpointslist0->size()>0) {
+        SwitchPoint switchpoint = switchpointslist0->front();
+        switchpointslist0->pop_front();
         sswitch = switchpoint.s;
         sdswitch = switchpoint.sd;
         if(IsAboveProfilesList(sswitch,sdswitch,resprofileslist,false,true)) {
@@ -584,8 +645,8 @@ int ComputeLimitingCurves(Constraints& constraints, std::list<Profile>&resprofil
 
 int PP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbeg, dReal sdend, Trajectory& restrajectory, std::list<Profile>& resprofileslist){
     constraints.Preprocess(trajectory,tunings);
-    if(VectorMin(constraints.mvc) <= TINY) {
-        std::cout << "MVC hit 0\n";
+    if(VectorMin(constraints.mvcbobrow) <= TINY) {
+        std::cout << "MVCBobrow hit 0\n";
         return 0;
     }
     Profile resprofile;
@@ -595,12 +656,31 @@ int PP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal
         std::cout << "CLC failed\n";
         return 0;
     }
+    // Zlajpah
+    while(constraints.zlajpahlist.size()>0) {
+        int ret = ComputeLimitingCurves(constraints,resprofileslist,true);
+        if(ret!=CLC_OK) {
+            std::cout << "CLC failed\n";
+            return 0;
+        }
+    }
+
+
     ret = IntegrateForward(constraints,0,sdbeg,constraints.tunings.integrationtimestep,resprofile,1e5,resprofileslist);
     if(ret==INT_BOTTOM) {
         std::cout << "FW reached 0\n";
         return 0;
     }
     resprofileslist.push_back(resprofile);
+    // Zlajpah
+    while(constraints.zlajpahlist.size()>0) {
+        int ret = ComputeLimitingCurves(constraints,resprofileslist,true);
+        if(ret!=CLC_OK) {
+            std::cout << "CLC failed\n";
+            return 0;
+        }
+    }
+
     ret = IntegrateBackward(constraints,trajectory.duration,sdend,constraints.tunings.integrationtimestep,resprofile,1e5,resprofileslist);
     if(ret==INT_BOTTOM) {
         std::cout << "BW reached 0\n";
@@ -627,7 +707,7 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
 
     // Determine the lowest profile at t=0
     FindLowestProfile(smallincrement,tmpprofile,tres,resprofileslist);
-    dReal bound = std::min(tmpprofile.Evald(tres),constraints.mvc[0]);
+    dReal bound = std::min(tmpprofile.Evald(tres),constraints.mvcbobrow[0]);
     if(sdbegmin>bound) {
         return 0;
     }
@@ -637,7 +717,7 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
     // Compute sdendmax by integrating forward from (0,sdbegmax)
     int resintfw = IntegrateForward(constraints,0,sdbegmax,constraints.tunings.integrationtimestep,tmpprofile,1e5,resprofileslist);
     resprofileslist.push_back(tmpprofile);
-    if(resintfw == INT_BOTTOM || resintfw == INT_MVC) {
+    if(resintfw == INT_BOTTOM || resintfw == INT_MVCBOBROW) {
         return 0;
     }
     if(resintfw == INT_END) {
@@ -649,10 +729,10 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
             sdendmax = tmpprofile.Evald(tres);
         }
         else{
-            // No profile reaches the end, consider the MVC instead
-            sdendmax = constraints.mvc[constraints.mvc.size()-1];
+            // No profile reaches the end, consider the MVC BOBROW instead
+            sdendmax = constraints.mvcbobrow[constraints.mvcbobrow.size()-1];
             int resintbw = IntegrateBackward(constraints,trajectory.duration,sdendmax,constraints.tunings.integrationtimestep,tmpprofile,1e5,resprofileslist);
-            if(resintbw == INT_BOTTOM || resintbw == INT_MVC) {
+            if(resintbw == INT_BOTTOM || resintbw == INT_MVCBOBROW) {
                 return 0;
             }
         }
@@ -711,6 +791,17 @@ dReal VectorMin(const std::vector<dReal>& v){
     dReal res = INF;
     while(it!=v.end()) {
         res = std::min(res,*it);
+        it++;
+    }
+    return res;
+}
+
+
+dReal VectorMax(const std::vector<dReal>& v){
+    std::vector<dReal>::const_iterator it = v.begin();
+    dReal res = -INF;
+    while(it!=v.end()) {
+        res = std::max(res,*it);
         it++;
     }
     return res;

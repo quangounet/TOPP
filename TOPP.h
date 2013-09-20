@@ -69,7 +69,8 @@ public:
 enum SwitchPointType {
     SP_TANGENT = 0,
     SP_SINGULAR = 1,
-    SP_DISCONTINUOUS = 2
+    SP_DISCONTINUOUS = 2,
+    SP_ZLAJPAH = 3
 };
 
 class SwitchPoint {
@@ -194,8 +195,11 @@ public:
     Tunings tunings;
     int ndiscrsteps;
     std::vector<dReal> discrsvect;
-    std::vector<dReal> mvc;
+    std::vector<dReal> mvcbobrow;
+    std::vector<dReal> mvcdirect;
+    bool hasvelocitylimits;
     std::list<SwitchPoint> switchpointslist;
+    std::list<SwitchPoint> zlajpahlist;
 
     //////////////////////// General ///////////////////////////
 
@@ -203,8 +207,9 @@ public:
     }
     virtual void Preprocess(Trajectory& trajectory, const Tunings &tunings);
     void Discretize();
-    void ComputeMVC();
-    void WriteMVC(std::stringstream& ss, dReal dt=0.01);
+    void ComputeMVCBobrow();
+    void ComputeMVCDirect();
+    void WriteMVCBobrow(std::stringstream& ss, dReal dt=0.01);
 
     // discretize dynamics
     virtual void DiscretizeDynamics(){
@@ -216,13 +221,16 @@ public:
     //////////////////////// Limits ///////////////////////////
 
     // upper limit on sd given by acceleration constraints (MVC)
-    virtual dReal SdLimitMVC(dReal s){
+    virtual dReal SdLimitBobrow(dReal s){
         std::cout << "Virtual method not implemented\n";
         throw "Virtual method not implemented";
     }
 
     // upper limit on sd given by the direct velocity constraints
-    dReal SdLimitDirect(dReal s);
+    virtual dReal SdLimitDirect(dReal s){
+        std::cout << "Virtual method not implemented\n";
+        throw "Virtual method not implemented";
+    }
 
     // lower and upper limits on sdd
     virtual std::pair<dReal,dReal> SddLimits(dReal s, dReal sd){
@@ -253,7 +261,7 @@ enum IntegrationReturnType {
     INT_MAXSTEPS = 0,     // reached maximum number of steps
     INT_END = 1,          // reached s = send (FW) or s = 0 (BW)
     INT_BOTTOM = 2,       // crossed sd = 0
-    INT_MVC = 3,          // crossed the MVC
+    INT_MVCBOBROW = 3,          // crossed the MVC
     INT_PROFILE = 4       // crossed a profile
 };
 
@@ -270,7 +278,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
 
 int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, std::list<Profile>& testprofileslist = voidprofileslist, bool testmvc=true);
 
-int ComputeLimitingCurves(Constraints& constraints, std::list<Profile>&resprofileslist);
+int ComputeLimitingCurves(Constraints& constraints, std::list<Profile>&resprofileslist, bool zlajpah = false);
 
 // Path parameterization
 int PP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbeg, dReal sdend, Trajectory& restrajectory, std::list<Profile>&resprofileslist);
@@ -286,8 +294,9 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
 ///////////////////////// Utilities ////////////////////////////////
 ////////////////////////////////////////////////////////////////////
 
-// Find the smallest element of a vector
+// Find the smallest and largest element of a vector
 dReal VectorMin(const std::vector<dReal>& v);
+dReal VectorMax(const std::vector<dReal>& v);
 
 // Read a vector of dReal from a space separated string
 void VectorFromString(const std::string& s,std::vector<dReal>&resvect);

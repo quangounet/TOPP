@@ -41,8 +41,13 @@ TorqueLimits::TorqueLimits(const std::string& constraintsstring){
         VectorFromString(std::string(buff),tmpvect);
         cvect.push_back(tmpvect);
     }
+    hasvelocitylimits = false;
 }
 
+dReal TorqueLimits::SdLimitDirect(dReal s){
+    // For now do not consider direct velocity limits
+    return INF;
+}
 
 
 void TorqueLimits::DiscretizeDynamics(){
@@ -108,7 +113,7 @@ std::pair<dReal,dReal> TorqueLimits::SddLimits(dReal s, dReal sd){
 
 
 
-dReal TorqueLimits::SdLimitMVC(dReal s){
+dReal TorqueLimits::SdLimitBobrow(dReal s){
     std::pair<dReal,dReal> sddlimits = TorqueLimits::SddLimits(s,0);
     if(sddlimits.first > sddlimits.second) {
         return 0;

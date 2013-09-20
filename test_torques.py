@@ -27,6 +27,24 @@ from openravepy import *
 
 
 
+######################## Useful functions ##############
+
+def ComputeTorques(traj,robot,dt):
+    tvect = arange(0,traj.duration+dt,dt)
+    tauvect = []
+    for t in tvect:
+        with robot:
+            q = traj.Eval(t)
+            qd = traj.Evald(t)
+            qdd = traj.Evaldd(t)
+            robot.SetDOFValues(q)
+            robot.SetDOFVelocities(qd)
+            tau = robot.ComputeInverseDynamics(qdd,None,returncomponents=False)
+            tauvect.append(tau)
+    return tvect,array(tauvect)
+
+
+
 # Load robot
 env = Environment() # create openrave environment
 env.Load('robots/twodof.robot.xml')
@@ -72,7 +90,6 @@ reparamtimestep = 0.01;
 
 T=1
 [a1,b1,c1,a2,b2,c2] = [-3, 3, 3, -1, 0, -3]
-dt = 0.1
 tuningsstring = "%f %f %f %d %f"%(discrtimestep,integrationtimestep,sdprecision,passswitchpointnsteps,reparamtimestep);
 trajectorystring = "%f\n%d\n%f %f %f\n%f %f %f"%(T,2,c1,b1,a1,c2,b2,a2)
 constraintstring = string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax])
@@ -118,11 +135,48 @@ if(ret==0):
     print "Trajectory not time-parameterizable"
     sys.exit()
 
-# Plotting
+
+# Computations
 x.WriteProfilesList()
 profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
+x.WriteResultTrajectory()
+traj1 = TOPPpy.PiecewisePolynomialTrajectory(x.restrajectorystring)
+dt = 0.001
+tvect0,tauvect0 = ComputeTorques(traj0,robot,dt)
+tvect1,tauvect1 = ComputeTorques(traj1,robot,dt)
+print "Max torques: ", max(abs(tauvect1[:,0])) ,"," , max(abs(tauvect1[:,1]))
+
+
 ion()
+
+
+# Plotting
+figure(0)
+clf()
+hold('on')
+traj0.Plot(dt)
+traj1.Plot(dt,'--')
+
+figure(1)
+clf()
+hold('on')
+traj0.Plotd(dt)
+traj1.Plotd(dt,'--')
+
+figure(2)
+clf()
+hold('on')
+traj0.Plotdd(dt)
+traj1.Plotdd(dt,'--')
+
 figure(3)
+clf()
+hold('on')
+plot(tvect0,tauvect0)
+plot(tvect1,tauvect1,'--')
+
+
+figure(4)
 clf()
 hold('on')
 mvc = profileslist.pop(0)

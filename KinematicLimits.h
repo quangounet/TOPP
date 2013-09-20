@@ -30,7 +30,8 @@ public:
     std::pair<dReal,dReal> SddLimits(dReal s, dReal sd);
     void DiscretizeDynamics(){
     };
-    dReal SdLimitMVC(dReal s);
+    dReal SdLimitBobrow(dReal s);
+    dReal SdLimitDirect(dReal s);
     void FindSingularSwitchPoints();
 };
 }

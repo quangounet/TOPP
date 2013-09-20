@@ -169,13 +169,12 @@ class PiecewisePolynomialTrajectory():
             
     def Plotd(self,dt,f=''):
         tvect = arange(0,self.duration+dt,dt)
-        qvect = array([self.Evald(t) for t in tvect])
-        plot(tvect,qvect,f)
+        qdvect = array([self.Evald(t) for t in tvect])
+        plot(tvect,qdvect,f)
     
     def Plotdd(self,dt,f=''):
         tvect = arange(0,self.duration+dt,dt)
-        qvect = array([self.Evaldd(t) for t in tvect])
-        plot(tvect,qvect,f)
-            
- 
+        qddvect = array([self.Evaldd(t) for t in tvect])
+        plot(tvect,qddvect,f)
+        
 

@@ -33,7 +33,8 @@ public:
     int dimension;
     void Interpolate(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c);
     void DiscretizeDynamics();
-    dReal SdLimitMVC(dReal s);
+    dReal SdLimitBobrow(dReal s);
+    dReal SdLimitDirect(dReal s);
     void FindSingularSwitchPoints();
 };
 }
