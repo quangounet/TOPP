@@ -1,11 +1,23 @@
-SOURCE = TOPP.h KinematicLimits.h TorqueLimits.h TOPP.cpp KinematicLimits.cpp TorqueLimits.cpp Trajectory.cpp TOPPbindings.cpp
-TARGET = TOPPbindings.so
-LIB = -lboost_python
-INCLUDE = -I/usr/include/python2.7/
-CC = g++
+SOURCE=$(wildcard *.cpp)
+OBJECTS=$(SOURCE:.cpp=.o)
+TARGET=TOPPbindings.so
+LIB=-lboost_python
+INCLUDE=$(shell python-config --includes)
+CC=g++ -Wall -O2 -fPIC $(INCLUDE)
 
-so: $(SOURCE) 
-	$(CC) $(INCLUDE) $(SOURCE) -shared -o $(SO) $(LIB)
+so: $(OBJECTS)
+	$(CC) $(OBJECTS) -shared $(LIB) -o $(TARGET)
+%.o: %.cpp
+	$(CC) -c $< 
 
 debug: $(SOURCE) 
-	$(CC) -g $(INCLUDE) $(SOURCE) -shared -o $(SO) $(LIB)
+	$(CC) -g $(SOURCE) -shared -o $(TARGET)
+
+clean:
+	rm -f $(OBJECTS)
+	rm -f *~
+
+distclean: clean
+	rm -f $(TARGET)
+
+.PHONY: so debug clean distclean
