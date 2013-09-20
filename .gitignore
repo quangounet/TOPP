@@ -1,0 +1,5 @@
+TOPPbindings.so
+.*.swp
+*.pyc
+*.o
+*~
