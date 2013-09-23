@@ -210,6 +210,7 @@ public:
     void ComputeMVCBobrow();
     void ComputeMVCDirect();
     void WriteMVCBobrow(std::stringstream& ss, dReal dt=0.01);
+    void WriteMVCDirect(std::stringstream& ss, dReal dt=0.01);
 
     // discretize dynamics
     virtual void DiscretizeDynamics(){

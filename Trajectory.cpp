@@ -103,7 +103,6 @@ Chunk::Chunk(dReal duration0, const std::vector<Polynomial>& polynomialsvector0)
 void Chunk::Eval(dReal s, std::vector<dReal>&q){
     assert(s >= -TINY);
     assert(s <= duration+TINY);
-    assert(dimension == q.size());
     for(int i=0; i<dimension; i++) {
         q[i] = polynomialsvector[i].Eval(s);
     }
@@ -112,7 +111,6 @@ void Chunk::Eval(dReal s, std::vector<dReal>&q){
 void Chunk::Evald(dReal s, std::vector<dReal>&qd){
     assert(s >= -TINY);
     assert(s <= duration+TINY);
-    assert(dimension == qd.size());
     for(int i=0; i<dimension; i++) {
         qd[i] = polynomialsvector[i].Evald(s);
     }
@@ -121,7 +119,6 @@ void Chunk::Evald(dReal s, std::vector<dReal>&qd){
 void Chunk::Evaldd(dReal s, std::vector<dReal>&qdd){
     assert(s >= -TINY);
     assert(s <= duration+TINY);
-    assert(dimension == qdd.size());
     for(int i=0; i<dimension; i++) {
         qdd[i] = polynomialsvector[i].Evaldd(s);
     }
@@ -211,7 +208,7 @@ void Trajectory::FindChunkIndex(dReal s, int& index, dReal& remainder){
         it++;
     }
     index--;
-    assert(index<=chunkslist.size()-1);
+    assert(index<=int(chunkslist.size())-1);
     it--;
     remainder = s-*it;
 }
@@ -219,7 +216,7 @@ void Trajectory::FindChunkIndex(dReal s, int& index, dReal& remainder){
 void Trajectory::Eval(dReal s, std::vector<dReal>&q){
     assert(s >= -TINY);
     assert(s <= duration+TINY);
-    assert(dimension == q.size());
+    assert(dimension == int(q.size()));
     int index;
     dReal remainder;
     FindChunkIndex(s,index,remainder);
@@ -231,7 +228,7 @@ void Trajectory::Eval(dReal s, std::vector<dReal>&q){
 void Trajectory::Evald(dReal s, std::vector<dReal>&qd){
     assert(s >= 0-TINY);
     assert(s <= duration+TINY);
-    assert(dimension == qd.size());
+    assert(dimension == int(qd.size()));
     int index;
     dReal remainder;
     FindChunkIndex(s,index,remainder);
@@ -243,7 +240,6 @@ void Trajectory::Evald(dReal s, std::vector<dReal>&qd){
 void Trajectory::Evaldd(dReal s, std::vector<dReal>&qdd){
     assert(s >= -TINY);
     assert(s <= duration+TINY);
-    assert(dimension == qdd.size());
     int index;
     dReal remainder;
     FindChunkIndex(s,index,remainder);
@@ -387,7 +383,6 @@ void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal reparamt
         sdcur = sdnext2;
     }
     restrajectory = Trajectory(newchunkslist);
-    int a=0;
 }
 
 

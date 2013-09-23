@@ -82,6 +82,8 @@ robot.SetTransform(array([[0,0,1,0],[0,1,0,0],[-1,0,0,0.3],[0,0,0,1]]))
 # Parameters
 taumin = [-13,-5]
 taumax = [13,5]
+vmax = [2,2]
+
 discrtimestep = 0.01;
 integrationtimestep = 0.01;
 sdprecision = 0.01;
@@ -92,7 +94,7 @@ T=1
 [a1,b1,c1,a2,b2,c2] = [-3, 3, 3, -1, 0, -3]
 tuningsstring = "%f %f %f %d %f"%(discrtimestep,integrationtimestep,sdprecision,passswitchpointnsteps,reparamtimestep);
 trajectorystring = "%f\n%d\n%f %f %f\n%f %f %f"%(T,2,c1,b1,a1,c2,b2,a2)
-constraintstring = string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax])
+constraintstring = string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax]) + "\n" + string.join([str(a) for a in vmax])
 
 
 t0 = time.time()
@@ -179,11 +181,14 @@ plot(tvect1,tauvect1,'--')
 figure(4)
 clf()
 hold('on')
-mvc = profileslist.pop(0)
-plot(mvc[2],mvc[3],'k',linewidth=2)
+mvcbobrow = profileslist.pop(0)
+plot(mvcbobrow[2],mvcbobrow[3],'m--',linewidth=4)
+mvcdirect = profileslist.pop(0)
+plot(mvcdirect[2],mvcdirect[3],'c--',linewidth=4)
 for p in profileslist:
     plot(p[2],p[3])
-axis([0,mvc[0],0,2*max([max(p[3]) for p in profileslist])])
+
+axis([0,mvcbobrow[0],0,2*max([max(p[3]) for p in profileslist])])
 
 
 raw_input()

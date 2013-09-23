@@ -3,15 +3,16 @@ OBJECTS=$(SOURCE:.cpp=.o)
 TARGET=TOPPbindings.so
 LIB=-lboost_python
 INCLUDE=$(shell python-config --includes)
-CC=g++ -Wall -O2 -fPIC $(INCLUDE)
+CC=g++ 
+OPTIONS= -Wall -O2 -fPIC
 
 so: $(OBJECTS)
-	$(CC) $(OBJECTS) -shared $(LIB) -o $(TARGET)
+	$(CC) $(OPTIONS) $(INCLUDE) $(SOURCE) -shared $(LIB) -o $(TARGET)
 %.o: %.cpp
-	$(CC) -c $< 
+	$(CC) $(INCLUDE) -c $< 
 
 debug: $(SOURCE) 
-	$(CC) -g $(SOURCE) -shared -o $(TARGET)
+	$(CC) $(INCLUDE) -g $(SOURCE) -shared $(LIB) -o $(TARGET)
 
 clean:
 	rm -f $(OBJECTS)

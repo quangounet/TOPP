@@ -30,6 +30,8 @@ TorqueLimits::TorqueLimits(const std::string& constraintsstring){
     VectorFromString(std::string(buff),taumin);
     iss.getline(buff,buffsize);
     VectorFromString(std::string(buff),taumax);
+    iss.getline(buff,buffsize);
+    VectorFromString(std::string(buff),vmax);
     while(iss.good()) {
         iss.getline(buff,buffsize);
         VectorFromString(std::string(buff),tmpvect);
@@ -41,12 +43,25 @@ TorqueLimits::TorqueLimits(const std::string& constraintsstring){
         VectorFromString(std::string(buff),tmpvect);
         cvect.push_back(tmpvect);
     }
-    hasvelocitylimits = false;
+    if(VectorMax(vmax) > TINY) {
+        hasvelocitylimits = true;
+    }
 }
 
 dReal TorqueLimits::SdLimitDirect(dReal s){
     // For now do not consider direct velocity limits
-    return INF;
+    if(!hasvelocitylimits) {
+        return INF;
+    }
+    dReal res = INF;
+    std::vector<dReal> qd(trajectory.dimension);
+    trajectory.Evald(s, qd);
+    for(int i=0; i<trajectory.dimension; i++) {
+        if(std::abs(qd[i])>TINY) {
+            res = std::min(res,vmax[i]/std::abs(qd[i]));
+        }
+    }
+    return res;
 }
 
 

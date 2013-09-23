@@ -17,7 +17,7 @@
 
 
 import TOPPbindings
-import TOPPpy
+import TOPPpy 
 import time
 import sys
 from pylab import *
@@ -26,7 +26,7 @@ from pylab import *
 # Constraints : 
 # amax0 , amax1 \n vmax0, vmax1 (vmax = 0 means no velocity constraints)
 # For now, velocity constraints are not implemented yet
-constraintstring = "15 10\n  0 0";
+constraintstring = "15 10\n  20 20";
 
 
 # Tunings : 
@@ -102,12 +102,14 @@ profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
 figure(3)
 clf()
 hold('on')
-mvc = profileslist.pop(0)
-plot(mvc[2],mvc[3],'k',linewidth=2)
+mvcbobrow = profileslist.pop(0)
+plot(mvcbobrow[2],mvcbobrow[3],'m--',linewidth=4)
+mvcdirect = profileslist.pop(0)
+plot(mvcdirect[2],mvcdirect[3],'c--',linewidth=4)
 for p in profileslist:
     plot(p[2],p[3])
 
-axis([0,mvc[0],0,2*max([max(p[3]) for p in profileslist])])
+axis([0,mvcbobrow[0],0,2*max([max(p[3]) for p in profileslist])])
 
 
 

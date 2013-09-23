@@ -71,7 +71,7 @@ void Constraints::Discretize(){
 
 void Constraints::ComputeMVCBobrow(){
     for(int i=0; i<ndiscrsteps; i++) {
-        mvcdirect.push_back(SdLimitBobrow(discrsvect[i]));
+        mvcbobrow.push_back(SdLimitBobrow(discrsvect[i]));
     }
 }
 
@@ -92,6 +92,20 @@ void Constraints::WriteMVCBobrow(std::stringstream& ss, dReal dt){
     ss << "\n";
     for(dReal t=0; t<=duration; t+=dt) {
         ss << SdLimitBobrow(t) << " ";
+    }
+}
+
+
+
+void Constraints::WriteMVCDirect(std::stringstream& ss, dReal dt){
+    dReal duration = trajectory.duration;
+    ss << duration << " " << dt << "\n";
+    for(dReal t=0; t<=duration; t+=dt) {
+        ss << t << " ";
+    }
+    ss << "\n";
+    for(dReal t=0; t<=duration; t+=dt) {
+        ss << SdLimitDirect(t) << " ";
     }
 }
 
@@ -137,7 +151,7 @@ void Constraints::FindTangentSwitchPoints(){
         return;
     }
     int i = 1;
-    dReal s,sd,snext,sdnext,alpha,beta,diff,diffprev;
+    dReal s,sd,snext,sdnext,alpha,diff,diffprev;
     std::pair<dReal,dReal> sddlimits;
 
     s = discrsvect[i];
@@ -146,7 +160,7 @@ void Constraints::FindTangentSwitchPoints(){
     sdnext = SdLimitBobrow(snext);
     sddlimits = SddLimits(s,sd);
     alpha = sddlimits.first;
-    beta = sddlimits.second;
+    //beta = sddlimits.second;
     diffprev = alpha/sd - (sdnext-sd)/tunings.discrtimestep;
 
     for(int i=2; i<ndiscrsteps-1; i++) {
@@ -156,7 +170,7 @@ void Constraints::FindTangentSwitchPoints(){
         sdnext = SdLimitBobrow(snext);
         sddlimits = SddLimits(s,sd);
         alpha = sddlimits.first;
-        beta = sddlimits.second;
+        //beta = sddlimits.second;
         diff = alpha/sd - (sdnext-sd)/tunings.discrtimestep;
         if(diffprev*diff<0) {
             AddSwitchPoint(i,SP_TANGENT);
@@ -313,12 +327,33 @@ void Profile::Write(std::stringstream& ss, dReal dt){
 ////////////////////////////////////////////////////////////////////
 
 
+
+dReal ComputeSlidesdd(Constraints& constraints, dReal s, dReal sd, dReal dt, dReal alpha, dReal beta){
+    dReal sddtest, snext, sdnext, sdnextdirect, dtsq;
+    dtsq = dt*dt;
+    while(beta-alpha>1e-5) {
+        sddtest = (beta+alpha)/2;
+        sdnext = sd + dt*sddtest;
+        snext = s + dt*sd + 0.5*dtsq*sddtest;
+        sdnextdirect = constraints.SdLimitDirect(snext);
+        if(sdnext>sdnextdirect) {
+            beta = sddtest;
+        }
+        else{
+            alpha = sddtest;
+        }
+    }
+    return alpha;
+}
+
+
+
 int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt,  Profile& resprofile, int maxsteps, std::list<Profile>&testprofileslist, bool testmvc){
     dReal dtsq = dt*dt;
     dReal scur = sstart, sdcur = sdstart;
     std::list<dReal> slist, sdlist, sddlist;
     bool cont = true;
-    int returntype;
+    int returntype = -1; // should be changed
 
     // Initialize the currentindex of the profiles for search purpose
     if(testprofileslist.size()>0) {
@@ -331,7 +366,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
 
     // Integrate forward
     while(cont) {
-        if(slist.size()>maxsteps) {
+        if(int(slist.size()) > maxsteps) {
             returntype = INT_MAXSTEPS;
             break;
         }
@@ -352,56 +387,79 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             }
             //Here we have sddirect < sdcur < sdbobrow
             bool cont2 = true;
-            while(cont2) {
+            if(slist.size()>=1) {
                 // Last step before going above MVCDirect
-                if(slist.size()>=1) {
-                    scur = slist.back();
-                    sdcur = sdlist.back();
-                }
+                scur = slist.back();
+                sdcur = sdlist.back();
+            }
+            while(cont2) {
                 std ::pair<dReal,dReal> sddlimits = constraints.SddLimits(scur,sdcur);
                 dReal alpha = sddlimits.first, beta = sddlimits.second;
                 dReal snextalpha, sdnextalpha, sdnextdirectalpha, snextbeta, sdnextbeta, sdnextdirectbeta;
                 sdnextalpha = sdcur + dt * alpha;
                 snextalpha = scur + dt * sdcur + 0.5*dtsq*alpha;
+                if(snextalpha>constraints.trajectory.duration) {
+                    // Most probably we arrived at the end
+                    cont = false;
+                    cont2 = false;
+                    break;  // break out of current loop and loops cont, cont2
+                }
                 sdnextdirectalpha = constraints.SdLimitDirect(snextalpha);
                 sdnextbeta = sdcur + dt * beta;
                 snextbeta = scur + dt * sdcur + 0.5*dtsq*beta;
+                if(snextbeta>constraints.trajectory.duration) {
+                    // Most probably we arrived at the end
+                    cont = false;
+                    cont2 = false;
+                    break;  // break out of current loop and loops cont, cont2
+                }
                 sdnextdirectbeta = constraints.SdLimitDirect(snextbeta);
                 if(sdnextbeta<=sdnextdirectbeta) {
                     // Beta points below MVCDirect
-                    // Follow beta
+                    // ---> Follow beta
                     scur = snextbeta;
                     sdcur = snextbeta;
                     slist.push_back(scur);
                     sdlist.push_back(sdcur);
                     sddlist.push_back(beta);
-                    break;
+                    break; // break out of loop cont2
                 }
                 else if(sdnextalpha>=sdnextdirectalpha) {
                     // Alpha points above MVCDirect
-                    // Follow MVCDirect until alpha points below MVCDirect
-                    // Then add this point to the switchpointslist
+                    // ---> Follow MVCDirect until alpha points below MVCDirect
+                    // Then add this point to the zlajpahlist
+                    std::cout << "Zlajpah\n";
                     while(scur+dt<=constraints.trajectory.duration) {
-                        scur += dt;
-                        sdcur = constraints.SdLimitDirect(scur);
-                        std ::pair<dReal,dReal> sddlimits2 = constraints.SddLimits(scur,sdcur);
-                        dReal alpha2 = sddlimits2.first;
-                        dReal snextalpha2, sdnextalpha2, sdnextdirectalpha2;
-                        sdnextalpha2 = sdcur + dt * alpha;
-                        snextalpha2 = scur + dt * sdcur + 0.5*dtsq*alpha2;
-                        sdnextdirectalpha2 = constraints.SdLimitDirect(snextalpha2);
+                        dReal snext = scur + dt;
+                        dReal sdnext = constraints.SdLimitDirect(snext);
+                        std ::pair<dReal,dReal> sddlimits = constraints.SddLimits(snext,sdnext);
+                        dReal alpha = sddlimits.first;
+                        dReal snextalpha,sdnextdirectalpha;
+                        snextalpha = scur + dt * sdcur + 0.5*dtsq*alpha;
+                        sdnextalpha = sdcur + dt * alpha;
+                        sdnextdirectalpha = constraints.SdLimitDirect(snextalpha);
                         if(sdnextalpha<sdnextdirectalpha) {
                             // Add point to switchpointlist
                             constraints.zlajpahlist.push_back(SwitchPoint(scur,sdcur,SP_ZLAJPAH));
                             cont = false;
                             cont2 = false;
-                            break;
+                            break;  // break out of current loop and loops cont, cont2
                         }
+                        scur = snext;
+                        sdcur = sdnext;
                     }
                 }
                 else{
                     // MVCDirect is between beta and alpha
-                    // Slide along MVCDirect
+                    // ---> Slide along MVCDirect
+                    dReal slidesdd = ComputeSlidesdd(constraints, scur,sdcur,dt, alpha,beta);
+                    dReal snext = scur + dt * sdcur + 0.5*dtsq*slidesdd;
+                    dReal sdnext = sdcur + dt * slidesdd;
+                    slist.push_back(snext);
+                    sdlist.push_back(sdnext);
+                    sddlist.push_back(slidesdd);
+                    scur = snext;
+                    sdcur = sdnext;
                 }
             }
         }
@@ -416,7 +474,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             slist.push_back(scur);
             sdlist.push_back(sdcur);
             std ::pair<dReal,dReal> sddlimits = constraints.SddLimits(scur,sdcur);
-            dReal alpha = sddlimits.first;
+            //dReal alpha = sddlimits.first;
             dReal beta = sddlimits.second;
             sddlist.push_back(beta);
             dReal sdnext = sdcur + dt * beta;
@@ -452,7 +510,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
 
     // Integrate backward
     while(cont) {
-        if(slist.size()>maxsteps) {
+        if(int(slist.size()) > maxsteps) {
             returntype = INT_MAXSTEPS;
             break;
         }
@@ -482,7 +540,6 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
             sdlist.push_back(sdcur);
             std ::pair<dReal,dReal> sddlimits = constraints.SddLimits(scur,sdcur);
             dReal alpha = sddlimits.first;
-            dReal beta = sddlimits.second;
             sddlist.push_back(alpha);
             dReal sdnext = sdcur - dt * alpha;
             dReal snext = scur - dt * sdcur + 0.5*dtsq*alpha;
@@ -537,13 +594,13 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
     dReal s = switchpoint.s;
     dReal sd = switchpoint.sd;
     dReal discr = constraints.tunings.discrtimestep;
-    dReal dt;
+    dReal dt = 0; // should be changed
     int ret;
     Profile resprofile;
 
     if(switchpoint.switchpointtype == SP_TANGENT || switchpoint.switchpointtype == SP_DISCONTINUOUS || switchpoint.switchpointtype == SP_ZLAJPAH) {
+        dt = discr/2;
         dReal sdtop = BisectionSearch(constraints,s,0,sd,dt,0);
-        dt = constraints.tunings.discrtimestep/2;
         if(sdtop<=0) {
             return false;
         }
@@ -580,12 +637,12 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
 
 
 int ComputeLimitingCurves(Constraints& constraints, std::list<Profile>&resprofileslist, bool zlajpah){
-    std::list<SwitchPoint>* switchpointslist0;
+    std::list<SwitchPoint>* switchpointslist0 = NULL;
     if(zlajpah) {
-        *switchpointslist0 = std::list<SwitchPoint>(constraints.switchpointslist);
+        switchpointslist0 = &(constraints.zlajpahlist);
     }
     else{
-        switchpointslist0 = &(constraints.zlajpahlist);
+        switchpointslist0 = new std::list<SwitchPoint>(constraints.switchpointslist);
     }
 
     Profile tmpprofile;
@@ -860,13 +917,9 @@ bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>&testprofileslist,
 bool FindLowestProfile(dReal s, Profile& profile, dReal& tres, std::list<Profile>&testprofileslist){
     dReal t;
     dReal sdmin;
-    dReal sdtmp,sdd;
+    dReal sdtmp;
     int i = 0;
-    int finali = 0;
     sdmin = INF;
-    dReal snext,sdnext,snext2,sdnext2;
-
-    dReal dt = 0.01;
 
     std::list<Profile>::iterator it = testprofileslist.begin();
     while(it != testprofileslist.end()) {
@@ -876,12 +929,6 @@ bool FindLowestProfile(dReal s, Profile& profile, dReal& tres, std::list<Profile
                 sdmin = sdtmp;
                 profile = *it;
                 tres = t;
-                sdd = it->Evaldd(t);
-                snext = it->Eval(t+dt);
-                sdnext = it->Evald(t+dt);
-                snext2 = s + dt*sdmin + 0.5*sdd*dt*dt;
-                sdnext2 = sdmin + dt*sdd;
-                finali = i;
             }
         }
         it++;

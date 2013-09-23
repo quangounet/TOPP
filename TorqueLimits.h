@@ -27,7 +27,7 @@ public:
     TorqueLimits() : Constraints(){
     }
     TorqueLimits(const std::string& constraintsstring);
-    std::vector<dReal> taumin, taumax;
+    std::vector<dReal> taumin, taumax, vmax;
     std::vector<std::vector<dReal> > avect, bvect, cvect;
     std::pair<dReal,dReal> SddLimits(dReal s, dReal sd);
     int dimension;
