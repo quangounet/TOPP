@@ -108,7 +108,7 @@ public:
     dReal Evald(dReal t);
     dReal Evaldd(dReal t);
     void Print();
-    void Write(std::stringstream& ss, dReal dt=0.01);
+    void Write(std::stringstream& ss, dReal dt=0.001);
 
 };
 
@@ -196,8 +196,10 @@ public:
     int ndiscrsteps;
     std::vector<dReal> discrsvect;
     std::vector<dReal> mvcbobrow;
-    std::vector<dReal> mvcdirect;
+    std::vector<dReal> mvccombined;
     bool hasvelocitylimits;
+    std::vector<dReal> vmax;
+
     std::list<SwitchPoint> switchpointslist;
     std::list<SwitchPoint> zlajpahlist;
 
@@ -208,9 +210,9 @@ public:
     virtual void Preprocess(Trajectory& trajectory, const Tunings &tunings);
     void Discretize();
     void ComputeMVCBobrow();
-    void ComputeMVCDirect();
+    void ComputeMVCCombined();
     void WriteMVCBobrow(std::stringstream& ss, dReal dt=0.01);
-    void WriteMVCDirect(std::stringstream& ss, dReal dt=0.01);
+    void WriteMVCCombined(std::stringstream& ss, dReal dt=0.01);
 
     // discretize dynamics
     virtual void DiscretizeDynamics(){
@@ -219,19 +221,22 @@ public:
     }
 
 
+    dReal Interpolate1D(dReal s, const std::vector<dReal>& v);
+
+
     //////////////////////// Limits ///////////////////////////
 
     // upper limit on sd given by acceleration constraints (MVC)
-    virtual dReal SdLimitBobrow(dReal s){
+
+    dReal SdLimitBobrow(dReal s);
+    virtual dReal SdLimitBobrowInit(dReal s){
         std::cout << "Virtual method not implemented\n";
         throw "Virtual method not implemented";
     }
 
-    // upper limit on sd given by the direct velocity constraints
-    virtual dReal SdLimitDirect(dReal s){
-        std::cout << "Virtual method not implemented\n";
-        throw "Virtual method not implemented";
-    }
+    // upper limit on sd given by the combined velocity constraints
+    dReal SdLimitCombined(dReal s);
+    dReal SdLimitCombinedInit(dReal s);
 
     // lower and upper limits on sdd
     virtual std::pair<dReal,dReal> SddLimits(dReal s, dReal sd){
@@ -262,7 +267,7 @@ enum IntegrationReturnType {
     INT_MAXSTEPS = 0,     // reached maximum number of steps
     INT_END = 1,          // reached s = send (FW) or s = 0 (BW)
     INT_BOTTOM = 2,       // crossed sd = 0
-    INT_MVCBOBROW = 3,          // crossed the MVC
+    INT_MVC = 3,          // crossed the MVC
     INT_PROFILE = 4       // crossed a profile
 };
 
@@ -275,7 +280,7 @@ enum CLCReturnType {
 
 static std::list<Profile> voidprofileslist;
 
-int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, std::list<Profile>& testprofileslist = voidprofileslist, bool testmvc=true);
+int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, std::list<Profile>& testprofileslist = voidprofileslist, bool testmvc=true, bool zlajpah=true);
 
 int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, std::list<Profile>& testprofileslist = voidprofileslist, bool testmvc=true);
 

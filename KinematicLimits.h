@@ -26,12 +26,11 @@ public:
     KinematicLimits() : Constraints(){
     }
     KinematicLimits(const std::string& constraintsstring);
-    std::vector<dReal> amax, vmax;
+    std::vector<dReal> amax;
     std::pair<dReal,dReal> SddLimits(dReal s, dReal sd);
     void DiscretizeDynamics(){
     };
-    dReal SdLimitBobrow(dReal s);
-    dReal SdLimitDirect(dReal s);
+    dReal SdLimitBobrowInit(dReal s);
     void FindSingularSwitchPoints();
 };
 }

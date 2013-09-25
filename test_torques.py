@@ -26,6 +26,7 @@ from numpy import *
 from openravepy import *
 
 
+ion()
 
 ######################## Useful functions ##############
 
@@ -133,9 +134,10 @@ print "Total time: ", t2 -start
 print "Duration reparameterized trajectory: ", x.resduration
 
 
-if(ret==0):
-    print "Trajectory not time-parameterizable"
-    sys.exit()
+# if(ret==0):
+#     print "Trajectory not time-parameterizable"
+#     sys.exit()
+
 
 
 # Computations
@@ -148,8 +150,6 @@ tvect0,tauvect0 = ComputeTorques(traj0,robot,dt)
 tvect1,tauvect1 = ComputeTorques(traj1,robot,dt)
 print "Max torques: ", max(abs(tauvect1[:,0])) ,"," , max(abs(tauvect1[:,1]))
 
-
-ion()
 
 
 # Plotting

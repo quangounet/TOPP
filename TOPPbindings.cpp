@@ -81,7 +81,7 @@ public:
         std::stringstream ss;
         pconstraints->WriteMVCBobrow(ss);
         ss << "\n";
-        pconstraints->WriteMVCDirect(ss);
+        pconstraints->WriteMVCCombined(ss);
         ss << "\n";
         while(itprofile!=resprofileslist.end()) {
             itprofile->Write(ss);
@@ -90,8 +90,6 @@ public:
         }
         resprofilesliststring = ss.str();
     }
-
-
 };
 
 

@@ -48,22 +48,6 @@ TorqueLimits::TorqueLimits(const std::string& constraintsstring){
     }
 }
 
-dReal TorqueLimits::SdLimitDirect(dReal s){
-    // For now do not consider direct velocity limits
-    if(!hasvelocitylimits) {
-        return INF;
-    }
-    dReal res = INF;
-    std::vector<dReal> qd(trajectory.dimension);
-    trajectory.Evald(s, qd);
-    for(int i=0; i<trajectory.dimension; i++) {
-        if(std::abs(qd[i])>TINY) {
-            res = std::min(res,vmax[i]/std::abs(qd[i]));
-        }
-    }
-    return res;
-}
-
 
 void TorqueLimits::DiscretizeDynamics(){
 
@@ -71,7 +55,7 @@ void TorqueLimits::DiscretizeDynamics(){
 
 
 
-void TorqueLimits::Interpolate(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c){
+void TorqueLimits::InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c){
     a.resize(trajectory.dimension);
     b.resize(trajectory.dimension);
     c.resize(trajectory.dimension);
@@ -106,7 +90,7 @@ std::pair<dReal,dReal> TorqueLimits::SddLimits(dReal s, dReal sd){
     std::vector<dReal> a, b, c;
 
     dReal taumin_i, taumax_i, alpha_i, beta_i;
-    Interpolate(s,a,b,c);
+    InterpolateDynamics(s,a,b,c);
 
     for(int i=0; i<trajectory.dimension; i++) {
         if(a[i]>0) {
@@ -128,14 +112,14 @@ std::pair<dReal,dReal> TorqueLimits::SddLimits(dReal s, dReal sd){
 
 
 
-dReal TorqueLimits::SdLimitBobrow(dReal s){
+dReal TorqueLimits::SdLimitBobrowInit(dReal s){
     std::pair<dReal,dReal> sddlimits = TorqueLimits::SddLimits(s,0);
     if(sddlimits.first > sddlimits.second) {
         return 0;
     }
     std::vector<dReal> tau_alpha(trajectory.dimension), tau_beta(trajectory.dimension);
     std::vector<dReal> a, b, c;
-    Interpolate(s,a,b,c);
+    InterpolateDynamics(s,a,b,c);
 
     for(int i=0; i<trajectory.dimension; i++) {
         if(a[i] > 0) {
@@ -180,10 +164,10 @@ void TorqueLimits::FindSingularSwitchPoints(){
     int i = 0;
     std::vector<dReal> a,aprev,b,c;
 
-    Interpolate(discrsvect[i],aprev,b,c);
+    InterpolateDynamics(discrsvect[i],aprev,b,c);
 
     for(int i=1; i<ndiscrsteps-1; i++) {
-        Interpolate(discrsvect[i],a,b,c);
+        InterpolateDynamics(discrsvect[i],a,b,c);
         for(int j=0; j<trajectory.dimension; j++) {
             if(a[j]*aprev[j]<0) {
                 AddSwitchPoint(i,SP_SINGULAR);
