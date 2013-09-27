@@ -367,11 +367,10 @@ void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal reparamt
         if(snext >= scur+TINY && FindLowestProfile(snext,profile,tres,profileslist)) {
             sdnext2 = profile.Evald(tres);
             dtmod = dt;
+            // If discrepancy between integrated sd and profile's sd then follow profile's sd, which requires changing dt
             if(std::abs(sdnext-sdnext2)>TINY2) {
                 dtmod = 2*(snext-scur)/(sdnext2+sdcur);
                 sdd = (sdnext2-sdcur)/dtmod;
-            }
-            else{
             }
             SPieceToChunks(scur,sdcur,sdd,dtmod,currentchunkindex,processedcursor,itcurrentchunk,newchunkslist);
         }

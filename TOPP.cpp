@@ -370,6 +370,7 @@ void Profile::Write(std::stringstream& ss, dReal dt){
 
 
 
+// Compute the sdd that allows sliding along the curve
 dReal ComputeSlidesdd(Constraints& constraints, dReal s, dReal sd, dReal dt){
     dReal sddtest, snext, sdnext_int, sdnext_mvc, dtsq;
     std ::pair<dReal,dReal> sddlimits = constraints.SddLimits(s,sd);
@@ -415,7 +416,7 @@ dReal ComputeSlidesdd(Constraints& constraints, dReal s, dReal sd, dReal dt){
     return alpha;
 }
 
-
+// Determine the relative positions of the flow and the slope of the MVC
 int FlowVsMVC(Constraints& constraints, dReal s, dReal sd, int flag, dReal dt){
     //flag = 1 : alpha flow
     //flag = 2 : beta flow
@@ -454,8 +455,6 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
     std::list<dReal> slist, sdlist, sddlist;
     bool cont = true;
     int returntype = -1; // should be changed
-    dReal alpha, snextalpha, sdnextalpha_int, sdnextalpha_mvc;
-    dReal beta, snextbeta, sdnextbeta_int,sdnextbeta_mvc;
 
     // Initialize the currentindex of the profiles for search purpose
     if(testprofileslist.size()>0) {
@@ -496,10 +495,18 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                 returntype = INT_MVC;
                 break;
             }
+
+            // Lower the sd to the MVC
+            if(slist.size()>0) {
+                sdcur = constraints.SdLimitCombined(scur);
+                sddlist.pop_back();
+                sddlist.push_back((sdcur-sdlist.back())/dt);
+            }
+
             //From here we have sdcombined < sdcur < sdbobrow
             //We know for sure that beta points above the MVCCombined because we reached the MVCCombined following beta
             //2 cases:
-            //a) alpha points above MVCCombined (trap case): step along MVCCombined until beta points below MVCCombined, and add the last point to zlajpahlist
+            //a) alpha points above MVCCombined (trap case): step along MVCCombined until alpha points below MVCCombined, and add the last point to zlajpahlist
             //b) alpha points below MVCCombined (slide case) : slide along MVCCombined, which is admissible, until either
             // b1) alpha points above MVCCombined (trapped)
             // b2) beta points below MVCCombined (exit slide)
@@ -513,21 +520,44 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             else if(res == 1) {
                 // Case a
                 std::cout <<"\nZlajpah trap ("<< scur << "," << sdcur << ") \n";
+                // Insert the profile calculated so far into the resprofileslist
+                // And reinitialize the profile
+                Profile profile1 = Profile(slist,sdlist,sddlist,dt);
+                profile1.forward = true;
+                testprofileslist.push_back(profile1);
+                slist.resize(0);
+                sdlist.resize(0);
+                sddlist.resize(0);
+                // Now step along the MVCCombined
                 while(true) {
                     snext = scur + dt;
                     sdnext = constraints.SdLimitCombined(snext);
                     std::cout <<"Next ("<< snext << "," << sdnext << ") \n";
-                    int res2 = FlowVsMVC(constraints,snext,sdnext,2,dt);
+                    int res2 = FlowVsMVC(constraints,snext,sdnext,1,dt);
                     if(res2 == 0) {
                         cont = false;
                         std::cout << "End traj\n";
                         break;
                     }
                     else if(res2 == -1) {
-                        // Add point to switchpointlist
-                        constraints.zlajpahlist.push_back(SwitchPoint(snext,sdnext,SP_ZLAJPAH));
-                        cont = false;
                         std::cout << "End Zlajpah trap (" <<snext << "," << sdnext  <<  ")\n";
+                        // Integrate backward from scur, sdcur
+                        Profile tmpprofile;
+                        int res3 = IntegrateBackward(constraints,scur,sdcur,constraints.tunings.integrationtimestep,tmpprofile);
+                        if(res3 == INT_BOTTOM) {
+                            std::cout << "BW reached 0 (From Zlajpah)\n";
+                            return INT_BOTTOM;
+                        }
+                        std::cout << "BW size " << tmpprofile.nsteps << "\n";
+                        if(tmpprofile.nsteps>1) {
+                            // Add the backward profile to resprofilelist
+                            testprofileslist.push_back(tmpprofile);
+                        }
+                        slist.push_back(scur);
+                        sdlist.push_back(sdcur);
+                        sddlist.push_back((sdnext-sdcur)/dt);
+                        scur = snext;
+                        sdcur = sdnext;
                         break;
                     }
                     scur = snext;
@@ -679,7 +709,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
             sdcur = sdnext;
         }
     }
-    if(slist.size()>0) {
+    if(sddlist.size()>0) {
         slist.reverse();
         sdlist.reverse();
         sddlist.reverse();
@@ -697,7 +727,7 @@ bool PassSwitchPoint(Constraints& constraints, dReal s, dReal sd, dReal dt){
     Profile resprofile;
     ret = IntegrateBackward(constraints,s,sd,dt,resprofile,constraints.tunings.passswitchpointnsteps);
     if(ret==INT_MAXSTEPS||ret==INT_END) {
-        ret = IntegrateForward(constraints,s,sd,dt,resprofile,constraints.tunings.passswitchpointnsteps,voidprofileslist,true,false);
+        ret = IntegrateForward(constraints,s,sd,dt,resprofile,constraints.tunings.passswitchpointnsteps,voidprofileslist,true,true);
         if(ret==INT_MAXSTEPS||ret==INT_END) {
             return true;
         }
@@ -849,13 +879,14 @@ int PP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal
         return 0;
     }
     // Zlajpah
-    while(constraints.zlajpahlist.size()>0) {
-        int ret = ComputeLimitingCurves(constraints,resprofileslist,true);
-        if(ret!=CLC_OK) {
-            std::cout << "CLC failed\n";
-            return 0;
-        }
-    }
+    // while(constraints.zlajpahlist.size()>0) {
+    //     std::cout << "\n-----Zlajpah switch-----\n";
+    //     int ret = ComputeLimitingCurves(constraints,resprofileslist,true);
+    //     if(ret!=CLC_OK) {
+    //         std::cout << "CLC failed\n";
+    //         return 0;
+    //     }
+    // }
 
     ret = IntegrateForward(constraints,0,sdbeg,constraints.tunings.integrationtimestep,resprofile,1e5,resprofileslist);
     if(ret==INT_BOTTOM) {
@@ -864,13 +895,13 @@ int PP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal
     }
     resprofileslist.push_back(resprofile);
     // Zlajpah
-    while(constraints.zlajpahlist.size()>0) {
-        int ret = ComputeLimitingCurves(constraints,resprofileslist,true);
-        if(ret!=CLC_OK) {
-            std::cout << "CLC failed\n";
-            return 0;
-        }
-    }
+    // while(constraints.zlajpahlist.size()>0) {
+    //     int ret = ComputeLimitingCurves(constraints,resprofileslist,true);
+    //     if(ret!=CLC_OK) {
+    //         std::cout << "CLC failed\n";
+    //         return 0;
+    //     }
+    // }
 
     ret = IntegrateBackward(constraints,trajectory.duration,sdend,constraints.tunings.integrationtimestep,resprofile,1e5,resprofileslist);
     if(ret==INT_BOTTOM) {
@@ -1009,19 +1040,19 @@ bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal& sol, dReal lowe
         a1=-a1;
         a0=-a0;
     }
-    if(a2<=TINY) {
-        if(std::abs(a1)<=TINY) {
+    if(a2<=TINY2) {
+        if(std::abs(a1)<=TINY2) {
             return false; // Must be in a weird case
         }
         sol = -a0/a1;
-        return sol>=lowerbound-TINY && sol<=upperbound+TINY;
+        return sol>=lowerbound-TINY2 && sol<=upperbound+TINY2;
     }
     sol = (-a1-sqrt(delta))/(2*a2);
-    if(sol>=lowerbound-TINY && sol<=upperbound+TINY) {
+    if(sol>=lowerbound-TINY2 && sol<=upperbound+TINY2) {
         return true;
     }
     sol = (-a1+sqrt(delta))/(2*a2);
-    return sol>=lowerbound-TINY && sol<=upperbound+TINY;
+    return sol>=lowerbound-TINY2 && sol<=upperbound+TINY2;
 }
 
 
