@@ -382,25 +382,29 @@ dReal ComputeSlidesdd(Constraints& constraints, dReal s, dReal sd, dReal dt){
     snext = s + dt*sd + 0.5*dtsq*alpha;
     sdnext_int = sd + dt*alpha;
     if(snext > constraints.trajectory.duration) {
-        std::cout << "Compute slide fin traj\n";
+        //std::cout << "Compute slide fin traj\n";
+        return 0;
     }
     sdnext_mvc = constraints.SdLimitCombined(snext);
     if(sdnext_mvc < sdnext_int) {
-        std::cout << "Cannot slide alpha \n";
+        //std::cout << "Cannot slide alpha \n";
+        return 0;
     }
 
     //Check beta
     snext = s + dt*sd + 0.5*dtsq*beta;
     sdnext_int = sd + dt*beta;
     if(snext > constraints.trajectory.duration) {
-        std::cout << "Compute slide fin traj\n";
+        //std::cout << "Compute slide fin traj\n";
+        return 0;
     }
     sdnext_mvc = constraints.SdLimitCombined(snext);
     if(sdnext_mvc > sdnext_int) {
-        std::cout << "Cannot slide beta \n";
+        //std::cout << "Cannot slide beta \n";
+        return 0;
     }
 
-    //Recursive
+    //Determine the optimal acceleration by bisection
     while(beta-alpha>1e-5) {
         sddtest = (beta+alpha)/2;
         snext = s + dt*sd + 0.5*dtsq*sddtest;
@@ -503,23 +507,23 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                 sddlist.push_back((sdcur-sdlist.back())/dt);
             }
 
-            //From here we have sdcombined < sdcur < sdbobrow
-            //We know for sure that beta points above the MVCCombined because we reached the MVCCombined following beta
-            //2 cases:
-            //a) alpha points above MVCCombined (trap case): step along MVCCombined until alpha points below MVCCombined, and add the last point to zlajpahlist
-            //b) alpha points below MVCCombined (slide case) : slide along MVCCombined, which is admissible, until either
+            //Now we have sdcombined < sdcur < sdbobrow
+            //We know for sure that beta points above the MVCCombined because we must have reached the MVCCombined following beta
+            //There are 2 cases:
+            //a) alpha points above MVCCombined (trap case); then step along MVCCombined until alpha points below MVCCombined and integrate backward from that point. Cf. Zlajpah ICRA 1996.
+            //b) alpha points below MVCCombined (slide case); then slide along MVCCombined, which is admissible, until either
             // b1) alpha points above MVCCombined (trapped)
             // b2) beta points below MVCCombined (exit slide)
 
             int res = FlowVsMVC(constraints,scur,sdcur,1,dt);
             if(res == 0) {
                 // Most probably we arrived at the end
-                cont = false;
-                break;  // break out of current loop and loops cont, cont2
+                returntype = INT_END;
+                break;
             }
             else if(res == 1) {
                 // Case a
-                std::cout <<"\nZlajpah trap ("<< scur << "," << sdcur << ") \n";
+                // std::cout <<"\nZlajpah trap ("<< scur << "," << sdcur << ") \n";
                 // Insert the profile calculated so far into the resprofileslist
                 // And reinitialize the profile
                 Profile profile1 = Profile(slist,sdlist,sddlist,dt);
@@ -532,23 +536,24 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                 while(true) {
                     snext = scur + dt;
                     sdnext = constraints.SdLimitCombined(snext);
-                    std::cout <<"Next ("<< snext << "," << sdnext << ") \n";
+                    //std::cout <<"Next ("<< snext << "," << sdnext << ") \n";
                     int res2 = FlowVsMVC(constraints,snext,sdnext,1,dt);
                     if(res2 == 0) {
                         cont = false;
-                        std::cout << "End traj\n";
+                        //std::cout << "End traj\n";
+                        returntype = INT_END; // ZLAJPAH END
                         break;
                     }
                     else if(res2 == -1) {
-                        std::cout << "End Zlajpah trap (" <<snext << "," << sdnext  <<  ")\n";
+                        //std::cout << "End Zlajpah trap (" <<snext << "," << sdnext  <<  ")\n";
                         // Integrate backward from scur, sdcur
                         Profile tmpprofile;
                         int res3 = IntegrateBackward(constraints,scur,sdcur,constraints.tunings.integrationtimestep,tmpprofile);
                         if(res3 == INT_BOTTOM) {
-                            std::cout << "BW reached 0 (From Zlajpah)\n";
+                            //std::cout << "BW reached 0 (From Zlajpah)\n";
                             return INT_BOTTOM;
                         }
-                        std::cout << "BW size " << tmpprofile.nsteps << "\n";
+                        //std::cout << "BW size " << tmpprofile.nsteps << "\n";
                         if(tmpprofile.nsteps>1) {
                             // Add the backward profile to resprofilelist
                             testprofileslist.push_back(tmpprofile);
@@ -566,7 +571,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             }
             else {
                 // Case b
-                std::cout <<"\nSlide ("<< scur << "," << sdcur << ") \n";
+                //std::cout <<"\nSlide ("<< scur << "," << sdcur << ") \n";
                 while(true) {
                     if(int(slist.size()) > maxsteps) {
                         cont = false;
@@ -599,27 +604,27 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                     sddlist.push_back(slidesdd);
                     scur = snext;
                     sdcur = sdnext;
-                    std::cout <<"Next ("<< snext << "," << sdnext << ") \n";
+                    //std::cout <<"Next ("<< snext << "," << sdnext << ") \n";
                     int res1 = FlowVsMVC(constraints,snext,sdnext,1,dt);
                     if(res1 == 0) {
                         cont = false;
-                        std::cout << "End traj\n";
+                        //std::cout << "End traj\n";
                         break;
                     }
                     else if(res1 == 1) {
                         // Case b1
-                        std::cout << "End slide with trap (" <<snext << "," << sdnext  <<  ")\n";
+                        //std::cout << "End slide with trap (" <<snext << "," << sdnext  <<  ")\n";
                         break;
                     }
                     int res2 = FlowVsMVC(constraints,snext,sdnext,2,dt);
                     if(res2 == 0) {
                         cont = false;
-                        std::cout << "End traj\n";
+                        //std::cout << "End traj\n";
                         break;
                     }
                     else if(res2 == -1) {
                         // Case b2
-                        std::cout << "End slide with exit (" <<snext << "," << sdnext  <<  ")\n";
+                        //std::cout << "End slide with exit (" <<snext << "," << sdnext  <<  ")\n";
                         break;
                     }
                 }

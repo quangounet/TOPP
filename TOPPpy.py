@@ -163,16 +163,22 @@ class PiecewisePolynomialTrajectory():
         return self.chunkslist[i].Evaldd(remainder)
         
     def Plot(self,dt,f=''):
+        ax=gca()
+        ax.set_color_cycle(['r','g','b'])
         tvect = arange(0,self.duration+dt,dt)
         qvect = array([self.Eval(t) for t in tvect])
         plot(tvect,qvect,f)
             
     def Plotd(self,dt,f=''):
+        ax=gca()
+        ax.set_color_cycle(['r','g','b'])
         tvect = arange(0,self.duration+dt,dt)
         qdvect = array([self.Evald(t) for t in tvect])
         plot(tvect,qdvect,f)
     
     def Plotdd(self,dt,f=''):
+        ax=gca()
+        ax.set_color_cycle(['r','g','b'])
         tvect = arange(0,self.duration+dt,dt)
         qddvect = array([self.Evaldd(t) for t in tvect])
         plot(tvect,qddvect,f)

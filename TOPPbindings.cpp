@@ -27,9 +27,9 @@
 
 using namespace TOPP;
 
-class TOPPProblem {
+class TOPPInstance {
 public:
-    TOPPProblem(std::string problemtype, std::string constraintsstring,std::string trajectorystring,std::string tuningsstring){
+    TOPPInstance(std::string problemtype, std::string constraintsstring,std::string trajectorystring,std::string tuningsstring){
         if(problemtype.compare("KinematicLimits")==0) {
             pconstraints = new KinematicLimits(constraintsstring);
         }
@@ -99,15 +99,15 @@ public:
 BOOST_PYTHON_MODULE(TOPPbindings)
 {
     using namespace boost::python;
-    class_<TOPPProblem>("TOPPProblem", init<std::string,std::string,std::string,std::string>())
-    .def_readonly("restrajectorystring", &TOPPProblem::restrajectorystring)
-    .def_readonly("resprofilesliststring", &TOPPProblem::resprofilesliststring)
-    .def_readonly("resduration", &TOPPProblem::resduration)
-    .def_readonly("sdendmin", &TOPPProblem::sdendmin)
-    .def_readonly("sdendmax", &TOPPProblem::sdendmax)
-    .def("RunPP",&TOPPProblem::RunPP)
-    .def("RunVIP",&TOPPProblem::RunVIP)
-    .def("WriteResultTrajectory",&TOPPProblem::WriteResultTrajectory)
-    .def("WriteProfilesList",&TOPPProblem::WriteProfilesList);
+    class_<TOPPInstance>("TOPPInstance", init<std::string,std::string,std::string,std::string>())
+    .def_readonly("restrajectorystring", &TOPPInstance::restrajectorystring)
+    .def_readonly("resprofilesliststring", &TOPPInstance::resprofilesliststring)
+    .def_readonly("resduration", &TOPPInstance::resduration)
+    .def_readonly("sdendmin", &TOPPInstance::sdendmin)
+    .def_readonly("sdendmax", &TOPPInstance::sdendmax)
+    .def("RunPP",&TOPPInstance::RunPP)
+    .def("RunVIP",&TOPPInstance::RunVIP)
+    .def("WriteResultTrajectory",&TOPPInstance::WriteResultTrajectory)
+    .def("WriteProfilesList",&TOPPInstance::WriteProfilesList);
 
 }

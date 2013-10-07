@@ -83,7 +83,7 @@ robot.SetTransform(array([[0,0,1,0],[0,1,0,0],[-1,0,0,0.3],[0,0,0,1]]))
 # Parameters
 taumin = [-15,-10]
 taumax = [15,10]
-vmax = [3,3]
+vmax = [2,3]
 
 discrtimestep = 0.01;
 integrationtimestep = 0.01;
@@ -126,7 +126,7 @@ for i in range(ndiscrsteps):
 t1 = time.time()
 
 # Solve in C++
-x = TOPPbindings.TOPPProblem("TorqueLimits",constraintstring,trajectorystring,tuningsstring);
+x = TOPPbindings.TOPPInstance("TorqueLimits",constraintstring,trajectorystring,tuningsstring);
 ret = x.RunPP(1e-4,1e-4)
 
 t2 = time.time()
