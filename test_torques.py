@@ -58,32 +58,11 @@ robot.SetDOFLimits(-10*ones(n),10*ones(n))
 robot.SetDOFVelocityLimits(100*vel_lim)
 robot.SetTransform(array([[0,0,1,0],[0,1,0,0],[-1,0,0,0.3],[0,0,0,1]]))
 
-# Uncomment below to view the robot
-# env.SetViewer('qtcoin') # attach viewer (optional)
-# k=robot.GetLinks()[0]
-# g=k.GetGeometries()[0]
-# g.SetAmbientColor([0.0,0,0])
-# g.SetDiffuseColor([0.0,0,0])
-# k=robot.GetLinks()[1]
-# g=k.GetGeometries()[0]
-# g.SetAmbientColor([0.6,0,0])
-# g.SetDiffuseColor([0.6,0,0])
-# k=robot.GetLinks()[2]
-# g=k.GetGeometries()[0]
-# g.SetAmbientColor([0,0,0.6])
-# g.SetDiffuseColor([0,0,0.6])
-# V=env.GetViewer
-# M=array([[ 0,   0,  -1,   1.1],
-#          [  1,   0,  0,   0],
-#          [  0,  -1,  0,   0.3],
-#          [  0,   0,   0,   1]])
-# V.SetCamera(M)
-
 
 # Parameters
 taumin = [-15,-10]
 taumax = [15,10]
-vmax = [2,3]
+vmax = [2.5,3]
 
 discrtimestep = 0.01;
 integrationtimestep = 0.01;
@@ -156,6 +135,10 @@ tvect1,tauvect1 = ComputeTorques(traj1,robot,dt)
 print "Max torques: ", max(abs(tauvect1[:,0])) ,"," , max(abs(tauvect1[:,1]))
 
 
+Tmax = max(traj0.duration,traj1.duration)
+Vmax = 1.2*max(vmax)
+Taumax = 1.2*max(max(taumax),abs(min(taumin)))
+
 
 # Plotting
 figure(0)
@@ -169,6 +152,11 @@ clf()
 hold('on')
 traj0.Plotd(dt)
 traj1.Plotd(dt,'--')
+plot([0,Tmax],[vmax[0],vmax[0]],'r-.')
+plot([0,Tmax],[-vmax[0],-vmax[0]],'r-.')
+plot([0,Tmax],[vmax[1],vmax[1]],'g-.')
+plot([0,Tmax],[-vmax[1],-vmax[1]],'g-.')
+axis([0,Tmax,-Vmax,Vmax])
 
 figure(2)
 clf()
@@ -179,8 +167,16 @@ traj1.Plotdd(dt,'--')
 figure(3)
 clf()
 hold('on')
+ax=gca()
+ax.set_color_cycle(['r','g','b'])
 plot(tvect0,tauvect0)
+ax.set_color_cycle(['r','g','b'])
 plot(tvect1,tauvect1,'--')
+plot([0,Tmax],[taumax[0],taumax[0]],'r-.')
+plot([0,Tmax],[taumin[0],taumin[0]],'r-.')
+plot([0,Tmax],[taumax[1],taumax[1]],'g-.')
+plot([0,Tmax],[taumin[1],taumin[1]],'g-.')
+axis([0,Tmax,-Taumax,Taumax])
 
 
 figure(4)
