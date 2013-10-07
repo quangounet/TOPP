@@ -1,13 +1,19 @@
+SHELL=/bin/bash
+
 SOURCE=$(wildcard *.cpp)
 OBJECTS=$(SOURCE:.cpp=.o)
 TARGET=TOPPbindings.so
 LIB=-lboost_python
 INCLUDE=$(shell python-config --includes)
-CC=g++ 
-OPTIONS= -Wall -O2 -fPIC
+CC=g++ -Wall -O2 -fPIC
+
+TESTS=$(wildcard tests/*.py)
+PYTHON=python
+
 
 so: $(OBJECTS)
-	$(CC) $(OPTIONS) $(INCLUDE) $(SOURCE) -shared $(LIB) -o $(TARGET)
+	$(CC) $(INCLUDE) $(SOURCE) -shared $(LIB) -o $(TARGET)
+
 %.o: %.cpp
 	$(CC) $(INCLUDE) -c $< 
 
@@ -21,4 +27,8 @@ clean:
 distclean: clean
 	rm -f $(TARGET)
 
-.PHONY: so debug clean distclean
+unit_tests:
+	@for f in $(TESTS); do $(PYTHON) $$f; done
+
+
+.PHONY: so debug clean distclean unit_tests
