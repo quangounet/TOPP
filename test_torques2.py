@@ -3,16 +3,16 @@
 #
 # This file is part of the Time-Optimal Path Parameterization (TOPP) library.
 # TOPP is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# GNU Lesser General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
@@ -60,13 +60,13 @@ robot.SetTransform(array([[0,0,1,0],[0,1,0,0],[-1,0,0,0.3],[0,0,0,1]]))
 
 
 # Parameters
-taumin = [-15,-10]
-taumax = [15,10]
+taumin = array([-15,-10])
+taumax = array([15,10])
 vmax = [2.5,3]
 
 discrtimestep = 0.01;
 integrationtimestep = 0.01;
-bisectionprecision = 0.1;
+bisectionprecision = 0.01;
 passswitchpointnsteps = 5;
 reparamtimestep = 0.01;
 
@@ -77,7 +77,7 @@ T=1
 
 tuningsstring = "%f %f %f %d %f"%(discrtimestep,integrationtimestep,bisectionprecision,passswitchpointnsteps,reparamtimestep);
 trajectorystring = "%f\n%d\n%f %f %f\n%f %f %f"%(T,2,c1,b1,a1,c2,b2,a2)
-constraintstring = string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax]) + "\n" + string.join([str(a) for a in vmax])
+constraintstring = string.join([str(a) for a in vmax])
 
 
 t0 = time.time()
@@ -98,14 +98,15 @@ for i in range(ndiscrsteps):
         robot.SetDOFVelocities(qd)
         tm,tc,tg = robot.ComputeInverseDynamics(qdd,None,returncomponents=True)
         to = robot.ComputeInverseDynamics(qd) - tc - tg
-        constraintstring += "\n" + string.join([str(x) for x in to])
-        constraintstring += "\n" + string.join([str(x) for x in tm+tc])
-        constraintstring += "\n" + string.join([str(x) for x in tg])
+        constraintstring += "\n" + string.join([str(x) for x in to]) + " " + string.join([str(x) for x in -to])
+        constraintstring += "\n" + string.join([str(x) for x in tm+tc]) + " " + string.join([str(x) for x in -tm-tc]) 
+        constraintstring += "\n" + string.join([str(x) for x in tg-taumax]) + " " + string.join([str(x) for x in -tg+taumin])
+
 
 t1 = time.time()
 
 # Solve in C++
-x = TOPPbindings.TOPPInstance("TorqueLimits",constraintstring,trajectorystring,tuningsstring);
+x = TOPPbindings.TOPPInstance("QuadraticConstraints",constraintstring,trajectorystring,tuningsstring);
 ret = x.RunPP(1e-4,1e-4)
 
 t2 = time.time()
@@ -126,6 +127,9 @@ print "Duration reparameterized trajectory: ", x.resduration
 x.WriteProfilesList()
 profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
 
+
+
+##### BEGIN TRAJ COMPUTATIONS #####
 
 x.WriteResultTrajectory()
 traj1 = TOPPpy.PiecewisePolynomialTrajectory(x.restrajectorystring)
@@ -178,6 +182,8 @@ plot([0,Tmax],[taumax[1],taumax[1]],'g-.')
 plot([0,Tmax],[taumin[1],taumin[1]],'g-.')
 axis([0,Tmax,-Taumax,Taumax])
 
+
+##### END TRAJ COMPUTATIONS #####
 
 figure(4)
 clf()

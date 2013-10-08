@@ -54,7 +54,7 @@ public:
     Tunings(const std::string& tuningsstring);
     dReal discrtimestep;
     dReal integrationtimestep;
-    dReal sdprecision;
+    dReal bisectionprecision;
     int passswitchpointnsteps;
     dReal reparamtimestep;
 };

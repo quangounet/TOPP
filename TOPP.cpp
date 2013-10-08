@@ -33,7 +33,7 @@ Tunings::Tunings(const std::string& tuningsstring){
     iss >> sub;
     integrationtimestep = atof(sub.c_str());
     iss >> sub;
-    sdprecision = atof(sub.c_str());
+    bisectionprecision = atof(sub.c_str());
     iss >> sub;
     passswitchpointnsteps = atof(sub.c_str());
     iss >> sub;
@@ -535,7 +535,7 @@ dReal ComputeSlidesdd(Constraints& constraints, dReal s, dReal sd, dReal dt){
     }
 
     //Determine the optimal acceleration by bisection
-    while(beta-alpha>1e-5) {
+    while(beta-alpha>constraints.tunings.bisectionprecision) {
         sddtest = (beta+alpha)/2;
         snext = s + dt*sd + 0.5*dtsq*sddtest;
         sdnext_int = sd + dt*sddtest;
@@ -878,7 +878,7 @@ dReal BisectionSearch(Constraints& constraints, dReal s, dReal sdbottom, dReal s
     if(position!=1 && PassSwitchPoint(constraints,s,sdtop,dt)) {
         return sdtop;
     }
-    if(sdtop-sdbottom<constraints.tunings.sdprecision) {
+    if(sdtop-sdbottom<constraints.tunings.bisectionprecision) {
         if(position!=-1 && PassSwitchPoint(constraints,s,sdbottom,dt)) {
             return sdbottom;
         }
@@ -1090,7 +1090,7 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
 
     dReal sdupper = sdendmax, sdlower = 0;
     Profile bestprofile;
-    while(sdupper-sdlower > tunings.sdprecision) {
+    while(sdupper-sdlower > tunings.bisectionprecision) {
         dReal sdtest = (sdupper + sdlower)/2;
         int resintbw2 = IntegrateBackward(constraints,trajectory.duration,sdtest,constraints.tunings.integrationtimestep,tmpprofile,1e5,resprofileslist);
         if((resintbw2 == INT_END && tmpprofile.Evald(0)>=sdbegmin) || resintbw2 == INT_PROFILE) {
