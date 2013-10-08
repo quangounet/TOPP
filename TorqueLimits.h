@@ -32,7 +32,6 @@ public:
     std::pair<dReal,dReal> SddLimits(dReal s, dReal sd);
     int dimension;
     void InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c);
-    void DiscretizeDynamics();
     dReal SdLimitBobrowInit(dReal s);
     void FindSingularSwitchPoints();
 };
