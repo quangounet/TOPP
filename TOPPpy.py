@@ -38,7 +38,7 @@ def ProfilesFromString(s):
     profileslist = []
     lines = [l.strip(" \n") for l in s.split('\n')]
     n = len(lines) / 3
-    for i in range(n):        
+    for i in range(n):
         profileslist.append(ProfileFromLines(lines[3*i:3*i+3]))
     return profileslist
 
@@ -49,8 +49,13 @@ def VectorFromString(s):
 
 
 class Polynomial():
-    def __init__(self,polynomialstring):
-        self.coefficientsvector = VectorFromString(polynomialstring)
+    @staticmethod
+    def FromString(polynomial_string):
+        coeff_vector = VectorFromString(polynomial_string)
+        return Polynomial(coeff_vector)
+
+    def __init__(self, coeff_vector):
+        self.coefficientsvector = coeff_vector
         self.degree = len(self.coefficientsvector)-1
         self.coefficientsvectord = zeros(self.degree)
         self.coefficientsvectordd = zeros(self.degree-1)
