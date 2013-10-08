@@ -17,13 +17,13 @@
 
 
 import TOPPbindings
-import TOPPpy 
+import TOPPpy
 import time
 import sys
 from pylab import *
 
 
-# Constraints : 
+# Constraints :
 # amax0 , amax1 \n vmax0, vmax1 (vmax = 0 means no velocity constraints)
 amax0 = 15
 amax1 = 10
@@ -32,7 +32,7 @@ vmax1 = 10
 constraintstring = "%f %f\n %f %f"%(amax0,amax1,vmax0,vmax1);
 
 
-# Tunings : 
+# Tunings :
 # - time step for discretizing the MVC
 # - time step for integrating the profiles
 # - precision for sdot search around switch points

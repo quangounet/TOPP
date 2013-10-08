@@ -1,7 +1,8 @@
 import pylab
 
-import TOPPpy
 import TOPPbindings
+
+from TOPPpy import PiecewisePolynomialTrajectory
 
 
 class NoTrajectoryFound(Exception):
@@ -13,22 +14,22 @@ def __vect_to_str(v):
 
 
 class Tunings(object):
-    def __init__(self, mvc_tstep, integ_tstep, sd_prec, switchpoint_steps,
-                 reparam_tstep):
+    def __init__(self, dt, mvc_dt=None, integ_dt=None, sd_prec=None,
+                 switchpoint_steps=20, reparam_dt=None):
         """
 
-        mvc_tstep -- time step for discretizing the MVC
-        integ_tstep -- time step for integrating velocity profiles
+        mvc_dt -- time step for discretizing the MVC
+        integ_dt -- time step for integrating velocity profiles
         sd_prec -- precision for sdot search around switch points
         switchpoint_steps -- number of time steps to integrate around dynamic
                              singularities
-        reparam_tstep -- time step for reparametrization
+        reparam_dt -- time step for reparametrization
 
         """
-        self.mvc_tstep = mvc_tstep
-        self.integ_tstep = integ_tstep
-        self.reparam_tstep = reparam_tstep
-        self.sd_prec = sd_prec
+        self.mvc_tstep = mvc_dt if mvc_dt else dt
+        self.integ_tstep = integ_dt if integ_dt else dt
+        self.reparam_tstep = reparam_dt if reparam_dt else dt
+        self.sd_prec = sd_prec if sd_prec else dt
         self.switchpoint_steps = switchpoint_steps
 
     def __str__(self):
@@ -37,22 +38,10 @@ class Tunings(object):
         return "%f %f %f %d %f" % kron
 
 
-class Trajectory(object):
-    def __init__(self, duration, degree, coefs):
-        self.duration = duration
-        self.degree = degree
-        self.coefs = coefs
-
-    def __str__(self):
-        kron = [self.duration, self.degree]
-        kron.extend(self.coefs)
-        return "%f\n%d\n%f %f %f\n%f %f %f" % kron
-
-
 class TorqueConstraints(object):
-    def __init__(self, tau_min, tau_max):
-        self.tau_min = tau_min
-        self.tau_max = tau_max
+    def __init__(self, tau1, tau2=None):
+        self.tau_min = tau1 if tau2 else -tau1
+        self.tau_max = tau2 if tau2 else +tau1
 
     def __str__(self):
         tau_min_str = __vect_to_str(self.tau_min)
@@ -60,7 +49,7 @@ class TorqueConstraints(object):
         return "%s\n%s" % (tau_min_str, tau_max_str)
 
 
-class RaveTOPPInstance(object):
+class RaveTorqueInstance(object):
     def __init__(self, constraints, openrave_robot, traj, tunings):
         self.constraints = constraints
         self.robot = openrave_robot
@@ -72,7 +61,7 @@ class RaveTOPPInstance(object):
             str(self.tunings))
 
     def get_dynamics_str(self):
-        poly_traj = TOPPpy.PiecewisePolynomialTrajectory(str(self.traj))
+        poly_traj = PiecewisePolynomialTrajectory(str(self.traj))
         assert abs(poly_traj.duration - self.traj.duration) < 1e-6
 
         nb_steps = 1 + int((self.duration + 1e-10) / self.tunings.disc_tstep)
@@ -101,7 +90,8 @@ class RaveTOPPInstance(object):
             raise NoTrajectoryFound
 
         self.solver.WriteResultTrajectory()
-        return self.solver.restrajectory
+        traj_str = self.solver.restrajectorystring
+        return PiecewisePolynomialTrajectory.FromString(traj_str)
 
     def propagate_velocity_interval(self):
         return_code = self.solver.RunVIP(1e-4, 1e-4)

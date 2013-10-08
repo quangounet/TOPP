@@ -55,6 +55,10 @@ class Polynomial():
         return Polynomial(coeff_vector)
 
     def __init__(self, coeff_vector):
+        """
+        Create a polynomial from its list of coefficients (weakest terms first).
+        """
+
         self.coefficientsvector = coeff_vector
         self.degree = len(self.coefficientsvector)-1
         self.coefficientsvectord = zeros(self.degree)
@@ -123,8 +127,18 @@ class Chunk():
 
 
 class PiecewisePolynomialTrajectory():
-    
-    def __init__(self,trajectorystring):
+    def __init__(self,chunkslist):
+        self.chunkslist = chunkslist
+        self.dimension = self.chunkslist[0].dimension
+        self.degree = self.chunkslist[0].degree
+        self.duration = 0
+        self.chunkcumulateddurationslist = []
+        for c in chunkslist:
+            self.chunkcumulateddurationslist.append(self.duration)
+            self.duration += c.duration
+
+    @staticmethod
+    def FromTrajString(self,trajectorystring):
         buff = StringIO.StringIO(trajectorystring)
         chunkslist = []
         while(buff.pos<buff.len):
@@ -134,17 +148,7 @@ class PiecewisePolynomialTrajectory():
             for i in range(dimension):
                 polynomialsvector.append(Polynomial(buff.readline()))
             chunkslist.append(Chunk(duration,polynomialsvector))
-        self.InitFromChunkslist(chunkslist)
-
-    def InitFromChunkslist(self,chunkslist):
-        self.chunkslist = chunkslist
-        self.dimension = self.chunkslist[0].dimension
-        self.degree = self.chunkslist[0].degree
-        self.duration = 0
-        self.chunkcumulateddurationslist = []
-        for c in chunkslist:
-            self.chunkcumulateddurationslist.append(self.duration)
-            self.duration += c.duration
+        return PiecewisePolynomialTrajectory(chunkslist)
 
     def FindChunkIndex(self,s):
         if(s==0):
