@@ -67,23 +67,23 @@ class Polynomial():
     def Eval(self,s):
         res = 0
         for i in range(self.degree,-1,-1):
-            res = res*s + self.coefficientsvector[i];
+            res = res*s + self.coefficientsvector[i]
         return res
 
     def Evald(self,s):
         res = 0
         for i in range(self.degree-1,-1,-1):
-            res = res*s + self.coefficientsvectord[i];
+            res = res*s + self.coefficientsvectord[i]
         return res
 
     def Evaldd(self,s):
         res = 0
         for i in range(self.degree-2,-1,-1):
-            res = res*s + self.coefficientsvectordd[i];
+            res = res*s + self.coefficientsvectordd[i]
         return res
 
-    def Write(self):
-        ss = "";
+    def GetString(self):
+        ss = ""
         for i in range(0,self.degree+1):
             ss += str(self.coefficientsvector[i])
         return ss
@@ -91,7 +91,7 @@ class Polynomial():
 
 class Chunk():
     def __init__(self,duration,polynomialsvector):
-        self.polynomialsvector = polynomialsvector;
+        self.polynomialsvector = polynomialsvector
         self.dimension = len(polynomialsvector)
         self.duration = duration
         self.degree = polynomialsvector[0].degree
@@ -114,13 +114,12 @@ class Chunk():
             qdd[i] = self.polynomialsvector[i].Evaldd(s)
         return qdd
 
-    def Write(self):
+    def GetString(self):
         ss = str(self.duration) + "\n"
         ss += str(self.dimension) + "\n"
         for i in range(self.dimension):
             ss += self.polynomialsvector[i].Write() + "\n"
         return ss
-
 
 
 class PiecewisePolynomialTrajectory():
@@ -131,12 +130,11 @@ class PiecewisePolynomialTrajectory():
         while(buff.pos<buff.len):
             duration = double(buff.readline())
             dimension = int(buff.readline())
-            polynomialsvector = [];
+            polynomialsvector = []
             for i in range(dimension):
                 polynomialsvector.append(Polynomial(buff.readline()))
             chunkslist.append(Chunk(duration,polynomialsvector))
         self.InitFromChunkslist(chunkslist)
-            
 
     def InitFromChunkslist(self,chunkslist):
         self.chunkslist = chunkslist
@@ -146,7 +144,7 @@ class PiecewisePolynomialTrajectory():
         self.chunkcumulateddurationslist = []
         for c in chunkslist:
             self.chunkcumulateddurationslist.append(self.duration)
-            self.duration += c.duration        
+            self.duration += c.duration
 
     def FindChunkIndex(self,s):
         if(s==0):
@@ -154,38 +152,39 @@ class PiecewisePolynomialTrajectory():
         i = bisect.bisect_left(self.chunkcumulateddurationslist,s)-1
         remainder = s - self.chunkcumulateddurationslist[i]
         return i,remainder
-    
+
     def Eval(self,s):
-        i,remainder = self.FindChunkIndex(s)        
+        i,remainder = self.FindChunkIndex(s)
         return self.chunkslist[i].Eval(remainder)
-    
+
     def Evald(self,s):
         i,remainder = self.FindChunkIndex(s)
         return self.chunkslist[i].Evald(remainder)
-    
+
     def Evaldd(self,s):
         i,remainder = self.FindChunkIndex(s)
         return self.chunkslist[i].Evaldd(remainder)
-        
+
     def Plot(self,dt,f=''):
         ax=gca()
         ax.set_color_cycle(['r','g','b'])
         tvect = arange(0,self.duration+dt,dt)
         qvect = array([self.Eval(t) for t in tvect])
         plot(tvect,qvect,f)
-            
+
     def Plotd(self,dt,f=''):
         ax=gca()
         ax.set_color_cycle(['r','g','b'])
         tvect = arange(0,self.duration+dt,dt)
         qdvect = array([self.Evald(t) for t in tvect])
         plot(tvect,qdvect,f)
-    
+
     def Plotdd(self,dt,f=''):
         ax=gca()
         ax.set_color_cycle(['r','g','b'])
         tvect = arange(0,self.duration+dt,dt)
         qddvect = array([self.Evaldd(t) for t in tvect])
         plot(tvect,qddvect,f)
-        
 
+    def GetString(self):
+        return '\n'.join([chunk.GetString() for chunk in self.chunklist])
