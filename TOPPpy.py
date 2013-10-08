@@ -138,7 +138,7 @@ class PiecewisePolynomialTrajectory():
             self.duration += c.duration
 
     @staticmethod
-    def FromTrajString(self,trajectorystring):
+    def FromString(trajectorystring):
         buff = StringIO.StringIO(trajectorystring)
         chunkslist = []
         while(buff.pos<buff.len):
@@ -146,7 +146,7 @@ class PiecewisePolynomialTrajectory():
             dimension = int(buff.readline())
             polynomialsvector = []
             for i in range(dimension):
-                polynomialsvector.append(Polynomial(buff.readline()))
+                polynomialsvector.append(Polynomial.FromString(buff.readline()))
             chunkslist.append(Chunk(duration,polynomialsvector))
         return PiecewisePolynomialTrajectory(chunkslist)
 

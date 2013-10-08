@@ -29,7 +29,7 @@ amax0 = 15
 amax1 = 10
 vmax0 = 20
 vmax1 = 10
-constraintstring = "%f %f\n %f %f"%(amax0,amax1,vmax0,vmax1);
+constraintstring = "%f %f\n %f %f"%(amax0,amax1,vmax0,vmax1)
 
 
 # Tunings :
@@ -68,8 +68,8 @@ print "Duration reparameterized trajectory: ", x.resduration
 
 # Display results
 x.WriteResultTrajectory()
-traj0 = TOPPpy.PiecewisePolynomialTrajectory(trajectorystring)
-traj1 = TOPPpy.PiecewisePolynomialTrajectory(x.restrajectorystring)
+traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
+traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
 
 
 # Verification
@@ -77,7 +77,7 @@ ion()
 dt = 0.1
 tvect = arange(0,traj1.duration+dt,dt)
 qdd = array([traj1.Evaldd(t) for t in tvect])
-print "Max acceleration: ", max(abs(qdd[:,0])) ,"," , max(abs(qdd[:,1])) 
+print "Max acceleration: ", max(abs(qdd[:,0])) ,"," , max(abs(qdd[:,1]))
 Tmax = max(traj0.duration,traj1.duration)
 Vmax = 1.2*max(vmax0,vmax1)
 Amax = 1.2*max(amax0,amax1)

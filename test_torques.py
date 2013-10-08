@@ -83,7 +83,7 @@ constraintstring = string.join([str(x) for x in taumin]) + "\n" + string.join([s
 t0 = time.time()
 
 # Sampling the dynamics of the trajectory in python
-traj0 = TOPPpy.PiecewisePolynomialTrajectory(trajectorystring)
+traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 ndiscrsteps = int((traj0.duration+1e-10)/discrtimestep)+1;
 
 start = time.time()
@@ -128,7 +128,7 @@ profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
 
 
 x.WriteResultTrajectory()
-traj1 = TOPPpy.PiecewisePolynomialTrajectory(x.restrajectorystring)
+traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
 dt = 0.001
 tvect0,tauvect0 = ComputeTorques(traj0,robot,dt)
 tvect1,tauvect1 = ComputeTorques(traj1,robot,dt)
