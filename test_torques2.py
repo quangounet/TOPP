@@ -83,7 +83,7 @@ constraintstring = string.join([str(a) for a in vmax])
 t0 = time.time()
 
 # Sampling the dynamics of the trajectory in python
-traj0 = TOPPpy.PiecewisePolynomialTrajectory(trajectorystring)
+traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 ndiscrsteps = int((traj0.duration+1e-10)/discrtimestep)+1;
 
 start = time.time()
@@ -99,7 +99,7 @@ for i in range(ndiscrsteps):
         tm,tc,tg = robot.ComputeInverseDynamics(qdd,None,returncomponents=True)
         to = robot.ComputeInverseDynamics(qd) - tc - tg
         constraintstring += "\n" + string.join([str(x) for x in to]) + " " + string.join([str(x) for x in -to])
-        constraintstring += "\n" + string.join([str(x) for x in tm+tc]) + " " + string.join([str(x) for x in -tm-tc]) 
+        constraintstring += "\n" + string.join([str(x) for x in tm+tc]) + " " + string.join([str(x) for x in -tm-tc])
         constraintstring += "\n" + string.join([str(x) for x in tg-taumax]) + " " + string.join([str(x) for x in -tg+taumin])
 
 
@@ -132,7 +132,7 @@ profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
 ##### BEGIN TRAJ COMPUTATIONS #####
 
 x.WriteResultTrajectory()
-traj1 = TOPPpy.PiecewisePolynomialTrajectory(x.restrajectorystring)
+traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
 dt = 0.001
 tvect0,tauvect0 = ComputeTorques(traj0,robot,dt)
 tvect1,tauvect1 = ComputeTorques(traj1,robot,dt)
