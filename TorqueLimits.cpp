@@ -49,12 +49,6 @@ TorqueLimits::TorqueLimits(const std::string& constraintsstring){
 }
 
 
-void TorqueLimits::DiscretizeDynamics(){
-
-}
-
-
-
 void TorqueLimits::InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c){
     a.resize(trajectory.dimension);
     b.resize(trajectory.dimension);

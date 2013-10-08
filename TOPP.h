@@ -201,7 +201,6 @@ public:
     std::vector<dReal> vmax;
 
     std::list<SwitchPoint> switchpointslist;
-    std::list<SwitchPoint> zlajpahlist;
 
     //////////////////////// General ///////////////////////////
 
@@ -213,13 +212,6 @@ public:
     void ComputeMVCCombined();
     void WriteMVCBobrow(std::stringstream& ss, dReal dt=0.01);
     void WriteMVCCombined(std::stringstream& ss, dReal dt=0.01);
-
-    // discretize dynamics
-    virtual void DiscretizeDynamics(){
-        std::cout << "Virtual method not implemented\n";
-        throw "Virtual method not implemented";
-    }
-
 
     dReal Interpolate1D(dReal s, const std::vector<dReal>& v);
 
@@ -257,6 +249,36 @@ public:
 
 
 
+
+
+////////////////////////////////////////////////////////////////////
+/////////////////// Quadratic Constraints //////////////////////////
+////////////////////////////////////////////////////////////////////
+
+
+// Constraints of the form a(s)sdd + b(s)sd^2 + c(s) <= 0
+
+
+class QuadraticConstraints : public Constraints {
+public:
+    QuadraticConstraints() : Constraints(){
+    }
+    QuadraticConstraints(const std::string& constraintsstring);
+
+    // Methods to be rewritten
+    std::pair<dReal,dReal> SddLimits(dReal s, dReal sd);
+    void FindSingularSwitchPoints();
+
+    // Particular members
+    int nconstraints;
+    std::vector<std::vector<dReal> > avect, bvect, cvect;  // Dynamics coefficients
+
+    // Particular methods
+    dReal SdLimitBobrowInit(dReal s);  // Used in the initialization of the bobrow MVC
+    void InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c); // Interpolate dynamics coefficients
+
+
+};
 
 
 ////////////////////////////////////////////////////////////////////

@@ -36,6 +36,9 @@ public:
         else if(problemtype.compare("TorqueLimits")==0) {
             pconstraints = new TorqueLimits(constraintsstring);
         }
+        else if(problemtype.compare("QuadraticConstraints")==0) {
+            pconstraints = new QuadraticConstraints(constraintsstring);
+        }
         ptrajectory = new Trajectory(trajectorystring);
         tunings = Tunings(tuningsstring);
     }
