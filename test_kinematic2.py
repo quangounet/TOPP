@@ -17,28 +17,36 @@
 
 
 import TOPPbindings
-import TOPPpy
+import TOPPpy 
+import string
 import time
 import sys
 from pylab import *
 
 
-# Constraints :
+# Constraints : 
 # amax0 , amax1 \n vmax0, vmax1 (vmax = 0 means no velocity constraints)
 amax0 = 15
 amax1 = 10
+amax = array([amax0,amax1])
 vmax0 = 20
 vmax1 = 10
-constraintstring = "%f %f\n %f %f"%(amax0,amax1,vmax0,vmax1)
+constraintstring = "%f %f"%(vmax0,vmax1);
 
 
-# Tunings :
+# Tunings : 
 # - time step for discretizing the MVC
 # - time step for integrating the profiles
 # - precision for sdot search around switch points
 # - number of time steps to integrate around dynamic singularities
 # - time step for reparameterization
-tuningsstring = "0.01 0.01 0.01 20 0.01";
+discrtimestep = 0.01;
+integrationtimestep = 0.01;
+bisectionprecision = 0.1;
+passswitchpointnsteps = 20;
+reparamtimestep = 0.01;
+tuningsstring = "%f %f %f %d %f"%(discrtimestep,integrationtimestep,bisectionprecision,passswitchpointnsteps,reparamtimestep);
+
 
 
 # Trajectory :
@@ -50,15 +58,39 @@ tuningsstring = "0.01 0.01 0.01 20 0.01";
 trajectorystring = "2 \n 2\n 1 1 0 1\n 0 2 0 -1\n 3\n 2\n 11 13 6 0.1666666666666\n -4 -10 -6 0.5";
 
 
-# Run TOPP
+# Sampling the dynamics of the trajectory in python
+traj0 = TOPPpy.PiecewisePolynomialTrajectory(trajectorystring)
+ndiscrsteps = int((traj0.duration+1e-10)/discrtimestep)+1;
+
 start = time.time()
-x = TOPPbindings.TOPPInstance("KinematicLimits",constraintstring,trajectorystring,tuningsstring);
+
+for i in range(ndiscrsteps):
+    t = i*discrtimestep
+    q=traj0.Eval(t)
+    qd=traj0.Evald(t)
+    qdd=traj0.Evaldd(t)
+    constraintstring += "\n" + string.join([str(x) for x in qd]) + " " + string.join([str(x) for x in -qd])
+    constraintstring += "\n" + string.join([str(x) for x in qdd]) + " " + string.join([str(x) for x in -qdd]) 
+    constraintstring += "\n" + string.join([str(x) for x in -amax]) + " " + string.join([str(x) for x in -amax])
+
+
+t1 = time.time()
+
+
+
+# Run TOPP
+
+x = TOPPbindings.TOPPInstance("QuadraticConstraints",constraintstring,trajectorystring,tuningsstring);
 ret = x.RunPP(1e-4,1e-4)
+
+t2 = time.time()
 
 if(ret==0):
     sys.exit()
 
-print "Computation time: ", (time.time()-start)
+print "Sampling time (Python): ", t1 - start
+print "Parameterization time (C++): ", t2 - t1
+print "Total time: ", t2 -start
 print "Duration reparameterized trajectory: ", x.resduration
 
 # Run Velocity Interval Propagation
@@ -68,8 +100,7 @@ print "Duration reparameterized trajectory: ", x.resduration
 
 # Display results
 x.WriteResultTrajectory()
-traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
-traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
+traj1 = TOPPpy.PiecewisePolynomialTrajectory(x.restrajectorystring)
 
 
 # Verification
@@ -77,7 +108,7 @@ ion()
 dt = 0.1
 tvect = arange(0,traj1.duration+dt,dt)
 qdd = array([traj1.Evaldd(t) for t in tvect])
-print "Max acceleration: ", max(abs(qdd[:,0])) ,"," , max(abs(qdd[:,1]))
+print "Max acceleration: ", max(abs(qdd[:,0])) ,"," , max(abs(qdd[:,1])) 
 Tmax = max(traj0.duration,traj1.duration)
 Vmax = 1.2*max(vmax0,vmax1)
 Amax = 1.2*max(amax0,amax1)

@@ -3,16 +3,16 @@
 //
 // This file is part of the Time-Optimal Path Parameterization (TOPP) library.
 // TOPP is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
+// it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Lesser General Public License for more details.
+// GNU General Public License for more details.
 //
-// You should have received a copy of the GNU Lesser General Public License
+// You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
@@ -54,7 +54,7 @@ public:
     Tunings(const std::string& tuningsstring);
     dReal discrtimestep;
     dReal integrationtimestep;
-    dReal sdprecision;
+    dReal bisectionprecision;
     int passswitchpointnsteps;
     dReal reparamtimestep;
 };
@@ -201,7 +201,6 @@ public:
     std::vector<dReal> vmax;
 
     std::list<SwitchPoint> switchpointslist;
-    std::list<SwitchPoint> zlajpahlist;
 
     //////////////////////// General ///////////////////////////
 
@@ -213,13 +212,6 @@ public:
     void ComputeMVCCombined();
     void WriteMVCBobrow(std::stringstream& ss, dReal dt=0.01);
     void WriteMVCCombined(std::stringstream& ss, dReal dt=0.01);
-
-    // discretize dynamics
-    virtual void DiscretizeDynamics(){
-        std::cout << "Virtual method not implemented\n";
-        throw "Virtual method not implemented";
-    }
-
 
     dReal Interpolate1D(dReal s, const std::vector<dReal>& v);
 
@@ -257,6 +249,36 @@ public:
 
 
 
+
+
+////////////////////////////////////////////////////////////////////
+/////////////////// Quadratic Constraints //////////////////////////
+////////////////////////////////////////////////////////////////////
+
+
+// Constraints of the form a(s)sdd + b(s)sd^2 + c(s) <= 0
+
+
+class QuadraticConstraints : public Constraints {
+public:
+    QuadraticConstraints() : Constraints(){
+    }
+    QuadraticConstraints(const std::string& constraintsstring);
+
+    // Methods to be rewritten
+    std::pair<dReal,dReal> SddLimits(dReal s, dReal sd);
+    void FindSingularSwitchPoints();
+
+    // Particular members
+    int nconstraints;
+    std::vector<std::vector<dReal> > avect, bvect, cvect;  // Dynamics coefficients
+
+    // Particular methods
+    dReal SdLimitBobrowInit(dReal s);  // Used in the initialization of the bobrow MVC
+    void InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c); // Interpolate dynamics coefficients
+
+
+};
 
 
 ////////////////////////////////////////////////////////////////////
