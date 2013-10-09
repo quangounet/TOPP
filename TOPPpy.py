@@ -16,8 +16,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import StringIO
 import bisect
+import pylab
+import StringIO
 
 from pylab import arange, array, double, zeros
 from pylab import gca, plot
@@ -44,54 +45,39 @@ def ProfilesFromString(s):
 
 
 def VectorFromString(s):
+    # left for compatibility TODO: remove?
     s = s.strip(" \n")
     return array([double(x) for x in s.split(' ')])
 
 
-class Polynomial():
+class Polynomial(object):
     @staticmethod
     def FromString(polynomial_string):
-        coeff_vector = VectorFromString(polynomial_string)
-        return Polynomial(coeff_vector)
+        s = polynomial_string.strip(" \n")
+        coeff_list = [double(x) for x in s.split(' ')]
+        return Polynomial(coeff_list)
 
-    def __init__(self, coeff_vector):
-        """
-        Create a polynomial from its list of coefficients (weakest terms
-        first).
-        """
-
-        self.coefficientsvector = coeff_vector
-        self.degree = len(self.coefficientsvector) - 1
-        self.coefficientsvectord = zeros(self.degree)
-        self.coefficientsvectordd = zeros(self.degree - 1)
-        for i in range(1, self.degree + 1):
-            self.coefficientsvectord[i - 1] = i * self.coefficientsvector[i]
-        for i in range(1, self.degree):
-            self.coefficientsvectordd[i - 1] = i * self.coefficientsvectord[i]
+    def __init__(self, coeff_list):
+        # NB: we adopt the weak-term-first convention for inputs
+        self.q = pylab.poly1d(coeff_list[::-1])
+        self.qd = pylab.polyder(self.q)
+        self.qdd = pylab.polyder(self.qd)
+        self.degree = self.q.order
 
     def Eval(self, s):
-        res = 0
-        for i in range(self.degree, -1, -1):
-            res = res * s + self.coefficientsvector[i]
-        return res
+        # left for compatibility TODO: remove?
+        return self.q(s)
 
     def Evald(self, s):
-        res = 0
-        for i in range(self.degree - 1, -1, -1):
-            res = res * s + self.coefficientsvectord[i]
-        return res
+        # left for compatibility TODO: remove?
+        return self.qd(s)
 
     def Evaldd(self, s):
-        res = 0
-        for i in range(self.degree - 2, -1, -1):
-            res = res * s + self.coefficientsvectordd[i]
-        return res
+        # left for compatibility TODO: remove?
+        return self.qdd(s)
 
-    def GetString(self):
-        ss = ""
-        for i in range(0, self.degree + 1):
-            ss += str(self.coefficientsvector[i])
-        return ss
+    def __str__(self):
+        return ' '.join(map(str, list(self.q.coeffs)[::-1]))
 
 
 class Chunk():
