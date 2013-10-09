@@ -5,6 +5,9 @@
 namespace TOPP {
 
 
+class Profile;  // defined in TOPP.h
+
+
 class Polynomial {
 public:
     Polynomial(const std::vector<dReal>& coefficientsvector);

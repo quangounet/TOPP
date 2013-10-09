@@ -24,7 +24,8 @@ namespace TOPP {
 
 ///////////////////////// Polynomial ///////////////////////
 
-void Polynomial::InitFromCoefficientsVector(const std::vector<dReal>&coefficientsvector0){
+
+void Polynomial::InitFromCoefficientsVector(const std::vector<dReal>&coefficientsvector0) {
     coefficientsvector = coefficientsvector0;
     degree = coefficientsvector.size()-1;
     // Construct first- and second-order derivative polynomials
@@ -40,54 +41,52 @@ void Polynomial::InitFromCoefficientsVector(const std::vector<dReal>&coefficient
 
 
 
-Polynomial::Polynomial(const std::vector<dReal>& coefficientsvector0){
+Polynomial::Polynomial(const std::vector<dReal>& coefficientsvector0) {
     InitFromCoefficientsVector(coefficientsvector0);
 }
 
-Polynomial::Polynomial(const std::string& s){
+
+Polynomial::Polynomial(const std::string& s) {
     VectorFromString(s,coefficientsvector);
     InitFromCoefficientsVector(coefficientsvector);
 
 }
 
 // Evaluate polynomials using Horner's method
-dReal Polynomial::Eval(dReal s){
+dReal Polynomial::Eval(dReal s) {
     dReal res = 0;
-    for(int i=degree; i>=0; i--) {
-        res = res*s + coefficientsvector[i];
-    }
-    return res;
-}
-
-dReal Polynomial::Evald(dReal s){
-    dReal res = 0;
-    for(int i=degree-1; i>=0; i--) {
-        res = res*s + coefficientsvectord[i];
-    }
+    for(int i = degree; i >= 0; i--)
+        res = res * s + coefficientsvector[i];
     return res;
 }
 
 
-dReal Polynomial::Evaldd(dReal s){
+dReal Polynomial::Evald(dReal s) {
     dReal res = 0;
-    for(int i=degree-2; i>=0; i--) {
+    for(int i = degree-1; i >= 0; i--)
+        res = res * s + coefficientsvectord[i];
+    return res;
+}
+
+
+dReal Polynomial::Evaldd(dReal s) {
+    dReal res = 0;
+    for(int i = degree-2; i>=0; i--)
         res = res*s + coefficientsvectordd[i];
-    }
     return res;
 }
 
-void Polynomial::Write(std::stringstream& ss){
+void Polynomial::Write(std::stringstream& ss) {
     for(int i=0; i<=degree; i++) {
         ss << std::setprecision(17) << coefficientsvector[i] << " ";
     }
 }
 
 
-
 ///////////////////////// Chunk ///////////////////////
 
 
-Chunk::Chunk(dReal duration0, const std::vector<Polynomial>& polynomialsvector0){
+Chunk::Chunk(dReal duration0, const std::vector<Polynomial>& polynomialsvector0) {
     polynomialsvector = polynomialsvector0;
     dimension = polynomialsvector.size();
     duration = duration0;
@@ -100,7 +99,7 @@ Chunk::Chunk(dReal duration0, const std::vector<Polynomial>& polynomialsvector0)
 }
 
 
-void Chunk::Eval(dReal s, std::vector<dReal>&q){
+void Chunk::Eval(dReal s, std::vector<dReal>&q) {
     assert(s >= -TINY);
     assert(s <= duration+TINY);
     for(int i=0; i<dimension; i++) {
@@ -108,7 +107,7 @@ void Chunk::Eval(dReal s, std::vector<dReal>&q){
     }
 }
 
-void Chunk::Evald(dReal s, std::vector<dReal>&qd){
+void Chunk::Evald(dReal s, std::vector<dReal>&qd) {
     assert(s >= -TINY);
     assert(s <= duration+TINY);
     for(int i=0; i<dimension; i++) {
@@ -116,7 +115,7 @@ void Chunk::Evald(dReal s, std::vector<dReal>&qd){
     }
 }
 
-void Chunk::Evaldd(dReal s, std::vector<dReal>&qdd){
+void Chunk::Evaldd(dReal s, std::vector<dReal>&qdd) {
     assert(s >= -TINY);
     assert(s <= duration+TINY);
     for(int i=0; i<dimension; i++) {
@@ -124,7 +123,7 @@ void Chunk::Evaldd(dReal s, std::vector<dReal>&qdd){
     }
 }
 
-void Chunk::Write(std::stringstream& ss){
+void Chunk::Write(std::stringstream& ss) {
     ss << std::setprecision(17) <<  duration << "\n";
     ss << dimension << "\n";
     for(int i=0; i<dimension; i++) {
@@ -134,11 +133,10 @@ void Chunk::Write(std::stringstream& ss){
 }
 
 
-
 /////////////// Trajectory ///////////////////////
 
 
-void Trajectory::InitFromChunksList(const std::list<Chunk>&chunkslist0){
+void Trajectory::InitFromChunksList(const std::list<Chunk>&chunkslist0) {
     chunkslist = chunkslist0;
     assert(chunkslist.size()>0);
     dimension = chunkslist.front().dimension;
@@ -165,11 +163,11 @@ void Trajectory::InitFromChunksList(const std::list<Chunk>&chunkslist0){
 }
 
 
-Trajectory::Trajectory(const std::list<Chunk>& chunkslist0){
+Trajectory::Trajectory(const std::list<Chunk>& chunkslist0) {
     InitFromChunksList(chunkslist0);
 }
 
-Trajectory::Trajectory(const std::string& trajectorystring){
+Trajectory::Trajectory(const std::string& trajectorystring) {
     int buffsize = 255;
     char buff[buffsize];
     std::istringstream iss(trajectorystring);
@@ -194,8 +192,7 @@ Trajectory::Trajectory(const std::string& trajectorystring){
 
 
 
-
-void Trajectory::FindChunkIndex(dReal s, int& index, dReal& remainder){
+void Trajectory::FindChunkIndex(dReal s, int& index, dReal& remainder) {
     std::list<dReal>::iterator it = chunkcumulateddurationslist.begin();
     if(s <= TINY) {
         index = 0;
@@ -213,7 +210,8 @@ void Trajectory::FindChunkIndex(dReal s, int& index, dReal& remainder){
     remainder = s-*it;
 }
 
-void Trajectory::Eval(dReal s, std::vector<dReal>&q){
+
+void Trajectory::Eval(dReal s, std::vector<dReal>&q) {
     assert(s >= -TINY);
     assert(s <= duration+TINY);
     assert(dimension == int(q.size()));
@@ -225,7 +223,8 @@ void Trajectory::Eval(dReal s, std::vector<dReal>&q){
     itchunk->Eval(remainder,q);
 }
 
-void Trajectory::Evald(dReal s, std::vector<dReal>&qd){
+
+void Trajectory::Evald(dReal s, std::vector<dReal>&qd) {
     assert(s >= 0-TINY);
     assert(s <= duration+TINY);
     assert(dimension == int(qd.size()));
@@ -237,7 +236,8 @@ void Trajectory::Evald(dReal s, std::vector<dReal>&qd){
     itchunk->Evald(remainder,qd);
 }
 
-void Trajectory::Evaldd(dReal s, std::vector<dReal>&qdd){
+
+void Trajectory::Evaldd(dReal s, std::vector<dReal>&qdd) {
     assert(s >= -TINY);
     assert(s <= duration+TINY);
     int index;
@@ -249,7 +249,7 @@ void Trajectory::Evaldd(dReal s, std::vector<dReal>&qdd){
 }
 
 
-void Trajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal sdd, const Chunk& currentchunk, Chunk& newchunk){
+void Trajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal sdd, const Chunk& currentchunk, Chunk& newchunk) {
     assert(currentchunk.degree <= 3);
     dReal a0, a1, a2, b0, b1, b2, b3, b4, c0, c1, c2, c3, c4, c5, c6, u0, u1, u2, u3;
     std::vector<dReal> coefficientsvector;
@@ -300,8 +300,7 @@ void Trajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal sd
 }
 
 
-
-void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int& currentchunkindex, dReal& processedcursor, std::list<Chunk>::iterator& itcurrentchunk, std::list<Chunk>& chunkslist){
+void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int& currentchunkindex, dReal& processedcursor, std::list<Chunk>::iterator& itcurrentchunk, std::list<Chunk>& chunkslist) {
 
     dReal t = 0, tnext;
     dReal snext = s + T*sd + 0.5*T*T*sdd;
@@ -332,8 +331,7 @@ void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int& curr
 }
 
 
-
-void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal reparamtimestep, Trajectory& restrajectory){
+void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal reparamtimestep, Trajectory& restrajectory) {
 
     dReal scur, sdcur, snext, sdnext, sdnext2, sdd;
     dReal dt = reparamtimestep;
@@ -385,20 +383,13 @@ void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal reparamt
 }
 
 
-
-
-
-void Trajectory::Write(std::stringstream& ss){
+void Trajectory::Write(std::stringstream& ss) {
     std::list<Chunk>::iterator itchunk = chunkslist.begin();
     while(itchunk!=chunkslist.end()) {
         itchunk->Write(ss);
         itchunk++;
     }
 }
-
-
-
-
 
 
 } // End namespace TOPP
