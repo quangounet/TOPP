@@ -105,11 +105,11 @@ class Chunk():
             qdd[i] = self.polynomialsvector[i].Evaldd(s)
         return qdd
 
-    def GetString(self):
+    def __str__(self):
         ss = str(self.duration) + "\n"
         ss += str(self.dimension) + "\n"
         for i in range(self.dimension):
-            ss += self.polynomialsvector[i].Write() + "\n"
+            ss += str(self.polynomialsvector[i]) + "\n"
         return ss
 
 
@@ -177,5 +177,5 @@ class PiecewisePolynomialTrajectory():
         qddvect = array([self.Evaldd(t) for t in tvect])
         plot(tvect, qddvect, f)
 
-    def GetString(self):
-        return '\n'.join([chunk.GetString() for chunk in self.chunklist])
+    def __str__(self):
+        return '\n'.join([str(chunk) for chunk in self.chunklist])
