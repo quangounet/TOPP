@@ -21,11 +21,10 @@ debug: $(SOURCE)
 	$(CC) $(INCLUDE) -g $(SOURCE) -shared $(LIB) -o $(TARGET)
 
 clean:
-	rm -f $(OBJECTS)
-	rm -f *~
+	@rm -f $(OBJECTS) *~
 
 distclean: clean
-	rm -f $(TARGET)
+	@rm -f $(TARGET)
 
 unit_tests:
 	@for f in $(TESTS); do $(PYTHON) $$f; done
