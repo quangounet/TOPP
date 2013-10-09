@@ -94,8 +94,8 @@ class RaveTorqueInstance(object):
         traj_str = self.solver.restrajectorystring
         return PiecewisePolynomialTrajectory.FromString(traj_str)
 
-    def propagate_velocity_interval(self):
-        return_code = self.solver.RunVIP(1e-4, 1e-4)
+    def propagate_velocity_interval(self, sd_min, sd_max):
+        return_code = self.solver.RunVIP(sd_min, sd_max)
         if return_code == 0:
             raise NoTrajectoryFound
 
