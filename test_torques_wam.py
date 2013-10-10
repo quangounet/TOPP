@@ -67,7 +67,7 @@ for i in range(4):
     a,b,c,d = TOPPpy.Interpolate3rdDegree(q0[i],q1[i],qd0[i],qd1[i],T)
     trajectorystring += "\n%f %f %f %f"%(d,c,b,a)
 #------------------------------------------#
-traj0 = TOPPpy.PiecewisePolynomialTrajectory(trajectorystring)
+traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 
 ############################ Constraints ############################
@@ -93,7 +93,7 @@ TOPPpy.PlotProfiles(profileslist,4)
 
 ##################### Plotting the trajectories #####################
 x.WriteResultTrajectory()
-traj1 = TOPPpy.PiecewisePolynomialTrajectory(x.restrajectorystring)
+traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
 dtplot = 0.01
 TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax)
 TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)

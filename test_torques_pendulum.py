@@ -61,7 +61,7 @@ T=1
 [a1,b1,c1,a2,b2,c2] =  [3, -3, -3, 0, -2, -2] #[-3, 3, 3, -1, 0, -3]
 trajectorystring = "%f\n%d\n%f %f %f\n%f %f %f"%(T,2,c1,b1,a1,c2,b2,a2)
 #------------------------------------------#
-traj0 = TOPPpy.PiecewisePolynomialTrajectory(trajectorystring)
+traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 
 ############################ Constraints ############################
@@ -87,7 +87,7 @@ TOPPpy.PlotProfiles(profileslist,4)
 
 ##################### Plotting the trajectories #####################
 x.WriteResultTrajectory()
-traj1 = TOPPpy.PiecewisePolynomialTrajectory(x.restrajectorystring)
+traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
 dtplot = 0.01
 TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax)
 TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)

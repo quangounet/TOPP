@@ -41,7 +41,7 @@ tuningsstring = "%f %f %f %d %f"%(discrtimestep,integrationtimestep,bisectionpre
 #------------------------------------------#
 trajectorystring = "2 \n 2\n 1 1 0 1\n 0 2 0 -1\n 3\n 2\n 11 13 6 0.1666666666666\n -4 -10 -6 0.5";
 #------------------------------------------#
-traj0 = TOPPpy.PiecewisePolynomialTrajectory(trajectorystring)
+traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 
 ############################ Constraints ############################
@@ -66,7 +66,7 @@ TOPPpy.PlotProfiles(profileslist,4)
 
 ##################### Plotting the trajectories #####################
 x.WriteResultTrajectory()
-traj1 = TOPPpy.PiecewisePolynomialTrajectory(x.restrajectorystring)
+traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
 dtplot = 0.01
 TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax,amax)
 
