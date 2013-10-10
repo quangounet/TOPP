@@ -75,15 +75,18 @@ traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 taumin = array([-6,-15,-5,-4])
 taumax = array([6,15,5,4])
 vmax = [3,3,3,3]
+t0 = time.time()
 constraintstring = string.join([str(v) for v in vmax])
 constraintstring += TOPPopenravepy.ComputeTorquesConstraints(robot,traj0,taumin,taumax,discrtimestep)
+t1 = time.time()
 #------------------------------------------#
 
 
 ############################ Run TOPP ############################
 x = TOPPbindings.TOPPInstance("QuadraticConstraints",constraintstring,trajectorystring,tuningsstring);
+t2 = time.time()
 ret = x.RunPP(0,0)
-
+t3 = time.time()
 
 ################ Plotting the MVC and the profiles #################
 x.WriteProfilesList()
@@ -98,6 +101,12 @@ dtplot = 0.01
 TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax)
 TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)
 
+
+print "\n--------------"
+print "Sampling dynamics: ", t1-t0
+print "Building TOPP Instance: ", t2-t1
+print "TOPP proper (C++): ", t3-t2
+print "Total: ", t3-t0 
 
 
 raw_input()

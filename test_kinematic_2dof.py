@@ -18,7 +18,6 @@
 
 import TOPPbindings
 import TOPPpy
-import TOPPopenravepy
 import time
 import string
 import sys
@@ -48,15 +47,18 @@ traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 #------------------------------------------#
 amax = array([15,10])
 vmax = array([20,10])
+t0 = time.time()
 constraintstring = string.join([str(v) for v in vmax])
 constraintstring += TOPPpy.ComputeKinematicConstraints(traj0,amax,discrtimestep)
+t1 = time.time()
 #------------------------------------------#
 
 
 ############################ Run TOPP ############################
 x = TOPPbindings.TOPPInstance("QuadraticConstraints",constraintstring,trajectorystring,tuningsstring);
+t2 = time.time()
 ret = x.RunPP(0,0)
-
+t3 = time.time()
 
 ################ Plotting the MVC and the profiles #################
 x.WriteProfilesList()
@@ -69,6 +71,14 @@ x.WriteResultTrajectory()
 traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
 dtplot = 0.01
 TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax,amax)
+
+
+print "\n--------------"
+print "Sampling dynamics: ", t1-t0
+print "Building TOPP Instance: ", t2-t1
+print "TOPP proper (C++): ", t3-t2
+print "Total: ", t3-t0 
+
 
 
 
