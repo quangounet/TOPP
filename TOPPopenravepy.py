@@ -21,7 +21,7 @@ from pylab import *
 from openravepy import *
 
 
-def ComputeConstraints(robot,traj,taumin,taumax,discrtimestep):
+def ComputeTorquesConstraints(robot,traj,taumin,taumax,discrtimestep):
     # Sample the dynamics constraints
     ndiscrsteps = int((traj.duration+1e-10)/discrtimestep)+1;
     constraintstring = ""
@@ -41,7 +41,7 @@ def ComputeConstraints(robot,traj,taumin,taumax,discrtimestep):
     return constraintstring
 
 
-def ComputeConstraintsLegacy(robot,traj,taumin,taumax,discrtimestep):
+def ComputeTorquesConstraintsLegacy(robot,traj,taumin,taumax,discrtimestep):
     # Sample the dynamics constraints
     ndiscrsteps = int((traj.duration+1e-10)/discrtimestep)+1;
     constraintstring = ""

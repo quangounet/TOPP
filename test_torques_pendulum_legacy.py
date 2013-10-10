@@ -70,7 +70,7 @@ taumin = array([-15,-10])
 taumax = array([15,10])
 vmax = array([2.5,3])
 constraintstring = string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax]) + "\n" + string.join([str(a) for a in vmax])
-constraintstring += TOPPopenravepy.ComputeConstraintsLegacy(robot,traj0,taumin,taumax,discrtimestep)
+constraintstring += TOPPopenravepy.ComputeTorquesConstraintsLegacy(robot,traj0,taumin,taumax,discrtimestep)
 #------------------------------------------#
 
 

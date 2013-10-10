@@ -49,7 +49,7 @@ traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 amax = array([15,10])
 vmax = array([20,10])
 constraintstring = string.join([str(v) for v in vmax])
-constraintstring += TOPPpy.ComputeConstraints(traj0,amax,discrtimestep)
+constraintstring += TOPPpy.ComputeKinematicConstraints(traj0,amax,discrtimestep)
 #------------------------------------------#
 
 

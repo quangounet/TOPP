@@ -58,7 +58,7 @@ def Interpolate3rdDegree(q0,q1,qd0,qd1,T):
     d=q0
     return a,b,c,d
 
-def ComputeConstraints(traj,amax,discrtimestep):
+def ComputeKinematicConstraints(traj,amax,discrtimestep):
     # Sample the dynamics constraints
     ndiscrsteps = int((traj.duration+1e-10)/discrtimestep)+1;
     constraintstring = ""
