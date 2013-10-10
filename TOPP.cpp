@@ -1035,7 +1035,9 @@ int PP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal
 
 
 
-int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbegmin, dReal sdbegmax, dReal& sdendmin, dReal& sdendmax, std::list<Profile>&resprofileslist){
+int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings,
+        dReal sdbegmin, dReal sdbegmax, dReal& sdendmin, dReal& sdendmax,
+        std::list<Profile>&resprofileslist) {
     constraints.Preprocess(trajectory,tunings);
     Profile tmpprofile;
     dReal tres;
