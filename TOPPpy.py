@@ -106,11 +106,8 @@ class Chunk():
         return qdd
 
     def __str__(self):
-        ss = str(self.duration) + "\n"
-        ss += str(self.dimension) + "\n"
-        for i in range(self.dimension):
-            ss += str(self.polynomialsvector[i]) + "\n"
-        return ss
+        chunks_str = '\n'.join(map(str, self.polynomialsvector))
+        return '%f\n%d\n%s' % (self.duration, self.dimension, chunks_str)
 
 
 class PiecewisePolynomialTrajectory():
@@ -178,4 +175,4 @@ class PiecewisePolynomialTrajectory():
         plot(tvect, qddvect, f)
 
     def __str__(self):
-        return '\n'.join([str(chunk) for chunk in self.chunklist])
+        return '\n'.join([str(chunk) for chunk in self.chunkslist])

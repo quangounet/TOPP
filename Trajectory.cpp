@@ -27,18 +27,15 @@ namespace TOPP {
 
 void Polynomial::InitFromCoefficientsVector(const std::vector<dReal>&coefficientsvector0) {
     coefficientsvector = coefficientsvector0;
-    degree = coefficientsvector.size()-1;
+    degree = coefficientsvector.size() - 1;
     // Construct first- and second-order derivative polynomials
     coefficientsvectord.resize(0);
     coefficientsvectordd.resize(0);
-    for(int i=1; i<=degree; i++) {
-        coefficientsvectord.push_back(i*coefficientsvector[i]);
-    }
-    for(int i=1; i<=degree-1; i++) {
-        coefficientsvectordd.push_back(i*coefficientsvectord[i]);
-    }
+    for(int i = 1; i <= degree; i++)
+        coefficientsvectord.push_back(i * coefficientsvector[i]);
+    for(int i = 1; i <= degree - 1; i++)
+        coefficientsvectordd.push_back(i * coefficientsvectord[i]);
 }
-
 
 
 Polynomial::Polynomial(const std::vector<dReal>& coefficientsvector0) {
@@ -52,6 +49,7 @@ Polynomial::Polynomial(const std::string& s) {
 
 }
 
+
 // Evaluate polynomials using Horner's method
 dReal Polynomial::Eval(dReal s) {
     dReal res = 0;
@@ -63,7 +61,7 @@ dReal Polynomial::Eval(dReal s) {
 
 dReal Polynomial::Evald(dReal s) {
     dReal res = 0;
-    for(int i = degree-1; i >= 0; i--)
+    for(int i = degree - 1; i >= 0; i--)
         res = res * s + coefficientsvectord[i];
     return res;
 }
@@ -71,15 +69,15 @@ dReal Polynomial::Evald(dReal s) {
 
 dReal Polynomial::Evaldd(dReal s) {
     dReal res = 0;
-    for(int i = degree-2; i>=0; i--)
+    for(int i = degree - 2; i>=0; i--)
         res = res*s + coefficientsvectordd[i];
     return res;
 }
 
+
 void Polynomial::Write(std::stringstream& ss) {
-    for(int i=0; i<=degree; i++) {
+    for(int i = 0; i <= degree; i++)
         ss << std::setprecision(17) << coefficientsvector[i] << " ";
-    }
 }
 
 
@@ -90,43 +88,45 @@ Chunk::Chunk(dReal duration0, const std::vector<Polynomial>& polynomialsvector0)
     polynomialsvector = polynomialsvector0;
     dimension = polynomialsvector.size();
     duration = duration0;
-    assert(dimension>0);
+    assert(dimension > 0);
     degree = polynomialsvector[0].degree;
+    for(int i = 1; i < dimension; i++)
+        if (polynomialsvector[i].degree > degree)
+            degree = polynomialsvector[i].degree;
     // All polynomials must have the same degree
-    for(int i=1; i<dimension; i++) {
-        assert(degree == polynomialsvector[i].degree);
-    }
+//    for(int i = 1; i < dimension; i++)
+//        assert(degree == polynomialsvector[i].degree);
 }
 
 
 void Chunk::Eval(dReal s, std::vector<dReal>&q) {
     assert(s >= -TINY);
     assert(s <= duration+TINY);
-    for(int i=0; i<dimension; i++) {
+    for(int i = 0; i < dimension; i++)
         q[i] = polynomialsvector[i].Eval(s);
-    }
 }
+
 
 void Chunk::Evald(dReal s, std::vector<dReal>&qd) {
     assert(s >= -TINY);
     assert(s <= duration+TINY);
-    for(int i=0; i<dimension; i++) {
+    for(int i = 0; i < dimension; i++)
         qd[i] = polynomialsvector[i].Evald(s);
-    }
 }
+
 
 void Chunk::Evaldd(dReal s, std::vector<dReal>&qdd) {
     assert(s >= -TINY);
     assert(s <= duration+TINY);
-    for(int i=0; i<dimension; i++) {
+    for(int i = 0; i < dimension; i++)
         qdd[i] = polynomialsvector[i].Evaldd(s);
-    }
 }
+
 
 void Chunk::Write(std::stringstream& ss) {
     ss << std::setprecision(17) <<  duration << "\n";
     ss << dimension << "\n";
-    for(int i=0; i<dimension; i++) {
+    for(int i = 0; i < dimension; i++) {
         polynomialsvector[i].Write(ss);
         ss << "\n";
     }
@@ -159,13 +159,13 @@ void Trajectory::InitFromChunksList(const std::list<Chunk>&chunkslist0) {
         itchunk++;
     }
     chunkcumulateddurationslist.push_back(duration);
-
 }
 
 
 Trajectory::Trajectory(const std::list<Chunk>& chunkslist0) {
     InitFromChunksList(chunkslist0);
 }
+
 
 Trajectory::Trajectory(const std::string& trajectorystring) {
     int buffsize = 255;
@@ -181,7 +181,7 @@ Trajectory::Trajectory(const std::string& trajectorystring) {
         iss.getline(buff,buffsize);
         dimension = atoi(buff);
         polynomialsvector.resize(0);
-        for(int i=0; i<dimension; i++) {
+        for(int i = 0; i < dimension; i++) {
             iss.getline(buff,buffsize);
             polynomialsvector.push_back(Polynomial(std::string(buff)));
         }
@@ -189,7 +189,6 @@ Trajectory::Trajectory(const std::string& trajectorystring) {
     }
     InitFromChunksList(chunkslist0);
 }
-
 
 
 void Trajectory::FindChunkIndex(dReal s, int& index, dReal& remainder) {
@@ -249,7 +248,8 @@ void Trajectory::Evaldd(dReal s, std::vector<dReal>&qdd) {
 }
 
 
-void Trajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal sdd, const Chunk& currentchunk, Chunk& newchunk) {
+void Trajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal
+        sdd, const Chunk& currentchunk, Chunk& newchunk) {
     assert(currentchunk.degree <= 3);
     dReal a0, a1, a2, b0, b1, b2, b3, b4, c0, c1, c2, c3, c4, c5, c6, u0, u1, u2, u3;
     std::vector<dReal> coefficientsvector;
