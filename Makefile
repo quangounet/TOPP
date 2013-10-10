@@ -5,7 +5,7 @@ OBJECTS=$(SOURCE:.cpp=.o)
 TARGET=TOPPbindings.so
 LIB=-lboost_python
 INCLUDE=$(shell python-config --includes)
-CC=g++ -Wall -O2 -fPIC
+CC=g++ -Wall -fPIC
 
 TESTS=$(wildcard tests/*.py)
 PYTHON=python
@@ -25,6 +25,8 @@ clean:
 
 distclean: clean
 	@rm -f $(TARGET)
+
+rebuild: distclean so
 
 unit_tests:
 	@for f in $(TESTS); do $(PYTHON) $$f; done
