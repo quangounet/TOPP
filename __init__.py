@@ -70,7 +70,6 @@ class RaveTorqueInstance(object):
         nb_steps = 1 + int((self.traj.duration + 1e-10) / dt)
         trange = pylab.arange(nb_steps) * dt
         invdyn_str = ''
-
         for i, t in enumerate(trange):
             q = self.traj.Eval(t)
             qd = self.traj.Evald(t)
@@ -81,10 +80,9 @@ class RaveTorqueInstance(object):
                 args, kwargs = (qdd, None), {'returncomponents': True}
                 tm, tc, tg = self.robot.ComputeInverseDynamics(*args, **kwargs)
                 to = self.robot.ComputeInverseDynamics(qd) - tc - tg
-                invdyn_str += "\n" + _vect_to_str(to)       # a vector
-                invdyn_str += "\n" + _vect_to_str(tm + tc)  # b vector
-                invdyn_str += "\n" + _vect_to_str(tg)       # c vector
-
+                invdyn_str += '\n' + _vect_to_str(to)       # a vector
+                invdyn_str += '\n' + _vect_to_str(tm + tc)  # b vector
+                invdyn_str += '\n' + _vect_to_str(tg)       # c vector
         return invdyn_str
 
     def parametrize_path(self):
