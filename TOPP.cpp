@@ -225,8 +225,8 @@ void Constraints::FindDiscontinuousSwitchPoints(){
 ////////////////////////////////////////////////////////////////////
 
 
-QuadraticConstraints::QuadraticConstraints(const std::string& constraintsstring){
-    int buffsize = 255;
+QuadraticConstraints::QuadraticConstraints(const std::string& constraintsstring) {
+    int buffsize = 2048;
     std::vector<dReal> tmpvect;
     char buff[buffsize];
     std::istringstream iss(constraintsstring);
