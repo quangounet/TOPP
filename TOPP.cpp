@@ -15,15 +15,17 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
 #include "TOPP.h"
 
-namespace TOPP {
 
+namespace TOPP {
 
 
 ////////////////////////////////////////////////////////////////////
 /////////////////////////// Tunings ////////////////////////////////
 ////////////////////////////////////////////////////////////////////
+
 
 Tunings::Tunings(const std::string& tuningsstring){
     std::istringstream iss(tuningsstring);
@@ -41,12 +43,10 @@ Tunings::Tunings(const std::string& tuningsstring){
 }
 
 
-
-
-
 ////////////////////////////////////////////////////////////////////
 /////////////////////////// Constraints ////////////////////////////
 ////////////////////////////////////////////////////////////////////
+
 
 void Constraints::Preprocess(Trajectory& trajectory0, const Tunings& tunings0){
     trajectory = trajectory0;
@@ -74,6 +74,7 @@ void Constraints::ComputeMVCBobrow(){
     }
 }
 
+
 void Constraints::ComputeMVCCombined(){
     for(int i=0; i<ndiscrsteps; i++) {
         mvccombined.push_back(SdLimitCombinedInit(discrsvect[i]));
@@ -94,7 +95,6 @@ dReal Constraints::Interpolate1D(dReal s, const std::vector<dReal>& v){
     dReal coef = (s-n*tunings.discrtimestep)/tunings.discrtimestep;
     return (1-coef)*v[n] + coef*v[n+1];
 }
-
 
 
 dReal Constraints::SdLimitCombinedInit(dReal s){
@@ -120,8 +120,6 @@ dReal Constraints::SdLimitBobrow(dReal s){
 }
 
 
-
-
 void Constraints::WriteMVCBobrow(std::stringstream& ss, dReal dt){
     dReal duration = trajectory.duration;
     ss << duration << " " << dt << "\n";
@@ -133,7 +131,6 @@ void Constraints::WriteMVCBobrow(std::stringstream& ss, dReal dt){
         ss << SdLimitBobrow(t) << " ";
     }
 }
-
 
 
 void Constraints::WriteMVCCombined(std::stringstream& ss, dReal dt){
@@ -154,6 +151,7 @@ void Constraints::FindSwitchPoints(){
     FindTangentSwitchPoints();
     FindDiscontinuousSwitchPoints();
 }
+
 
 void Constraints::AddSwitchPoint(int i, int switchpointtype){
     int iadd = i+1;
@@ -184,11 +182,9 @@ void Constraints::AddSwitchPoint(int i, int switchpointtype){
 }
 
 
-
 void Constraints::FindTangentSwitchPoints(){
-    if(ndiscrsteps<3) {
+    if(ndiscrsteps<3)
         return;
-    }
     int i = 1;
     dReal s,sd,snext,sdnext,alpha,diff,diffprev;
     std::pair<dReal,dReal> sddlimits;
@@ -217,6 +213,7 @@ void Constraints::FindTangentSwitchPoints(){
         diffprev = diff;
     }
 }
+
 
 void Constraints::FindDiscontinuousSwitchPoints(){
 
@@ -258,21 +255,21 @@ void QuadraticConstraints::InterpolateDynamics(dReal s, std::vector<dReal>& a, s
     b.resize(nconstraints);
     c.resize(nconstraints);
     assert(s>=-TINY && s<=trajectory.duration+TINY);
-    if(s<0) {
-        s=0;
-    }
-    if(s>=trajectory.duration) {
+    if(s < 0)
+        s = 0;
+    if(s >= trajectory.duration) {
         int n = ndiscrsteps-1;
-        for(int i=0; i<nconstraints; i++) {
+        for(int i = 0; i < nconstraints; i++) {
             a[i]= avect[n][i];
             b[i]= bvect[n][i];
             c[i]= cvect[n][i];
         }
         return;
     }
+
     int n = int(s/tunings.discrtimestep);
     dReal coef = (s-n*tunings.discrtimestep)/tunings.discrtimestep;
-    for(int i=0; i<nconstraints; i++) {
+    for (int i = 0; i < nconstraints; i++) {
         a[i] = (1-coef)*avect[n][i] + coef*avect[n+1][i];
         b[i] = (1-coef)*bvect[n][i] + coef*bvect[n+1][i];
         c[i] = (1-coef)*cvect[n][i] + coef*cvect[n+1][i];
@@ -1092,20 +1089,21 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings,
 
     dReal sdupper = sdendmax, sdlower = 0;
     Profile bestprofile;
-    while(sdupper-sdlower > tunings.bisectionprecision) {
-        dReal sdtest = (sdupper + sdlower)/2;
-        int resintbw2 = IntegrateBackward(constraints,trajectory.duration,sdtest,constraints.tunings.integrationtimestep,tmpprofile,1e5,resprofileslist);
-        if((resintbw2 == INT_END && tmpprofile.Evald(0)>=sdbegmin) || resintbw2 == INT_PROFILE) {
+    while(sdupper - sdlower > tunings.bisectionprecision) {
+        dReal sdtest = (sdupper + sdlower) / 2;
+        int resintbw2 = IntegrateBackward(constraints, trajectory.duration,
+                sdtest, constraints.tunings.integrationtimestep,
+                tmpprofile, 1e5, resprofileslist);
+        if((resintbw2 == INT_END && tmpprofile.Evald(0) >= sdbegmin)
+           || resintbw2 == INT_PROFILE) {
             sdupper = sdtest;
             bestprofile = tmpprofile;
         }
-        else{
+        else
             sdlower = sdtest;
-        }
     }
     sdendmin = sdupper;
     resprofileslist.push_back(bestprofile);
-    std::cout << "cctvvmb" << std::endl;
     return 1;
 }
 
@@ -1117,7 +1115,7 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings,
 ////////////////////////////////////////////////////////////////////
 
 
-void VectorFromString(const std::string& s,std::vector<dReal>& resvect){
+void VectorFromString(const std::string& s, std::vector<dReal>& resvect) {
     std::istringstream iss(s);
     std::string sub;
     dReal value;
