@@ -39,14 +39,16 @@ class Tunings(object):
 
 
 class TorqueConstraints(object):
-    def __init__(self, tau1, tau2=None):
-        self.tau_min = tau1 if tau2 else -1. * tau1
-        self.tau_max = tau2 if tau2 else +1. * tau1
+    def __init__(self, tau_min, tau_max, v_max):
+        self.tau_min = tau_min
+        self.tau_max = tau_max
+        self.v_max = v_max
 
     def __str__(self):
         tau_min_str = _vect_to_str(self.tau_min)
         tau_max_str = _vect_to_str(self.tau_max)
-        return "%s\n%s" % (tau_min_str, tau_max_str)
+        v_max_str = _vect_to_str(self.v_max)
+        return "%s\n%s\n%s" % (tau_min_str, tau_max_str, v_max_str)
 
 
 class RaveTorqueInstance(object):
@@ -59,9 +61,9 @@ class RaveTorqueInstance(object):
         self.tunings = tunings
         self.traj = traj
 
+        input_str = str(constraints) + self.get_dynamics_str()
         self.solver = TOPPbindings.TOPPInstance(
-            "TorqueLimits", self.get_dynamics_str(), str(self.traj),
-            str(self.tunings))
+            "TorqueLimits", input_str, str(self.traj), str(self.tunings))
 
     def get_dynamics_str(self):
         dt = self.tunings.mvc_tstep

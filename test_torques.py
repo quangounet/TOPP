@@ -77,7 +77,10 @@ T=1
 
 tuningsstring = "%f %f %f %d %f"%(discrtimestep,integrationtimestep,bisectionprecision,passswitchpointnsteps,reparamtimestep);
 trajectorystring = "%f\n%d\n%f %f %f\n%f %f %f"%(T,2,c1,b1,a1,c2,b2,a2)
-constraintstring = string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax]) + "\n" + string.join([str(a) for a in vmax])
+constraintstring = \
+        string.join([str(x) for x in taumin]) + "\n" + \
+        string.join([str(x) for x in taumax]) + "\n" + \
+        string.join([str(v) for v in vmax])
 
 
 t0 = time.time()
