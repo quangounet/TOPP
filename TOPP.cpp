@@ -1105,7 +1105,7 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings,
     }
     sdendmin = sdupper;
     resprofileslist.push_back(bestprofile);
-
+    std::cout << "cctvvmb" << std::endl;
     return 1;
 }
 

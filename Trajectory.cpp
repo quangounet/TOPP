@@ -275,32 +275,31 @@ void Trajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal
     for(int i=0; i<currentchunk.dimension; i++) {
         u0 = currentchunk.polynomialsvector[i].coefficientsvector[0];
         u1 = 0;
-        if(currentchunk.degree>=1) {
+        if(currentchunk.degree >= 1)
             u1 = currentchunk.polynomialsvector[i].coefficientsvector[1];
-        }
         u2 = 0;
-        if(currentchunk.degree>=2) {
+        if(currentchunk.degree >= 2)
             u2 = currentchunk.polynomialsvector[i].coefficientsvector[2];
-        }
         u3 = 0;
-        if(currentchunk.degree>=3) {
+        if(currentchunk.degree >= 3)
             u3 = currentchunk.polynomialsvector[i].coefficientsvector[3];
-        }
         coefficientsvector.resize(0);
-        coefficientsvector.push_back(u3*c0 + u2*b0 + u1*a0 + u0); //v0
-        coefficientsvector.push_back(u3*c1 + u2*b1 + u1*a1);      //v1
-        coefficientsvector.push_back(u3*c2 + u2*b2 + u1*a2);      //v2
-        coefficientsvector.push_back(u3*c3 + u2*b3);              //v3
-        coefficientsvector.push_back(u3*c4 + u2*b4);              //v4
-        coefficientsvector.push_back(u3*c5);                      //v5
-        coefficientsvector.push_back(u3*c6);                      //v6
+        coefficientsvector.push_back(u3*c0 + u2*b0 + u1*a0 + u0); // v0
+        coefficientsvector.push_back(u3*c1 + u2*b1 + u1*a1);      // v1
+        coefficientsvector.push_back(u3*c2 + u2*b2 + u1*a2);      // v2
+        coefficientsvector.push_back(u3*c3 + u2*b3);              // v3
+        coefficientsvector.push_back(u3*c4 + u2*b4);              // v4
+        coefficientsvector.push_back(u3*c5);                      // v5
+        coefficientsvector.push_back(u3*c6);                      // v6
         polynomialsvector.push_back(Polynomial(coefficientsvector));
     }
     newchunk = Chunk(tnext-t0, polynomialsvector);
 }
 
 
-void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int& currentchunkindex, dReal& processedcursor, std::list<Chunk>::iterator& itcurrentchunk, std::list<Chunk>& chunkslist) {
+void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
+        currentchunkindex, dReal& processedcursor, std::list<Chunk>::iterator&
+        itcurrentchunk, std::list<Chunk>& chunkslist) {
 
     dReal t = 0, tnext;
     dReal snext = s + T*sd + 0.5*T*T*sdd;
@@ -331,7 +330,8 @@ void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int& curr
 }
 
 
-void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal reparamtimestep, Trajectory& restrajectory) {
+void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal
+        reparamtimestep, Trajectory& restrajectory) {
 
     dReal scur, sdcur, snext, sdnext, sdnext2, sdd;
     dReal dt = reparamtimestep;
@@ -365,16 +365,17 @@ void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal reparamt
         if(snext >= scur+TINY && FindLowestProfile(snext,profile,tres,profileslist)) {
             sdnext2 = profile.Evald(tres);
             dtmod = dt;
-            // If discrepancy between integrated sd and profile's sd then follow profile's sd, which requires changing dt
+            // If discrepancy between integrated sd and profile's sd then
+            // follow profile's sd, which requires changing dt
             if(std::abs(sdnext-sdnext2)>TINY2) {
                 dtmod = 2*(snext-scur)/(sdnext2+sdcur);
                 sdd = (sdnext2-sdcur)/dtmod;
             }
-            SPieceToChunks(scur,sdcur,sdd,dtmod,currentchunkindex,processedcursor,itcurrentchunk,newchunkslist);
+            SPieceToChunks(scur, sdcur, sdd, dtmod, currentchunkindex,
+                    processedcursor, itcurrentchunk, newchunkslist);
         }
-        else{
+        else
             break;
-        }
         t+= dtmod;
         scur = snext;
         sdcur = sdnext2;
