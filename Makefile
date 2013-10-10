@@ -5,7 +5,8 @@ OBJECTS=$(SOURCE:.cpp=.o)
 TARGET=TOPPbindings.so
 LIB=-lboost_python
 INCLUDE=$(shell python-config --includes)
-CC=g++ -Wall -O2 -fPIC
+CC=g++ -std=c++0x -O2 -Wall -fPIC
+CCG=g++ -g -std=c++0x -Wall -fPIC
 
 TESTS=$(wildcard tests/*.py)
 PYTHON=python
@@ -18,7 +19,7 @@ so: $(OBJECTS)
 	$(CC) $(INCLUDE) -c $< 
 
 debug: $(SOURCE) 
-	$(CC) $(INCLUDE) -g $(SOURCE) -shared $(LIB) -o $(TARGET)
+	$(CCG) $(INCLUDE) $(SOURCE) -shared $(LIB) -o $(TARGET)
 
 clean:
 	rm -f $(OBJECTS)

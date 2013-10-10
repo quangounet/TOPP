@@ -511,7 +511,7 @@ dReal ComputeSlidesdd(Constraints& constraints, dReal s, dReal sd, dReal dt){
     //Check alpha
     snext = s + dt*sd + 0.5*dtsq*alpha;
     sdnext_int = sd + dt*alpha;
-    if(snext > constraints.trajectory.duration) {
+    if(snext > constraints.trajectory.duration || snext<0) {
         //std::cout << "Compute slide fin traj\n";
         return 0;
     }
@@ -524,7 +524,7 @@ dReal ComputeSlidesdd(Constraints& constraints, dReal s, dReal sd, dReal dt){
     //Check beta
     snext = s + dt*sd + 0.5*dtsq*beta;
     sdnext_int = sd + dt*beta;
-    if(snext > constraints.trajectory.duration) {
+    if(snext > constraints.trajectory.duration || snext<0) {
         //std::cout << "Compute slide fin traj\n";
         return 0;
     }
@@ -558,7 +558,7 @@ int FlowVsMVC(Constraints& constraints, dReal s, dReal sd, int flag, dReal dt){
     //return = +1 if flow points above MVC
     //return = 0 if end of trajectory
     dReal flow, snext, sdnextflow, sdnextmvc;
-    if(s > constraints.trajectory.duration) {
+    if(s > constraints.trajectory.duration || s<0) {
         return 0;
     }
     std ::pair<dReal,dReal> sddlimits = constraints.SddLimits(s,sd);
@@ -570,7 +570,7 @@ int FlowVsMVC(Constraints& constraints, dReal s, dReal sd, int flag, dReal dt){
     }
     snext = s + dt * sd + 0.5*dt*dt*flow;
     sdnextflow = sd + dt * flow;
-    if(snext > constraints.trajectory.duration) {
+    if(snext > constraints.trajectory.duration || snext<0) {
         return 0;
     }
     sdnextmvc = constraints.SdLimitCombined(snext);
@@ -999,6 +999,12 @@ int ComputeLimitingCurves(Constraints& constraints, std::list<Profile>&resprofil
 
 
 int PP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbeg, dReal sdend, Trajectory& restrajectory, std::list<Profile>& resprofileslist){
+
+    std::chrono::time_point<std::chrono::system_clock> t0,t1,t2,t3;
+    std::chrono::duration<double> d1,d2,d3,dtot;
+
+    t0 = std::chrono::system_clock::now();
+
     constraints.Preprocess(trajectory,tunings);
     if(VectorMin(constraints.mvcbobrow) <= TINY) {
         std::cout << "MVCBobrow hit 0\n";
@@ -1006,6 +1012,10 @@ int PP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal
     }
     Profile resprofile;
     int ret;
+
+
+    t1 = std::chrono::system_clock::now();
+
 
     // Compute the CLC
     ret = ComputeLimitingCurves(constraints,resprofileslist);
@@ -1029,7 +1039,26 @@ int PP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal
         return 0;
     }
     resprofileslist.push_back(resprofile);
+
+    t2 = std::chrono::system_clock::now();
+
+
     trajectory.Reparameterize(resprofileslist,tunings.reparamtimestep,restrajectory);
+
+    t3 = std::chrono::system_clock::now();
+
+    d1 = t1-t0;
+    d2 = t2-t1;
+    d3 = t3-t2;
+    d3 = t3-t2;
+    dtot = t3-t0;
+
+
+    std::cout << "Constraints preprocessing: " << d1.count() << "\n";
+    std::cout << "Profiles calculation: " <<  d2.count() << "\n";
+    std::cout << "Reparameterization: " <<  d3.count() << "\n";
+    std::cout << "Total PP: " <<  dtot.count() << "\n";
+
     return 1;
 }
 
