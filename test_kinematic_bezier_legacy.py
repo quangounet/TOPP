@@ -10,7 +10,7 @@
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
+# GNU General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
@@ -30,23 +30,27 @@ ion()
 ############################ Tunings ############################
 discrtimestep = 0.01;
 integrationtimestep = 0.01;
-bisectionprecision = 0.01;
-passswitchpointnsteps = 20;
 reparamtimestep = 0.01;
-tuningsstring = "%f %f %f %d %f"%(discrtimestep,integrationtimestep,bisectionprecision,passswitchpointnsteps,reparamtimestep);
+passswitchpointnsteps = 20;
+tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps);
 
 
 ############################ Trajectory ############################
 #------------------------------------------#
-trajectorystring = "2 \n 2\n 1 1 0 1\n 0 2 0 -1\n 3\n 2\n 11 13 6 0.1666666666666\n -4 -10 -6 0.5";
+p0v = [[1,1],[1,1]]
+p1v = [[0.3,1.3],[1,2]]
+p2v = [[1,0],[0.3,1.3]]
+p3v = [[1,1],[1,1]]
+Tv = [0.5,0.5]
+trajectorystring = TOPPpy.BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v)
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 
 ############################ Constraints ############################
 #------------------------------------------#
-amax = array([15,10])
-vmax = array([20,10])
+amax = array([1,1])
+vmax = array([0.5,0.5])
 constraintstring = string.join([str(v) for v in amax]) + "\n"
 constraintstring += string.join([str(v) for v in vmax])
 #------------------------------------------#
@@ -56,29 +60,55 @@ constraintstring += string.join([str(v) for v in vmax])
 t1 = time.time()
 x = TOPPbindings.TOPPInstance("KinematicLimits",constraintstring,trajectorystring,tuningsstring);
 t2 = time.time()
-ret = x.RunPP(0,0)
+ret = x.RunComputeProfiles(0,0)
 t3 = time.time()
+
+if(ret == 1):
+    x.ReparameterizeTrajectory()
+
+t4 = time.time()
 
 ################ Plotting the MVC and the profiles #################
 x.WriteProfilesList()
+x.WriteSwitchPointsList()
 profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
-TOPPpy.PlotProfiles(profileslist,4)
+switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
+TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
 
 
 ##################### Plotting the trajectories #####################
-x.WriteResultTrajectory()
-traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
-dtplot = 0.01
-TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax,amax)
+if(ret == 1):
+    x.WriteResultTrajectory()
+    traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
+    dtplot = 0.01
+    TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax,amax)
 
 
 print "\n--------------"
 print "Building TOPP Instance (including sampling dynamics in C++): ", t2-t1
-print "TOPP proper (C++): ", t3-t2
-print "Total: ", t3-t1 
-print "Trajectory duration: ", x.resduration
+print "Compute profiles (C++): ", t3-t2
+print "Reparameterize trajectory (C++): ", t4-t3
+print "Total: ", t4-t1 
+print "Trajectory duration (estimate): ", x.resduration
+print "Trajectory duration: ", traj1.duration
 
 
 
+
+# data=loadtxt('/home/cuong/Downloads/mintos/examples/res')
+# tvect = data[:,0]
+# xvect = data[:,2]
+# yvect = data[:,3]
+
+# dt2 = tvect[1]-tvect[0]
+# figure(0)
+# plot(tvect,xvect,'m')
+# plot(tvect,yvect,'c')
+# figure(1)
+# plot(tvect[:-1],diff(xvect)/dt2,'m')
+# plot(tvect[:-1],diff(yvect)/dt2,'c')
+# figure(2)
+# plot(tvect[:-2],diff(diff(xvect))/dt2/dt2,'m')
+# plot(tvect[:-2],diff(diff(yvect))/dt2/dt2,'c')
 
 raw_input()

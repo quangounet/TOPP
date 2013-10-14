@@ -26,6 +26,41 @@ from pylab import arange, array, double, zeros
 from pylab import gca, plot
 
 
+###################### Utilities #########################
+
+def Interpolate3rdDegree(q0,q1,qd0,qd1,T):
+    a=((qd1-qd0)*T-2*(q1-q0-qd0*T))/T**3
+    b=(3*(q1-q0-qd0*T)-(qd1-qd0)*T)/T**2
+    c=qd0
+    d=q0
+    return a,b,c,d
+
+
+def BezierToPolynomial(T,p0,p1,p2,p3):
+    a = -p0 + 3*p1 - 3*p2 + p3
+    b = 3*p0 - 6*p1 + 3*p2
+    c = -3*p0 + 3*p1
+    d = 1
+    return a/(T*T*T),b/(T*T),c/T,d
+    
+def BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v):
+    nchunks = len(Tv)
+    dimension = len(p0v[0])
+    trajectorystring = "";
+    for i in range(nchunks):
+        if(i>0):
+            trajectorystring += "\n"
+        trajectorystring += str(Tv[i]) + "\n" + str(dimension)
+        for j in range(dimension):
+            a,b,c,d = BezierToPolynomial(Tv[i],p0v[i][j],p1v[i][j],p2v[i][j],p3v[i][j])
+            trajectorystring += "\n%f %f %f %f"%(d,c,b,a)
+    return trajectorystring
+
+
+
+
+################# Reading from string #####################
+
 def ProfileFromLines(lines):
     l = lines[0]
     [duration, dt] = [double(x) for x in l.split(' ')]
@@ -46,17 +81,21 @@ def ProfilesFromString(s):
     return profileslist
 
 
+def SwitchPointsFromString(s):
+    s = s.strip(" \n")
+    switchpointslist = []
+    lines = [l.strip(" \n") for l in s.split('\n')]
+    for l in lines:
+        switchpointslist.append(VectorFromString(l))
+    return switchpointslist
+
+
 def VectorFromString(s):
     s = s.strip(" \n")
     return array([double(x) for x in s.split(' ')])
 
 
-def Interpolate3rdDegree(q0,q1,qd0,qd1,T):
-    a=((qd1-qd0)*T-2*(q1-q0-qd0*T))/T**3
-    b=(3*(q1-q0-qd0*T)-(qd1-qd0)*T)/T**2
-    c=qd0
-    d=q0
-    return a,b,c,d
+################# Compute constraints #####################
 
 def ComputeKinematicConstraints(traj,amax,discrtimestep):
     # Sample the dynamics constraints
@@ -74,7 +113,8 @@ def ComputeKinematicConstraints(traj,amax,discrtimestep):
 
 
 
-def PlotProfiles(profileslist,figstart=0):
+def PlotProfiles(profileslist0,switchpointslist = [], figstart=0):
+    profileslist = list(profileslist0)
     figure(figstart)
     clf()
     hold('on')
@@ -84,7 +124,22 @@ def PlotProfiles(profileslist,figstart=0):
     plot(mvcdirect[2],mvcdirect[3],'c--',linewidth=4)
     for p in profileslist:
         plot(p[2],p[3],linewidth=2)
-    axis([0,mvcbobrow[0],0,2*max([max(p[3]) for p in profileslist])])
+    if(len(profileslist)>0):
+        M = 2*max([max(p[3]) for p in profileslist])
+    else:
+        M = 20
+        bobrow = filter((lambda x: x<M),mvcbobrow[3])
+        direct = filter((lambda x: x<M),mvcdirect[3])
+        if(len(bobrow)>0):
+            M = max(M,max(bobrow))
+        if(len(direct)>0):
+            M = max(M,max(direct))
+    for sw in switchpointslist:
+        if(sw[2]==0) :
+            plot(sw[0],sw[1],'ro',markersize=8)
+        if(sw[2]==1) :
+            plot(sw[0],sw[1],'go',markersize=8)
+    axis([0,mvcbobrow[0],0,M])
     title('MVCs and profiles')
 
 
@@ -119,9 +174,9 @@ def PlotKinematics(traj0,traj1,dt=0.01,vmax=[],amax=[],figstart=0):
     title('Joint velocities')
     # Acceleration
     figure(figstart+2)
+    clf()
     ax=gca()        
     ax.set_color_cycle(colorcycle)
-    clf()
     hold('on')
     traj0.Plotdd(dt,'--')
     traj1.Plotdd(dt)

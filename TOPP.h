@@ -40,7 +40,6 @@ typedef double dReal;
 #define INF 1.0e15
 
 
-
 namespace TOPP {
 
 
@@ -56,9 +55,10 @@ public:
     Tunings(const std::string& tuningsstring);
     dReal discrtimestep;
     dReal integrationtimestep;
-    dReal bisectionprecision;
+    dReal bisectionprecision; //Precision for the sd search
     int passswitchpointnsteps;
     dReal reparamtimestep;
+    dReal loweringcoef; //While addressing switchpoints, lower sd by loweringcoef
 };
 
 
@@ -203,6 +203,11 @@ public:
     std::vector<dReal> vmax;
 
     std::list<SwitchPoint> switchpointslist;
+    std::list<std::pair<dReal,dReal> > zlajpahlist;
+    std::list<Profile> resprofileslist;
+
+    dReal resduration;
+
 
     //////////////////////// General ///////////////////////////
 
@@ -302,19 +307,17 @@ enum CLCReturnType {
 };
 
 
-static std::list<Profile> voidprofileslist;
+int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, bool testaboveexistingprofiles=true, bool testmvc=true, bool zlajpah=false);
 
-int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, std::list<Profile>& testprofileslist = voidprofileslist, bool testmvc=true, bool zlajpah=true);
+int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, bool testaboveexistingprofiles=true, bool testmvc=true, bool zlajpah=false);
 
-int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, std::list<Profile>& testprofileslist = voidprofileslist, bool testmvc=true);
-
-int ComputeLimitingCurves(Constraints& constraints, std::list<Profile>&resprofileslist, bool zlajpah = false);
+int ComputeLimitingCurves(Constraints& constraints);
 
 // Path parameterization
-int PP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbeg, dReal sdend, Trajectory& restrajectory, std::list<Profile>&resprofileslist);
+int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbeg, dReal sdend);
 
 // Velocity Interval Propagation
-int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbegmin, dReal sdbegmax, dReal& sdendmin, dReal& sdendmax, std::list<Profile>&resprofileslist);
+int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbegmin, dReal sdbegmax, dReal& sdendmin, dReal& sdendmax);
 
 
 
@@ -336,10 +339,10 @@ void VectorFromString(const std::string& s,std::vector<dReal>&resvect);
 bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal& sol, dReal lowerbound=-INF, dReal upperbound=INF);
 
 // Check whether the point (s,sd) is above at least one profile in the list
-bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>&testprofileslist, bool searchbackward=false, bool reinitialize=false);
+bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>& resprofileslist, bool searchbackward=false);
 
 // Find the lowest profile at s
-bool FindLowestProfile(dReal s, Profile& profile, dReal& tres, std::list<Profile>&testprofileslist);
+bool FindLowestProfile(dReal s, Profile& profile, dReal& tres, std::list<Profile>& resprofileslist);
 
 }
 
