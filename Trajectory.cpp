@@ -94,8 +94,17 @@ Chunk::Chunk(dReal duration0, const std::vector<Polynomial>& polynomialsvector0)
         if (polynomialsvector[i].degree > degree)
             degree = polynomialsvector[i].degree;
     // All polynomials must have the same degree
-//    for(int i = 1; i < dimension; i++)
-//        assert(degree == polynomialsvector[i].degree);
+    for(int i = 1; i < dimension; i++) {
+        // TODO: the padding below is a temporary fix (S., 2013-10-10)
+        if (polynomialsvector[i].degree < degree) {
+            std::vector<dReal> coeffs(polynomialsvector[i].coefficientsvector);
+            unsigned ubound = degree + 1;
+            while (coeffs.size() < ubound)
+                coeffs.push_back(0);
+            polynomialsvector[i] = Polynomial(coeffs);
+        }
+        assert(degree == polynomialsvector[i].degree);
+    }
 }
 
 
