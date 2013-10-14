@@ -56,29 +56,37 @@ constraintstring += string.join([str(v) for v in vmax])
 t1 = time.time()
 x = TOPPbindings.TOPPInstance("KinematicLimits",constraintstring,trajectorystring,tuningsstring);
 t2 = time.time()
-ret = x.RunPP(0,0)
+ret = x.RunComputeProfiles(0,0)
 t3 = time.time()
+
+if(ret == 1):
+    x.ReparameterizeTrajectory()
+
+t4 = time.time()
 
 ################ Plotting the MVC and the profiles #################
 x.WriteProfilesList()
+x.WriteSwitchPointsList()
 profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
-TOPPpy.PlotProfiles(profileslist,4)
+switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
+TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
 
 
 ##################### Plotting the trajectories #####################
-x.WriteResultTrajectory()
-traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
-dtplot = 0.01
-TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax,amax)
+if(ret == 1):
+    x.WriteResultTrajectory()
+    traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
+    dtplot = 0.01
+    TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax,amax)
 
 
 print "\n--------------"
 print "Building TOPP Instance (including sampling dynamics in C++): ", t2-t1
-print "TOPP proper (C++): ", t3-t2
-print "Total: ", t3-t1 
-print "Trajectory duration: ", x.resduration
-
-
+print "Compute profiles (C++): ", t3-t2
+print "Reparameterize trajectory (C++): ", t4-t3
+print "Total: ", t4-t1 
+print "Trajectory duration (estimate): ", x.resduration
+print "Trajectory duration: ", traj1.duration
 
 
 raw_input()

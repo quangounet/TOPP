@@ -702,7 +702,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             returntype = INT_PROFILE;
             break;
         }
-        else if(zlajpah && testmvc && sdcur > constraints.SdLimitCombined(scur)) {
+        else if(zlajpah && testmvc && sdcur >= constraints.SdLimitCombined(scur)-TINY2) {
             if(sdcur > constraints.SdLimitBobrow(scur)) {
                 slist.push_back(scur);
                 sdlist.push_back(sdcur);
@@ -718,6 +718,24 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                 sdcur = sdprev + dt*slidesdd;
                 sddlist.pop_back();
                 sddlist.push_back(slidesdd);
+            }
+            else{
+                sdcur = constraints.SdLimitCombined(scur);
+                Profile tmpprofile;
+                std::cout << "Integrate backward from (" <<scur << "," << sdcur  <<  ")\n";
+                int res3 = IntegrateBackward(constraints,scur,sdcur,constraints.tunings.integrationtimestep,tmpprofile,1e5,true,true,true);
+                if(res3 == INT_BOTTOM) {
+                    //std::cout << "BW reached 0 (From Zlajpah)\n";
+                    return INT_BOTTOM;
+                }
+                std::cout << "BW size " << tmpprofile.nsteps << "\n";
+                if(tmpprofile.nsteps>1) {
+                    // Add the backward profile to resprofilelist
+                    constraints.resprofileslist.push_back(tmpprofile);
+                }
+
+
+
             }
 
             //Now we have sdcombined < sdcur <= sdbobrow
@@ -736,7 +754,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             }
             else if(res == 1) {
                 // Case a
-                //std::cout <<"\nZlajpah trap ("<< scur << "," << sdcur << ") \n";
+                std::cout <<"\nZlajpah trap ("<< scur << "," << sdcur << ") \n";
                 // Insert the profile calculated so far into the resprofileslist
                 // And reinitialize the profile
                 Profile profile1 = Profile(slist,sdlist,sddlist,dt);
@@ -751,31 +769,31 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                 while(true) {
                     snext = scur + dt;
                     sdnext = constraints.SdLimitCombined(snext);
-                    //std::cout <<"Next ("<< snext << "," << sdnext << ") \n";
+                    std::cout <<"Next ("<< snext << "," << sdnext << ") \n";
                     int res2 = FlowVsMVC(constraints,snext,sdnext,1,dt);
                     if(res2 == 0) {
                         cont = false;
-                        //std::cout << "End traj\n";
+                        std::cout << "End traj\n";
                         returntype = INT_END; // ZLAJPAH END
                         break;
                     }
                     else if(res2 == -1) {
                         // Alpha points below the MVC
-                        //std::cout << "End Zlajpah trap (" <<snext << "," << sdnext  <<  ")\n";
+                        std::cout << "End Zlajpah trap (" <<snext << "," << sdnext  <<  ")\n";
                         // Integrate backward from scur, sdcur
-                        Profile tmpprofile;
+                        // Profile tmpprofile;
 
-                        //std::cout << "Integrate backward from (" <<snext << "," << sdnext  <<  ")\n";
-                        int res3 = IntegrateBackward(constraints,snext,sdnext,constraints.tunings.integrationtimestep,tmpprofile,1e5,true,true,true);
-                        if(res3 == INT_BOTTOM) {
-                            //std::cout << "BW reached 0 (From Zlajpah)\n";
-                            return INT_BOTTOM;
-                        }
-                        //std::cout << "BW size " << tmpprofile.nsteps << "\n";
-                        if(tmpprofile.nsteps>1) {
-                            // Add the backward profile to resprofilelist
-                            constraints.resprofileslist.push_back(tmpprofile);
-                        }
+                        // std::cout << "Integrate backward from (" <<snext << "," << sdnext  <<  ")\n";
+                        // int res3 = IntegrateBackward(constraints,snext,sdnext,constraints.tunings.integrationtimestep,tmpprofile,1e5,true,true,true);
+                        // if(res3 == INT_BOTTOM) {
+                        //     //std::cout << "BW reached 0 (From Zlajpah)\n";
+                        //     return INT_BOTTOM;
+                        // }
+                        // std::cout << "BW size " << tmpprofile.nsteps << "\n";
+                        // if(tmpprofile.nsteps>1) {
+                        //     // Add the backward profile to resprofilelist
+                        //     constraints.resprofileslist.push_back(tmpprofile);
+                        // }
                         //slist.push_back(scur);
                         //sdlist.push_back(sdcur);
                         //sddlist.push_back((sdnext-sdcur)/dt);
@@ -789,7 +807,8 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             }
             else {
                 // Case b
-                //std::cout <<"\nSlide ("<< scur << "," << sdcur << ") \n";
+
+                std::cout <<"\nSlide ("<< scur << "," << sdcur << ") \n";
                 while(true) {
                     if(int(slist.size()) > maxsteps) {
                         cont = false;
@@ -822,7 +841,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                     sddlist.push_back(slidesdd);
                     scur = snext;
                     sdcur = sdnext;
-                    //std::cout <<"Next ("<< snext << "," << sdnext << ") \n";
+                    std::cout <<"Next ("<< snext << "," << sdnext << ") \n";
                     int res1 = FlowVsMVC(constraints,snext,sdnext,1,dt);
                     if(res1 == 0) {
                         cont = false;
@@ -831,7 +850,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                     }
                     else if(res1 == 1) {
                         // Case b1
-                        //std::cout << "End slide with trap (" <<snext << "," << sdnext  <<  ")\n";
+                        std::cout << "End slide with trap (" <<snext << "," << sdnext  <<  ")\n";
                         break;
                     }
                     int res2 = FlowVsMVC(constraints,snext,sdnext,2,dt);
@@ -842,7 +861,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                     }
                     else if(res2 == -1) {
                         // Case b2
-                        //std::cout << "End slide with exit (" <<snext << "," << sdnext  <<  ")\n";
+                        std::cout << "End slide with exit (" <<snext << "," << sdnext  <<  ")\n";
                         break;
                     }
                 }
@@ -911,6 +930,13 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
             returntype = INT_BOTTOM;
             break;
         }
+        else if(IsAboveProfilesList(scur,sdcur,constraints.resprofileslist,searchbackward)) {
+            slist.push_back(scur);
+            sdlist.push_back(sdcur);
+            sddlist.push_back(0);
+            returntype = INT_PROFILE;
+            break;
+        }
         else if(zlajpah && testmvc && sdcur >= constraints.SdLimitCombined(scur)-TINY2) {
             if(sdcur > constraints.SdLimitBobrow(scur)) {
                 slist.push_back(scur);
@@ -931,7 +957,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
             // Slide along MVCCombined, which is admissible, until either
             // alpha points above MVCCombined (trapped)
 
-            //std::cout <<"\nSlide backward ("<< scur << "," << sdcur << ") \n";
+            std::cout <<"\nSlide backward ("<< scur << "," << sdcur << ") \n";
             while(true) {
                 if(scur <0) {
                     cont = false;
@@ -959,7 +985,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
                 sddlist.push_back(slidesdd);
                 scur = sprev;
                 sdcur = sdprev;
-                //std::cout <<"Prev ("<< sprev << "," << sdprev << ") \n";
+                std::cout <<"Prev ("<< sprev << "," << sdprev << ") \n";
                 int res1 = FlowVsMVCBackward(constraints,sprev,sdprev,dt);
                 if(res1 == 0) {
                     cont = false;
@@ -969,7 +995,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
                 }
                 else if(res1 == -1) {
                     // Case b1
-                    //std::cout << "End slide with exit (" <<sprev << "," << sdprev  <<  ")\n";
+                    std::cout << "End slide with exit (" <<sprev << "," << sdprev  <<  ")\n";
                     break;
                 }
             }
@@ -978,13 +1004,6 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
             slist.push_back(scur);
             sdlist.push_back(sdcur);
             returntype = INT_MVC;
-            break;
-        }
-        else if(IsAboveProfilesList(scur,sdcur,constraints.resprofileslist,searchbackward)) {
-            slist.push_back(scur);
-            sdlist.push_back(sdcur);
-            sddlist.push_back(0);
-            returntype = INT_PROFILE;
             break;
         }
         else{
@@ -1171,15 +1190,15 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
 
     t1 = std::chrono::system_clock::now();
 
-    // flags
-    bool testaboveexistingprofiles = true, testmvc = true, zlajpah = false;
-
     // Compute the CLC
     ret = ComputeLimitingCurves(constraints);
     if(ret!=CLC_OK) {
         std::cout << "CLC failed\n";
         return 0;
     }
+
+    // flags
+    bool testaboveexistingprofiles = true, testmvc = true, zlajpah = false;
 
     // Integrate forward from s = 0
     ret = IntegrateForward(constraints,0,sdbeg,constraints.tunings.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
@@ -1202,8 +1221,8 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
     }
 
     // Integrate forward from Zlajpah points
-    std::list<std::pair<dReal,dReal> >::iterator zit = constraints.zlajpahlist.begin();
     zlajpah = true;
+    std::list<std::pair<dReal,dReal> >::iterator zit = constraints.zlajpahlist.begin();
     while(zit!=constraints.zlajpahlist.end()) {
         dReal zs = zit->first;
         dReal zsd = zit->second;

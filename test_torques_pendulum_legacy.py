@@ -75,23 +75,40 @@ constraintstring += TOPPopenravepy.ComputeTorquesConstraintsLegacy(robot,traj0,t
 
 
 ############################ Run TOPP ############################
+t1 = time.time()
 x = TOPPbindings.TOPPInstance("TorqueLimits",constraintstring,trajectorystring,tuningsstring)
-ret = x.RunPP(1e-4,1e-4)
+t2 = time.time()
+ret = x.RunComputeProfiles(0,0)
+t3 = time.time()
 
+if(ret == 1):
+    x.ReparameterizeTrajectory()
+
+t4 = time.time()
 
 ################ Plotting the MVC and the profiles #################
 x.WriteProfilesList()
+x.WriteSwitchPointsList()
 profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
-TOPPpy.PlotProfiles(profileslist,4)
+switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
+TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
 
 
 ##################### Plotting the trajectories #####################
-x.WriteResultTrajectory()
-traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
-dtplot = 0.01
-TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax)
-TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)
+if(ret == 1):
+    x.WriteResultTrajectory()
+    traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
+    dtplot = 0.01
+    TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax)
+    TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)
 
 
+print "\n--------------"
+print "Building TOPP Instance (including sampling dynamics in C++): ", t2-t1
+print "Compute profiles (C++): ", t3-t2
+print "Reparameterize trajectory (C++): ", t4-t3
+print "Total: ", t4-t1 
+print "Trajectory duration (estimate): ", x.resduration
+print "Trajectory duration: ", traj1.duration
 
 raw_input()
