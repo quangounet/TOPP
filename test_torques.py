@@ -71,7 +71,7 @@ passswitchpointnsteps = 5;
 reparamtimestep = 0.01;
 
 T=1
-[a1,b1,c1,a2,b2,c2] = [3, -3, -3, 0, -2, -2]
+[a1,b1,c1,a2,b2,c2] = [3, -3, -3, 0, 0, 0]
 
 #Good example:[-3, 3, 3, -1, 0, -3]
 
@@ -119,10 +119,9 @@ print "Total time: ", t2 -start
 print "Duration reparameterized trajectory: ", x.resduration
 
 
-# if(ret==0):
-#     print "Trajectory not time-parameterizable"
-#     sys.exit()
-
+if ret == 0:
+    print "Trajectory not time-parameterizable"
+    sys.exit()
 
 
 # Computations
@@ -142,6 +141,7 @@ Tmax = max(traj0.duration,traj1.duration)
 Vmax = 1.2*max(vmax)
 Taumax = 1.2*max(max(taumax),abs(min(taumin)))
 
+exit(0)
 
 # Plotting
 figure(0)

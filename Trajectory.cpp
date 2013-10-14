@@ -182,7 +182,7 @@ Trajectory::Trajectory(const std::string& trajectorystring) {
         dimension = atoi(buff);
         polynomialsvector.resize(0);
         for(int i = 0; i < dimension; i++) {
-            iss.getline(buff,buffsize);
+            iss.getline(buff, buffsize);
             polynomialsvector.push_back(Polynomial(std::string(buff)));
         }
         chunkslist0.push_back(Chunk(duration,polynomialsvector));

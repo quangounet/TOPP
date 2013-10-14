@@ -28,8 +28,9 @@
 #include <list>
 #include <cmath>
 //#include <armadillo>
-#include <stdlib.h>
-#include <assert.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cassert>
 
 typedef double dReal;
 

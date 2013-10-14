@@ -62,6 +62,7 @@ class RaveTorqueInstance(object):
         self.traj = traj
 
         input_str = str(constraints) + self.get_dynamics_str()
+        print "Traj duration:", self.traj.duration
         self.solver = TOPPbindings.TOPPInstance(
             "TorqueLimits", input_str, str(self.traj), str(self.tunings))
 
@@ -83,6 +84,7 @@ class RaveTorqueInstance(object):
                 invdyn_str += '\n' + _vect_to_str(to)       # a vector
                 invdyn_str += '\n' + _vect_to_str(tm + tc)  # b vector
                 invdyn_str += '\n' + _vect_to_str(tg)       # c vector
+        print "len of trange:", len(trange)
         return invdyn_str
 
     def parametrize_path(self):
