@@ -16,8 +16,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from numpy import *
+from pylab import *
+
 import bisect
 import pylab
+import string
 import StringIO
 
 from pylab import arange, array, double, zeros
@@ -48,6 +52,90 @@ def VectorFromString(s):
     # left for compatibility TODO: remove?
     s = s.strip(" \n")
     return array([double(x) for x in s.split(' ')])
+
+
+def Interpolate3rdDegree(q0, q1, qd0, qd1, T):
+    a = ((qd1 - qd0) * T - 2 * (q1 - q0 - qd0 * T)) / T ** 3
+    b = (3 * (q1 - q0 - qd0 * T) - (qd1 - qd0) * T) / T ** 2
+    c = qd0
+    d = q0
+    return a, b, c, d
+
+
+def ComputeKinematicConstraints(traj,amax,discrtimestep):
+    # Sample the dynamics constraints
+    ndiscrsteps = int((traj.duration+1e-10)/discrtimestep)+1;
+    constraintstring = ""
+    for i in range(ndiscrsteps):
+        t = i*discrtimestep
+        q = traj.Eval(t)
+        qd = traj.Evald(t)
+        qdd = traj.Evaldd(t)
+        constraintstring += "\n" + string.join([str(x) for x in qd]) + " " + string.join([str(x) for x in -qd])
+        constraintstring += "\n" + string.join([str(x) for x in qdd]) + " " + string.join([str(x) for x in -qdd])
+        constraintstring += "\n" + string.join([str(x) for x in -amax]) + " " + string.join([str(x) for x in -amax])
+    return constraintstring
+
+
+def PlotProfiles(profileslist,figstart=0):
+    figure(figstart)
+    clf()
+    hold('on')
+    mvcbobrow = profileslist.pop(0)
+    plot(mvcbobrow[2],mvcbobrow[3],'m--',linewidth=4)
+    mvcdirect = profileslist.pop(0)
+    plot(mvcdirect[2],mvcdirect[3],'c--',linewidth=4)
+    for p in profileslist:
+        plot(p[2],p[3],linewidth=2)
+    axis([0,mvcbobrow[0],0,2*max([max(p[3]) for p in profileslist])])
+    title('MVCs and profiles')
+
+
+def PlotKinematics(traj0,traj1,dt=0.01,vmax=[],amax=[],figstart=0):
+    colorcycle = ['r','g','b','m','c','y']
+    colorcycle = colorcycle[0:traj0.dimension]
+    Tmax = max(traj0.duration,traj1.duration)
+    # Joint angles
+    figure(figstart)
+    clf()
+    hold('on')
+    ax=gca()
+    ax.set_color_cycle(colorcycle)
+    traj0.Plot(dt,'--')
+    traj1.Plot(dt)
+    title('Joint values')
+    # Velocity
+    figure(figstart+1)
+    clf()
+    hold('on')
+    ax=gca()
+    ax.set_color_cycle(colorcycle)
+    traj0.Plotd(dt,'--')
+    traj1.Plotd(dt)
+    for v in vmax:
+        plot([0,Tmax],[v,v],'-.')
+    for v in vmax:
+        plot([0,Tmax],[-v,-v],'-.')
+    if(len(vmax)>0):
+        Vmax = 1.2*max(vmax)
+        axis([0,Tmax,-Vmax,Vmax])
+    title('Joint velocities')
+    # Acceleration
+    figure(figstart+2)
+    ax=gca()
+    ax.set_color_cycle(colorcycle)
+    clf()
+    hold('on')
+    traj0.Plotdd(dt,'--')
+    traj1.Plotdd(dt)
+    for a in amax:
+        plot([0,Tmax],[a,a],'-.')
+    for a in amax:
+        plot([0,Tmax],[-a,-a],'-.')
+    if(len(amax)>0):
+        Amax = 1.2*max(amax)
+        axis([0,Tmax,-Amax,Amax])
+    title('Joint accelerations')
 
 
 class Polynomial(object):
@@ -155,25 +243,19 @@ class PiecewisePolynomialTrajectory():
         return self.chunkslist[i].Evaldd(remainder)
 
     def Plot(self, dt, f=''):
-        ax = gca()
-        ax.set_color_cycle(['r', 'g', 'b'])
         tvect = arange(0, self.duration + dt, dt)
         qvect = array([self.Eval(t) for t in tvect])
-        plot(tvect, qvect, f)
+        plot(tvect, qvect, f, linewidth=2)
 
     def Plotd(self, dt, f=''):
-        ax = gca()
-        ax.set_color_cycle(['r', 'g', 'b'])
         tvect = arange(0, self.duration + dt, dt)
         qdvect = array([self.Evald(t) for t in tvect])
-        plot(tvect, qdvect, f)
+        plot(tvect, qdvect, f, linewidth=2)
 
     def Plotdd(self, dt, f=''):
-        ax = gca()
-        ax.set_color_cycle(['r', 'g', 'b'])
         tvect = arange(0, self.duration + dt, dt)
         qddvect = array([self.Evaldd(t) for t in tvect])
-        plot(tvect, qddvect, f)
+        plot(tvect, qddvect, f, linewidth=2)
 
     def __str__(self):
         return '\n'.join([str(chunk) for chunk in self.chunkslist])

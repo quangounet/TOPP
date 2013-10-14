@@ -5,20 +5,32 @@ OBJECTS=$(SOURCE:.cpp=.o)
 TARGET=TOPPbindings.so
 LIB=-lboost_python
 INCLUDE=$(shell python-config --includes)
-CC=g++ -Wall -fPIC
+CC=g++ -std=c++0x -O2 -Wall -fPIC
+CCG=g++ -g -std=c++0x -Wall -fPIC
 
 TESTS=$(wildcard tests/*.py)
 PYTHON=python
 
 
-so: $(OBJECTS)
-	$(CC) $(INCLUDE) $(SOURCE) -shared $(LIB) -o $(TARGET)
+help:
+	@echo 'Usage:                                                    '
+	@echo '                                                          '
+	@echo '    make release -- compile library with release settings '
+	@echo '    make debug -- compile library with debug settings     '
+	@echo '    make clean -- clean temporary files                   '
+	@echo '    make distclean -- clean temporary and output files    '
+	@echo '    make rebuild -- recompile library from scratch        '
+	@echo '    make tests -- run unit tests                          '
+
 
 %.o: %.cpp
 	$(CC) $(INCLUDE) -c $< 
 
+release: $(OBJECTS)
+	$(CC) $(INCLUDE) $(SOURCE) -shared $(LIB) -o $(TARGET)
+
 debug: $(SOURCE) 
-	$(CC) $(INCLUDE) -g $(SOURCE) -shared $(LIB) -o $(TARGET)
+	$(CCG) $(INCLUDE) $(SOURCE) -shared $(LIB) -o $(TARGET)
 
 clean:
 	@rm -f $(OBJECTS) *~
@@ -26,10 +38,10 @@ clean:
 distclean: clean
 	@rm -f $(TARGET)
 
-rebuild: distclean so
+rebuild: distclean release
 
-unit_tests:
+tests:
 	@for f in $(TESTS); do $(PYTHON) $$f; done
 
 
-.PHONY: so debug clean distclean unit_tests
+.PHONY: release debug clean distclean rebuild tests
