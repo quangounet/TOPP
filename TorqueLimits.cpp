@@ -43,9 +43,7 @@ TorqueLimits::TorqueLimits(const std::string& constraintsstring){
         VectorFromString(std::string(buff),tmpvect);
         cvect.push_back(tmpvect);
     }
-    if(VectorMax(vmax) > TINY) {
-        hasvelocitylimits = true;
-    }
+    hasvelocitylimits =  VectorMax(vmax) > TINY;
 }
 
 

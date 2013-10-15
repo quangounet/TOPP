@@ -50,7 +50,7 @@ traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 ############################ Constraints ############################
 #------------------------------------------#
 amax = array([1,1])
-vmax = array([0.5,0.5])
+vmax = array([0.4,0.4])
 constraintstring = string.join([str(v) for v in amax]) + "\n"
 constraintstring += string.join([str(v) for v in vmax])
 #------------------------------------------#

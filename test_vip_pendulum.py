@@ -66,11 +66,8 @@ traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 ############################ Constraints ############################
 #------------------------------------------#
-#taumin = array([-15,-10])
-#taumax = array([15,10])
-#vmax = array([3,3])
-taumin = array([-5,-5])
-taumax = array([5,5])
+taumin = array([-13,-7])
+taumax = array([13,7])
 vmax = array([0,0])
 constraintstring = string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax]) + "\n" + string.join([str(a) for a in vmax])
 constraintstring += TOPPopenravepy.ComputeTorquesConstraintsLegacy(robot,traj0,taumin,taumax,discrtimestep)
@@ -81,13 +78,9 @@ constraintstring += TOPPopenravepy.ComputeTorquesConstraintsLegacy(robot,traj0,t
 t1 = time.time()
 x = TOPPbindings.TOPPInstance("TorqueLimits",constraintstring,trajectorystring,tuningsstring)
 t2 = time.time()
-ret = x.RunComputeProfiles(0,0)
+x.RunVIP(1,4)
 t3 = time.time()
 
-if(ret == 1):
-    x.ReparameterizeTrajectory()
-
-t4 = time.time()
 
 ################ Plotting the MVC and the profiles #################
 x.WriteProfilesList()
@@ -97,22 +90,10 @@ switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
 TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
 
 
-##################### Plotting the trajectories #####################
-if(ret == 1):
-    x.WriteResultTrajectory()
-    traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
-    dtplot = 0.01
-    TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax)
-    TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)
-
-
 print "\n--------------"
 print "Building TOPP Instance (including sampling dynamics in C++): ", t2-t1
 print "Compute profiles (C++): ", t3-t2
-print "Reparameterize trajectory (C++): ", t4-t3
-print "Total: ", t4-t1 
-print "Trajectory duration (estimate): ", x.resduration
-if(ret == 1):
-    print "Trajectory duration: ", traj1.duration
+print "Total: ", t3-t1 
+print "(sdendmin,sdendmax) = (", x.sdendmin, ",", x.sdendmax, ")"
 
 raw_input()

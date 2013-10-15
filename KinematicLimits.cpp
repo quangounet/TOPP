@@ -30,9 +30,7 @@ KinematicLimits::KinematicLimits(const std::string& constraintsstring){
     VectorFromString(std::string(buff),amax);
     iss.getline(buff,buffsize);
     VectorFromString(std::string(buff),vmax);
-    if(VectorMax(vmax) > TINY) {
-        hasvelocitylimits = true;
-    }
+    hasvelocitylimits =  VectorMax(vmax) > TINY;
 }
 
 
