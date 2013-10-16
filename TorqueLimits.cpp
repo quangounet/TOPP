@@ -22,7 +22,7 @@
 namespace TOPP {
 
 TorqueLimits::TorqueLimits(const std::string& constraintsstring){
-    int buffsize = 255;
+    int buffsize = BUFFSIZE;  // TODO: remove this dirty string interface!
     std::vector<dReal> tmpvect;
     char buff[buffsize];
     std::istringstream iss(constraintsstring);
@@ -47,26 +47,26 @@ TorqueLimits::TorqueLimits(const std::string& constraintsstring){
 }
 
 
-void TorqueLimits::InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c){
+void TorqueLimits::InterpolateDynamics(dReal s, std::vector<dReal>& a,
+        std::vector<dReal>& b, std::vector<dReal>& c){
     a.resize(trajectory.dimension);
     b.resize(trajectory.dimension);
     c.resize(trajectory.dimension);
-    assert(s>=-TINY && s<=trajectory.duration+TINY);
-    if(s<0) {
-        s=0;
-    }
-    if(s>=trajectory.duration) {
-        int n = ndiscrsteps-1;
-        for(int i=0; i<trajectory.dimension; i++) {
-            a[i]= avect[n][i];
-            b[i]= bvect[n][i];
-            c[i]= cvect[n][i];
+    assert(s >= -TINY && s <= trajectory.duration + TINY);
+    if(s < 0)
+        s = 0;
+    if(s >= trajectory.duration) {
+        int n = ndiscrsteps - 1;
+        for(int i = 0; i < trajectory.dimension; i++) {
+            a[i] = avect[n][i];
+            b[i] = bvect[n][i];
+            c[i] = cvect[n][i];
         }
         return;
     }
-    int n = int(s/tunings.discrtimestep);
-    dReal coef = (s-n*tunings.discrtimestep)/tunings.discrtimestep;
-    for(int i=0; i<trajectory.dimension; i++) {
+    int n = int(s / tunings.discrtimestep);
+    dReal coef = (s - n * tunings.discrtimestep) / tunings.discrtimestep;
+    for(int i = 0; i < trajectory.dimension; i++) {
         a[i] = (1-coef)*avect[n][i] + coef*avect[n+1][i];
         b[i] = (1-coef)*bvect[n][i] + coef*bvect[n+1][i];
         c[i] = (1-coef)*cvect[n][i] + coef*cvect[n+1][i];

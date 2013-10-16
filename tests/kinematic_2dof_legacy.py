@@ -15,12 +15,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import sys
+sys.path.append('..')
 
 import TOPPbindings
 import TOPPpy
 import time
 import string
-import sys
 from pylab import *
 from numpy import *
 
@@ -47,14 +48,14 @@ traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 amax = array([15,10])
 vmax = array([20,10])
 t0 = time.time()
-constraintstring = string.join([str(v) for v in vmax])
-constraintstring += TOPPpy.ComputeKinematicConstraints(traj0,amax,discrtimestep)
+constraintstring = string.join([str(v) for v in amax]) + "\n"
+constraintstring += string.join([str(v) for v in vmax])
 #------------------------------------------#
 
 
 ############################ Run TOPP ############################
 t1 = time.time()
-x = TOPPbindings.TOPPInstance("QuadraticConstraints",constraintstring,trajectorystring,tuningsstring);
+x = TOPPbindings.TOPPInstance("KinematicLimits",constraintstring,trajectorystring,tuningsstring);
 t2 = time.time()
 ret = x.RunComputeProfiles(0,0)
 t3 = time.time()
@@ -85,7 +86,7 @@ print "Python preprocessing: ", t1-t0
 print "Building TOPP Instance: ", t2-t1
 print "Compute profiles: ", t3-t2
 print "Reparameterize trajectory: ", t4-t3
-print "Total: ", t4-t0 
+print "Total: ", t4-t0
 print "Trajectory duration (estimate): ", x.resduration
 print "Trajectory duration: ", traj1.duration
 

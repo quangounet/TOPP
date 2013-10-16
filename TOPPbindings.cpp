@@ -29,16 +29,15 @@ using namespace TOPP;
 
 class TOPPInstance {
 public:
-    TOPPInstance(std::string problemtype, std::string constraintsstring,std::string trajectorystring,std::string tuningsstring){
-        if(problemtype.compare("KinematicLimits")==0) {
+    TOPPInstance(std::string problemtype, std::string
+            constraintsstring, std::string trajectorystring, 
+            std::string tuningsstring) {
+        if (problemtype.compare("KinematicLimits")==0)
             pconstraints = new KinematicLimits(constraintsstring);
-        }
-        else if(problemtype.compare("TorqueLimits")==0) {
+        else if (problemtype.compare("TorqueLimits")==0)
             pconstraints = new TorqueLimits(constraintsstring);
-        }
-        else if(problemtype.compare("QuadraticConstraints")==0) {
+        else if (problemtype.compare("QuadraticConstraints")==0)
             pconstraints = new QuadraticConstraints(constraintsstring);
-        }
         ptrajectory = new Trajectory(trajectorystring);
         tunings = Tunings(tuningsstring);
     }
@@ -55,7 +54,6 @@ public:
     dReal sdendmin,sdendmax;
 
 
-
     int RunComputeProfiles(dReal sdbeg, dReal sdend){
         int res = ComputeProfiles(*pconstraints,*ptrajectory,tunings,sdbeg,sdend);
         resduration = pconstraints->resduration;
@@ -68,19 +66,24 @@ public:
     }
 
 
-    void RunVIP(dReal sdbegmin, dReal sdbegmax){
+    int RunVIP(dReal sdbegmin, dReal sdbegmax){
         int ret = VIP(*pconstraints,*ptrajectory,tunings,sdbegmin,sdbegmax,sdendmin,sdendmax);
         if(ret == 0) {
             sdendmin = -1;
             sdendmax = -1;
         }
+        return ret;
     }
 
     void WriteResultTrajectory(){
         std::stringstream ss;
+        printf("WriteResultTrajectory: %d %f %d blah\n",
+                restrajectory.dimension, restrajectory.duration,
+                restrajectory.degree);
         restrajectory.Write(ss);
         restrajectorystring = ss.str();
     }
+
 
     void WriteProfilesList(){
         std::list<Profile>::iterator itprofile = pconstraints->resprofileslist.begin();
@@ -109,13 +112,10 @@ public:
 };
 
 
-
-
-
-BOOST_PYTHON_MODULE(TOPPbindings)
-{
+BOOST_PYTHON_MODULE(TOPPbindings) {
     using namespace boost::python;
-    class_<TOPPInstance>("TOPPInstance", init<std::string,std::string,std::string,std::string>())
+    class_<TOPPInstance>("TOPPInstance",
+            init<std::string,std::string,std::string,std::string>())
     .def_readonly("restrajectorystring", &TOPPInstance::restrajectorystring)
     .def_readonly("resprofilesliststring", &TOPPInstance::resprofilesliststring)
     .def_readonly("switchpointsliststring", &TOPPInstance::switchpointsliststring)
@@ -128,5 +128,4 @@ BOOST_PYTHON_MODULE(TOPPbindings)
     .def("WriteResultTrajectory",&TOPPInstance::WriteResultTrajectory)
     .def("WriteProfilesList",&TOPPInstance::WriteProfilesList)
     .def("WriteSwitchPointsList",&TOPPInstance::WriteSwitchPointsList);
-
 }

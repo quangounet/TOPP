@@ -24,121 +24,128 @@ namespace TOPP {
 
 ///////////////////////// Polynomial ///////////////////////
 
-void Polynomial::InitFromCoefficientsVector(const std::vector<dReal>&coefficientsvector0){
+
+void Polynomial::InitFromCoefficientsVector(const std::vector<dReal>&coefficientsvector0) {
     coefficientsvector = coefficientsvector0;
-    degree = coefficientsvector.size()-1;
+    degree = coefficientsvector.size() - 1;
     // Construct first- and second-order derivative polynomials
     coefficientsvectord.resize(0);
     coefficientsvectordd.resize(0);
-    for(int i=1; i<=degree; i++) {
-        coefficientsvectord.push_back(i*coefficientsvector[i]);
-    }
-    for(int i=1; i<=degree-1; i++) {
-        coefficientsvectordd.push_back(i*coefficientsvectord[i]);
-    }
+    for(int i = 1; i <= degree; i++)
+        coefficientsvectord.push_back(i * coefficientsvector[i]);
+    for(int i = 1; i <= degree - 1; i++)
+        coefficientsvectordd.push_back(i * coefficientsvectord[i]);
 }
 
 
-
-Polynomial::Polynomial(const std::vector<dReal>& coefficientsvector0){
+Polynomial::Polynomial(const std::vector<dReal>& coefficientsvector0) {
     InitFromCoefficientsVector(coefficientsvector0);
 }
 
-Polynomial::Polynomial(const std::string& s){
+
+Polynomial::Polynomial(const std::string& s) {
     VectorFromString(s,coefficientsvector);
     InitFromCoefficientsVector(coefficientsvector);
 
 }
 
+
 // Evaluate polynomials using Horner's method
-dReal Polynomial::Eval(dReal s){
+dReal Polynomial::Eval(dReal s) {
     dReal res = 0;
-    for(int i=degree; i>=0; i--) {
-        res = res*s + coefficientsvector[i];
-    }
-    return res;
-}
-
-dReal Polynomial::Evald(dReal s){
-    dReal res = 0;
-    for(int i=degree-1; i>=0; i--) {
-        res = res*s + coefficientsvectord[i];
-    }
+    for(int i = degree; i >= 0; i--)
+        res = res * s + coefficientsvector[i];
     return res;
 }
 
 
-dReal Polynomial::Evaldd(dReal s){
+dReal Polynomial::Evald(dReal s) {
     dReal res = 0;
-    for(int i=degree-2; i>=0; i--) {
+    for(int i = degree - 1; i >= 0; i--)
+        res = res * s + coefficientsvectord[i];
+    return res;
+}
+
+
+dReal Polynomial::Evaldd(dReal s) {
+    dReal res = 0;
+    for(int i = degree - 2; i>=0; i--)
         res = res*s + coefficientsvectordd[i];
-    }
     return res;
 }
 
-void Polynomial::Write(std::stringstream& ss){
-    for(int i=0; i<=degree; i++) {
-        ss << std::setprecision(17) << coefficientsvector[i] << " ";
-    }
-}
 
+void Polynomial::Write(std::stringstream& ss) {
+    for(int i = 0; i <= degree; i++)
+        ss << std::setprecision(17) << coefficientsvector[i] << " ";
+}
 
 
 ///////////////////////// Chunk ///////////////////////
 
 
-Chunk::Chunk(dReal duration0, const std::vector<Polynomial>& polynomialsvector0){
+Chunk::Chunk(dReal duration0, const std::vector<Polynomial>& polynomialsvector0) {
     polynomialsvector = polynomialsvector0;
     dimension = polynomialsvector.size();
     duration = duration0;
-    assert(dimension>0);
+    assert(dimension > 0);
     degree = polynomialsvector[0].degree;
+    for(int i = 1; i < dimension; i++)
+        if (polynomialsvector[i].degree > degree)
+            degree = polynomialsvector[i].degree;
     // All polynomials must have the same degree
-    for(int i=1; i<dimension; i++) {
+    for(int i = 1; i < dimension; i++) {
+        // TODO: the padding below is a temporary fix (S., 2013-10-10)
+        if (polynomialsvector[i].degree < degree) {
+            std::vector<dReal> coeffs(polynomialsvector[i].coefficientsvector);
+            unsigned ubound = degree + 1;
+            while (coeffs.size() < ubound)
+                coeffs.push_back(0);
+            polynomialsvector[i] = Polynomial(coeffs);
+        }
         assert(degree == polynomialsvector[i].degree);
     }
 }
 
 
-void Chunk::Eval(dReal s, std::vector<dReal>&q){
+void Chunk::Eval(dReal s, std::vector<dReal>&q) {
     assert(s >= -TINY);
     assert(s <= duration+TINY);
-    for(int i=0; i<dimension; i++) {
+    for(int i = 0; i < dimension; i++)
         q[i] = polynomialsvector[i].Eval(s);
-    }
 }
 
-void Chunk::Evald(dReal s, std::vector<dReal>&qd){
+
+void Chunk::Evald(dReal s, std::vector<dReal>&qd) {
     assert(s >= -TINY);
     assert(s <= duration+TINY);
-    for(int i=0; i<dimension; i++) {
+    for(int i = 0; i < dimension; i++)
         qd[i] = polynomialsvector[i].Evald(s);
-    }
 }
 
-void Chunk::Evaldd(dReal s, std::vector<dReal>&qdd){
+
+void Chunk::Evaldd(dReal s, std::vector<dReal>&qdd) {
     assert(s >= -TINY);
     assert(s <= duration+TINY);
-    for(int i=0; i<dimension; i++) {
+    for(int i = 0; i < dimension; i++)
         qdd[i] = polynomialsvector[i].Evaldd(s);
-    }
 }
 
-void Chunk::Write(std::stringstream& ss){
+
+void Chunk::Write(std::stringstream& ss) {
     ss << std::setprecision(17) <<  duration << "\n";
     ss << dimension << "\n";
-    for(int i=0; i<dimension; i++) {
+    for(int i = 0; i < dimension; i++) {
         polynomialsvector[i].Write(ss);
         ss << "\n";
     }
 }
 
 
-
 /////////////// Trajectory ///////////////////////
 
 
-void Trajectory::InitFromChunksList(const std::list<Chunk>&chunkslist0){
+void Trajectory::InitFromChunksList(const std::list<Chunk>&chunkslist0) {
     chunkslist = chunkslist0;
     assert(chunkslist.size()>0);
     dimension = chunkslist.front().dimension;
@@ -161,16 +168,16 @@ void Trajectory::InitFromChunksList(const std::list<Chunk>&chunkslist0){
         itchunk++;
     }
     chunkcumulateddurationslist.push_back(duration);
-
 }
 
 
-Trajectory::Trajectory(const std::list<Chunk>& chunkslist0){
+Trajectory::Trajectory(const std::list<Chunk>& chunkslist0) {
     InitFromChunksList(chunkslist0);
 }
 
-Trajectory::Trajectory(const std::string& trajectorystring){
-    int buffsize = 255;
+
+Trajectory::Trajectory(const std::string& trajectorystring) {
+    int buffsize = BUFFSIZE;
     char buff[buffsize];
     std::istringstream iss(trajectorystring);
     int dimension;
@@ -183,8 +190,8 @@ Trajectory::Trajectory(const std::string& trajectorystring){
         iss.getline(buff,buffsize);
         dimension = atoi(buff);
         polynomialsvector.resize(0);
-        for(int i=0; i<dimension; i++) {
-            iss.getline(buff,buffsize);
+        for(int i = 0; i < dimension; i++) {
+            iss.getline(buff, buffsize);
             polynomialsvector.push_back(Polynomial(std::string(buff)));
         }
         chunkslist0.push_back(Chunk(duration,polynomialsvector));
@@ -193,9 +200,7 @@ Trajectory::Trajectory(const std::string& trajectorystring){
 }
 
 
-
-
-void Trajectory::FindChunkIndex(dReal s, int& index, dReal& remainder){
+void Trajectory::FindChunkIndex(dReal s, int& index, dReal& remainder) {
     std::list<dReal>::iterator it = chunkcumulateddurationslist.begin();
     if(s <= TINY) {
         index = 0;
@@ -213,7 +218,8 @@ void Trajectory::FindChunkIndex(dReal s, int& index, dReal& remainder){
     remainder = s-*it;
 }
 
-void Trajectory::Eval(dReal s, std::vector<dReal>&q){
+
+void Trajectory::Eval(dReal s, std::vector<dReal>&q) {
     assert(s >= -TINY);
     assert(s <= duration+TINY);
     assert(dimension == int(q.size()));
@@ -225,7 +231,8 @@ void Trajectory::Eval(dReal s, std::vector<dReal>&q){
     itchunk->Eval(remainder,q);
 }
 
-void Trajectory::Evald(dReal s, std::vector<dReal>&qd){
+
+void Trajectory::Evald(dReal s, std::vector<dReal>&qd) {
     assert(s >= 0-TINY);
     assert(s <= duration+TINY);
     assert(dimension == int(qd.size()));
@@ -237,7 +244,8 @@ void Trajectory::Evald(dReal s, std::vector<dReal>&qd){
     itchunk->Evald(remainder,qd);
 }
 
-void Trajectory::Evaldd(dReal s, std::vector<dReal>&qdd){
+
+void Trajectory::Evaldd(dReal s, std::vector<dReal>&qdd) {
     assert(s >= -TINY);
     assert(s <= duration+TINY);
     int index;
@@ -249,7 +257,8 @@ void Trajectory::Evaldd(dReal s, std::vector<dReal>&qdd){
 }
 
 
-void Trajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal sdd, const Chunk& currentchunk, Chunk& newchunk){
+void Trajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal
+        sdd, const Chunk& currentchunk, Chunk& newchunk) {
     assert(currentchunk.degree <= 3);
     dReal a0, a1, a2, b0, b1, b2, b3, b4, c0, c1, c2, c3, c4, c5, c6, u0, u1, u2, u3;
     std::vector<dReal> coefficientsvector;
@@ -275,33 +284,31 @@ void Trajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal sd
     for(int i=0; i<currentchunk.dimension; i++) {
         u0 = currentchunk.polynomialsvector[i].coefficientsvector[0];
         u1 = 0;
-        if(currentchunk.degree>=1) {
+        if(currentchunk.degree >= 1)
             u1 = currentchunk.polynomialsvector[i].coefficientsvector[1];
-        }
         u2 = 0;
-        if(currentchunk.degree>=2) {
+        if(currentchunk.degree >= 2)
             u2 = currentchunk.polynomialsvector[i].coefficientsvector[2];
-        }
         u3 = 0;
-        if(currentchunk.degree>=3) {
+        if(currentchunk.degree >= 3)
             u3 = currentchunk.polynomialsvector[i].coefficientsvector[3];
-        }
         coefficientsvector.resize(0);
-        coefficientsvector.push_back(u3*c0 + u2*b0 + u1*a0 + u0); //v0
-        coefficientsvector.push_back(u3*c1 + u2*b1 + u1*a1);      //v1
-        coefficientsvector.push_back(u3*c2 + u2*b2 + u1*a2);      //v2
-        coefficientsvector.push_back(u3*c3 + u2*b3);              //v3
-        coefficientsvector.push_back(u3*c4 + u2*b4);              //v4
-        coefficientsvector.push_back(u3*c5);                      //v5
-        coefficientsvector.push_back(u3*c6);                      //v6
+        coefficientsvector.push_back(u3*c0 + u2*b0 + u1*a0 + u0); // v0
+        coefficientsvector.push_back(u3*c1 + u2*b1 + u1*a1);      // v1
+        coefficientsvector.push_back(u3*c2 + u2*b2 + u1*a2);      // v2
+        coefficientsvector.push_back(u3*c3 + u2*b3);              // v3
+        coefficientsvector.push_back(u3*c4 + u2*b4);              // v4
+        coefficientsvector.push_back(u3*c5);                      // v5
+        coefficientsvector.push_back(u3*c6);                      // v6
         polynomialsvector.push_back(Polynomial(coefficientsvector));
     }
     newchunk = Chunk(tnext-t0, polynomialsvector);
 }
 
 
-
-void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int& currentchunkindex, dReal& processedcursor, std::list<Chunk>::iterator& itcurrentchunk, std::list<Chunk>& chunkslist){
+void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
+        currentchunkindex, dReal& processedcursor, std::list<Chunk>::iterator&
+        itcurrentchunk, std::list<Chunk>& chunkslist) {
 
     dReal t = 0, tnext;
     dReal snext = s + T*sd + 0.5*T*T*sdd;
@@ -332,8 +339,8 @@ void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int& curr
 }
 
 
-
-void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal reparamtimestep, Trajectory& restrajectory){
+void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal
+        reparamtimestep, Trajectory& restrajectory) {
 
     dReal scur, sdcur, snext, sdnext, sdnext2, sdd;
     dReal dt = reparamtimestep;
@@ -367,16 +374,17 @@ void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal reparamt
         if(snext >= scur+TINY && FindLowestProfile(snext,profile,tres,profileslist)) {
             sdnext2 = profile.Evald(tres);
             dtmod = dt;
-            // If discrepancy between integrated sd and profile's sd then follow profile's sd, which requires changing dt
+            // If discrepancy between integrated sd and profile's sd then
+            // follow profile's sd, which requires changing dt
             if(std::abs(sdnext-sdnext2)>TINY2) {
                 dtmod = 2*(snext-scur)/(sdnext2+sdcur);
                 sdd = (sdnext2-sdcur)/dtmod;
             }
-            SPieceToChunks(scur,sdcur,sdd,dtmod,currentchunkindex,processedcursor,itcurrentchunk,newchunkslist);
+            SPieceToChunks(scur, sdcur, sdd, dtmod, currentchunkindex,
+                    processedcursor, itcurrentchunk, newchunkslist);
         }
-        else{
+        else
             break;
-        }
         t+= dtmod;
         scur = snext;
         sdcur = sdnext2;
@@ -385,20 +393,13 @@ void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal reparamt
 }
 
 
-
-
-
-void Trajectory::Write(std::stringstream& ss){
+void Trajectory::Write(std::stringstream& ss) {
     std::list<Chunk>::iterator itchunk = chunkslist.begin();
     while(itchunk!=chunkslist.end()) {
         itchunk->Write(ss);
         itchunk++;
     }
 }
-
-
-
-
 
 
 } // End namespace TOPP

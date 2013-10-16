@@ -12,20 +12,20 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Lesser General Public License
+# You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import sys
+sys.path.append('..')
 
 import TOPPbindings
 import TOPPpy
 import TOPPopenravepy
 import time
 import string
-import sys
 from pylab import *
 from numpy import *
 from openravepy import *
-
 
 
 ion()
@@ -33,7 +33,7 @@ ion()
 ########################### Robot ################################
 env = Environment() # create openrave environment
 #------------------------------------------#
-robotfile = "robots/twodof.robot.xml"
+robotfile = "../robots/twodof.robot.xml"
 env.Load(robotfile)
 robot=env.GetRobots()[0]
 robot.SetTransform(array([[0,0,1,0],[0,1,0,0],[-1,0,0,0.3],[0,0,0,1]]))
@@ -44,6 +44,7 @@ dof_lim=robot.GetDOFLimits()
 vel_lim=robot.GetDOFVelocityLimits()
 robot.SetDOFLimits(-10*ones(n),10*ones(n))
 robot.SetDOFVelocityLimits(100*vel_lim)
+
 
 ############################ Tunings ############################
 discrtimestep = 0.01
@@ -64,9 +65,12 @@ traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 ############################ Constraints ############################
 #------------------------------------------#
-taumin = array([-13,-7])
-taumax = array([13,7])
-vmax = array([0,0])
+taumin = array([-15,-10])
+taumax = array([15,10])
+vmax = array([3,3])
+#taumin = array([-5,-5])
+#taumax = array([5,5])
+#vmax = array([0,0])
 t0 = time.time()
 constraintstring = string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax]) + "\n" + string.join([str(a) for a in vmax])
 constraintstring += TOPPopenravepy.ComputeTorquesConstraintsLegacy(robot,traj0,taumin,taumax,discrtimestep)
@@ -77,9 +81,13 @@ constraintstring += TOPPopenravepy.ComputeTorquesConstraintsLegacy(robot,traj0,t
 t1 = time.time()
 x = TOPPbindings.TOPPInstance("TorqueLimits",constraintstring,trajectorystring,tuningsstring)
 t2 = time.time()
-x.RunVIP(1,4)
+ret = x.RunComputeProfiles(0,0)
 t3 = time.time()
 
+if(ret == 1):
+    x.ReparameterizeTrajectory()
+
+t4 = time.time()
 
 ################ Plotting the MVC and the profiles #################
 x.WriteProfilesList()
@@ -89,11 +97,23 @@ switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
 TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
 
 
+##################### Plotting the trajectories #####################
+if(ret == 1):
+    x.WriteResultTrajectory()
+    traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
+    dtplot = 0.01
+    TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax)
+    TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)
+
+
 print "\n--------------"
 print "Python preprocessing: ", t1-t0
 print "Building TOPP Instance: ", t2-t1
 print "Compute profiles: ", t3-t2
-print "Total: ", t3-t0 
-print "(sdendmin,sdendmax) = (", x.sdendmin, ",", x.sdendmax, ")"
+print "Reparameterize trajectory: ", t4-t3
+print "Total: ", t4-t0
+if(ret == 1):
+    print "Trajectory duration (estimate): ", x.resduration
+    print "Trajectory duration: ", traj1.duration
 
 raw_input()

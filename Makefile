@@ -1,7 +1,9 @@
 SHELL=/bin/bash
 
 SOURCE=$(wildcard *.cpp)
+HEADERS=$(wildcard *.h)
 OBJECTS=$(SOURCE:.cpp=.o)
+DEBUG_OBJECTS=$(SOURCE:.cpp=.gdb.o)
 TARGET=TOPPbindings.so
 LIB=-lboost_python
 INCLUDE=$(shell python-config --includes)
@@ -12,24 +14,40 @@ TESTS=$(wildcard tests/*.py)
 PYTHON=python
 
 
-so: $(OBJECTS)
-	$(CC) $(INCLUDE) $(SOURCE) -shared $(LIB) -o $(TARGET)
+help:
+	@echo 'Usage:                                                    '
+	@echo '                                                          '
+	@echo '    make release -- compile library with release settings '
+	@echo '    make debug -- compile library with debug settings     '
+	@echo '    make clean -- clean temporary files                   '
+	@echo '    make distclean -- clean temporary and output files    '
+	@echo '    make rebuild -- recompile library from scratch        '
+	@echo '    make tests -- run unit tests                          '
+	@echo '                                                          '
 
-%.o: %.cpp
+
+%.o: %.cpp $(HEADERS)
 	$(CC) $(INCLUDE) -c $< 
 
-debug: $(SOURCE) 
-	$(CCG) $(INCLUDE) $(SOURCE) -shared $(LIB) -o $(TARGET)
+release: $(OBJECTS)
+	$(CC) $(INCLUDE) $(OBJECTS) -shared $(LIB) -o $(TARGET)
+
+%.gdb.o: %.cpp $(HEADERS)
+	$(CCG) $(INCLUDE) -c $< -o $@
+
+debug: $(DEBUG_OBJECTS)
+	$(CCG) $(INCLUDE) $(DEBUG_OBJECTS) -shared $(LIB) -o $(TARGET)
 
 clean:
-	rm -f $(OBJECTS)
-	rm -f *~
+	rm -f $(OBJECTS) $(DEBUG_OBJECTS) *~
 
 distclean: clean
 	rm -f $(TARGET)
 
-unit_tests:
+rebuild: distclean release
+
+tests:
 	@for f in $(TESTS); do $(PYTHON) $$f; done
 
 
-.PHONY: so debug clean distclean unit_tests
+.PHONY: release debug clean distclean rebuild tests

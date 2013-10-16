@@ -16,64 +16,41 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import sys
+sys.path.append('..')
+
 import TOPPbindings
 import TOPPpy
-import TOPPopenravepy
 import time
 import string
-import sys
 from pylab import *
 from numpy import *
-from openravepy import *
-
 
 
 ion()
-
-########################### Robot ################################
-env = Environment() # create openrave environment
-#------------------------------------------#
-robotfile = "robots/twodof.robot.xml"
-env.Load(robotfile)
-robot=env.GetRobots()[0]
-robot.SetTransform(array([[0,0,1,0],[0,1,0,0],[-1,0,0,0.3],[0,0,0,1]]))
-#------------------------------------------#
-grav=[0,0,-9.8]
-n=robot.GetDOF()
-dof_lim=robot.GetDOFLimits()
-vel_lim=robot.GetDOFVelocityLimits()
-robot.SetDOFLimits(-10*ones(n),10*ones(n))
-robot.SetDOFVelocityLimits(100*vel_lim)
-
 
 ############################ Tunings ############################
 discrtimestep = 0.01
 integrationtimestep = 0.01
 reparamtimestep = 0.01
-passswitchpointnsteps = 5
+passswitchpointnsteps = 20
 tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
 
 
 ############################ Trajectory ############################
 #------------------------------------------#
-T=1
-[a1,b1,c1,a2,b2,c2] =  [3, -3, -3, 0, -2, -2] #[-3, 3, 3, -1, 0, -3]
-trajectorystring = "%f\n%d\n%f %f %f\n%f %f %f"%(T,2,c1,b1,a1,c2,b2,a2)
+trajectorystring = "2 \n 2\n 1 1 0 1\n 0 2 0 -1\n 3\n 2\n 11 13 6 0.1666666666666\n -4 -10 -6 0.5"
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 
 ############################ Constraints ############################
 #------------------------------------------#
-taumin = array([-15,-10])
-taumax = array([15,10])
-vmax = [3,3]
-#taumin = array([-5,-5])
-#taumax = array([5,5])
-#vmax = array([0,0])
+amax = array([15,10])
+vmax = array([20,10])
 t0 = time.time()
 constraintstring = string.join([str(v) for v in vmax])
-constraintstring += TOPPopenravepy.ComputeTorquesConstraints(robot,traj0,taumin,taumax,discrtimestep)
+constraintstring += TOPPpy.ComputeKinematicConstraints(traj0,amax,discrtimestep)
 #------------------------------------------#
 
 
@@ -102,8 +79,7 @@ if(ret == 1):
     x.WriteResultTrajectory()
     traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
     dtplot = 0.01
-    TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax)
-    TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)
+    TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax,amax)
 
 
 print "\n--------------"
@@ -111,9 +87,9 @@ print "Python preprocessing: ", t1-t0
 print "Building TOPP Instance: ", t2-t1
 print "Compute profiles: ", t3-t2
 print "Reparameterize trajectory: ", t4-t3
-print "Total: ", t4-t0 
-if(ret == 1):
-    print "Trajectory duration (estimate): ", x.resduration
-    print "Trajectory duration: ", traj1.duration
+print "Total: ", t4-t0
+print "Trajectory duration (estimate): ", x.resduration
+print "Trajectory duration: ", traj1.duration
+
 
 raw_input()

@@ -16,44 +16,45 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from numpy import *
-from pylab import *
+import bisect
+import pylab
 import string
 import StringIO
-import bisect
 
-from pylab import arange, array, double, zeros
-from pylab import gca, plot
+from pylab import arange, array, double, zeros, title
+from pylab import gca, plot, figure, clf, hold, axis
 
 
 ###################### Utilities #########################
 
-def Interpolate3rdDegree(q0,q1,qd0,qd1,T):
-    a=((qd1-qd0)*T-2*(q1-q0-qd0*T))/T**3
-    b=(3*(q1-q0-qd0*T)-(qd1-qd0)*T)/T**2
-    c=qd0
-    d=q0
-    return a,b,c,d
+
+def Interpolate3rdDegree(q0, q1, qd0, qd1, T):
+    a = ((qd1-qd0)*T-2*(q1-q0-qd0*T))/T**3
+    b = (3*(q1-q0-qd0*T)-(qd1-qd0)*T)/T**2
+    c = qd0
+    d = q0
+    return a, b, c, d
 
 
-def BezierToPolynomial(T,p0,p1,p2,p3):
+def BezierToPolynomial(T, p0, p1, p2, p3):
     a = -p0 + 3*p1 - 3*p2 + p3
     b = 3*p0 - 6*p1 + 3*p2
     c = -3*p0 + 3*p1
     d = 1
-    return a/(T*T*T),b/(T*T),c/T,d
-    
-def BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v):
+    return a/(T*T*T), b/(T*T), c/T, d
+
+
+def BezierToTrajectoryString(Tv, p0v, p1v, p2v, p3v):
     nchunks = len(Tv)
     dimension = len(p0v[0])
     trajectorystring = "";
     for i in range(nchunks):
-        if(i>0):
+        if i > 0:
             trajectorystring += "\n"
         trajectorystring += str(Tv[i]) + "\n" + str(dimension)
         for j in range(dimension):
-            a,b,c,d = BezierToPolynomial(Tv[i],p0v[i][j],p1v[i][j],p2v[i][j],p3v[i][j])
-            trajectorystring += "\n%f %f %f %f"%(d,c,b,a)
+            a, b, c, d = BezierToPolynomial(Tv[i], p0v[i][j], p1v[i][j], p2v[i][j], p3v[i][j])
+            trajectorystring += "\n%f %f %f %f"%(d, c, b, a)
     return trajectorystring
 
 
@@ -91,11 +92,13 @@ def SwitchPointsFromString(s):
 
 
 def VectorFromString(s):
+    # left for compatibility TODO: remove?
     s = s.strip(" \n")
     return array([double(x) for x in s.split(' ')])
 
 
 ################# Compute constraints #####################
+
 
 def ComputeKinematicConstraints(traj,amax,discrtimestep):
     # Sample the dynamics constraints
@@ -107,10 +110,9 @@ def ComputeKinematicConstraints(traj,amax,discrtimestep):
         qd = traj.Evald(t)
         qdd = traj.Evaldd(t)
         constraintstring += "\n" + string.join([str(x) for x in qd]) + " " + string.join([str(x) for x in -qd])
-        constraintstring += "\n" + string.join([str(x) for x in qdd]) + " " + string.join([str(x) for x in -qdd]) 
+        constraintstring += "\n" + string.join([str(x) for x in qdd]) + " " + string.join([str(x) for x in -qdd])
         constraintstring += "\n" + string.join([str(x) for x in -amax]) + " " + string.join([str(x) for x in -amax])
     return constraintstring
-
 
 
 def PlotProfiles(profileslist0,switchpointslist = [], figstart=0):
@@ -151,7 +153,7 @@ def PlotKinematics(traj0,traj1,dt=0.01,vmax=[],amax=[],figstart=0):
     figure(figstart)
     clf()
     hold('on')
-    ax=gca()        
+    ax=gca()
     ax.set_color_cycle(colorcycle)
     traj0.Plot(dt,'--')
     traj1.Plot(dt)
@@ -160,7 +162,7 @@ def PlotKinematics(traj0,traj1,dt=0.01,vmax=[],amax=[],figstart=0):
     figure(figstart+1)
     clf()
     hold('on')
-    ax=gca()        
+    ax=gca()
     ax.set_color_cycle(colorcycle)
     traj0.Plotd(dt,'--')
     traj1.Plotd(dt)
@@ -175,7 +177,7 @@ def PlotKinematics(traj0,traj1,dt=0.01,vmax=[],amax=[],figstart=0):
     # Acceleration
     figure(figstart+2)
     clf()
-    ax=gca()        
+    ax=gca()
     ax.set_color_cycle(colorcycle)
     hold('on')
     traj0.Plotdd(dt,'--')
@@ -190,52 +192,34 @@ def PlotKinematics(traj0,traj1,dt=0.01,vmax=[],amax=[],figstart=0):
     title('Joint accelerations')
 
 
-
-
-class Polynomial():
+class Polynomial(object):
     @staticmethod
     def FromString(polynomial_string):
-        coeff_vector = VectorFromString(polynomial_string)
-        return Polynomial(coeff_vector)
+        s = polynomial_string.strip(" \n")
+        coeff_list = [double(x) for x in s.split(' ')]
+        return Polynomial(coeff_list)
 
-    def __init__(self, coeff_vector):
-        """
-        Create a polynomial from its list of coefficients (weakest terms
-        first).
-        """
-
-        self.coefficientsvector = coeff_vector
-        self.degree = len(self.coefficientsvector) - 1
-        self.coefficientsvectord = zeros(self.degree)
-        self.coefficientsvectordd = zeros(self.degree - 1)
-        for i in range(1, self.degree + 1):
-            self.coefficientsvectord[i - 1] = i * self.coefficientsvector[i]
-        for i in range(1, self.degree):
-            self.coefficientsvectordd[i - 1] = i * self.coefficientsvectord[i]
+    def __init__(self, coeff_list):
+        # NB: we adopt the weak-term-first convention for inputs
+        self.q = pylab.poly1d(coeff_list[::-1])
+        self.qd = pylab.polyder(self.q)
+        self.qdd = pylab.polyder(self.qd)
+        self.degree = self.q.order
 
     def Eval(self, s):
-        res = 0
-        for i in range(self.degree, -1, -1):
-            res = res * s + self.coefficientsvector[i]
-        return res
+        # left for compatibility TODO: remove?
+        return self.q(s)
 
     def Evald(self, s):
-        res = 0
-        for i in range(self.degree - 1, -1, -1):
-            res = res * s + self.coefficientsvectord[i]
-        return res
+        # left for compatibility TODO: remove?
+        return self.qd(s)
 
     def Evaldd(self, s):
-        res = 0
-        for i in range(self.degree - 2, -1, -1):
-            res = res * s + self.coefficientsvectordd[i]
-        return res
+        # left for compatibility TODO: remove?
+        return self.qdd(s)
 
-    def GetString(self):
-        ss = ""
-        for i in range(0, self.degree + 1):
-            ss += str(self.coefficientsvector[i])
-        return ss
+    def __str__(self):
+        return ' '.join(map(str, list(self.q.coeffs)[::-1]))
 
 
 class Chunk():
@@ -263,12 +247,9 @@ class Chunk():
             qdd[i] = self.polynomialsvector[i].Evaldd(s)
         return qdd
 
-    def GetString(self):
-        ss = str(self.duration) + "\n"
-        ss += str(self.dimension) + "\n"
-        for i in range(self.dimension):
-            ss += self.polynomialsvector[i].Write() + "\n"
-        return ss
+    def __str__(self):
+        chunks_str = '\n'.join(map(str, self.polynomialsvector))
+        return '%f\n%d\n%s' % (self.duration, self.dimension, chunks_str)
 
 
 class PiecewisePolynomialTrajectory():
@@ -284,6 +265,7 @@ class PiecewisePolynomialTrajectory():
 
     @staticmethod
     def FromString(trajectorystring):
+        print "PiecewisePoly.FromString: '%s'" % trajectorystring
         buff = StringIO.StringIO(trajectorystring)
         chunkslist = []
         while buff.pos < buff.len:
@@ -313,21 +295,21 @@ class PiecewisePolynomialTrajectory():
     def Evaldd(self, s):
         i, remainder = self.FindChunkIndex(s)
         return self.chunkslist[i].Evaldd(remainder)
-        
-    def Plot(self,dt,f=''):
-        tvect = arange(0,self.duration+dt,dt)
+
+    def Plot(self, dt, f=''):
+        tvect = arange(0, self.duration + dt, dt)
         qvect = array([self.Eval(t) for t in tvect])
-        plot(tvect,qvect,f,linewidth=2)
-            
-    def Plotd(self,dt,f=''):
-        tvect = arange(0,self.duration+dt,dt)
+        plot(tvect, qvect, f, linewidth=2)
+
+    def Plotd(self, dt, f=''):
+        tvect = arange(0, self.duration + dt, dt)
         qdvect = array([self.Evald(t) for t in tvect])
-        plot(tvect,qdvect,f,linewidth=2)
-    
-    def Plotdd(self,dt,f=''):
-        tvect = arange(0,self.duration+dt,dt)
+        plot(tvect, qdvect, f, linewidth=2)
+
+    def Plotdd(self, dt, f=''):
+        tvect = arange(0, self.duration + dt, dt)
         qddvect = array([self.Evaldd(t) for t in tvect])
-        plot(tvect,qddvect,f,linewidth=2)
-        
-    def GetString(self):
-        return '\n'.join([chunk.GetString() for chunk in self.chunklist])
+        plot(tvect, qddvect, f, linewidth=2)
+
+    def __str__(self):
+        return '\n'.join([str(chunk) for chunk in self.chunkslist])
