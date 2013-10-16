@@ -63,11 +63,12 @@ class RaveTorqueInstance(object):
         self.tunings = tunings
         self.traj = traj
 
-        buffsize = 4096
+        buffsize = 100000
         input_str = str(constraints) + self.get_dynamics_str()
-        assert len(input_str) < buffsize
-        assert len(self.traj) < buffsize
-        assert len(self.tunings) < buffsize
+        assert len(input_str) < buffsize, \
+            "%d is bigger than buffer size" % len(input_str)
+        assert len(str(self.traj)) < buffsize
+        assert len(str(self.tunings)) < buffsize
 
         self.solver = TOPPbindings.TOPPInstance(
             "TorqueLimits", input_str, str(self.traj), str(self.tunings))

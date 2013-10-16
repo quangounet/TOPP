@@ -47,7 +47,7 @@ typedef double dReal;
 namespace TOPP {
 
 
-const int BUFFSIZE = 4096;
+const int BUFFSIZE = 100000;
 
 
 ////////////////////////////////////////////////////////////////////
