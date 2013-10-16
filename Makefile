@@ -28,10 +28,10 @@ help:
 	$(CC) $(INCLUDE) -c $< 
 
 release: $(OBJECTS)
-	$(CC) $(INCLUDE) $(SOURCE) -shared $(LIB) -o $(TARGET)
+	$(CC) $(INCLUDE) $(OBJECTS) -shared $(LIB) -o $(TARGET)
 
-debug: $(SOURCE) 
-	$(CCG) $(INCLUDE) $(SOURCE) -shared $(LIB) -o $(TARGET)
+debug: $(OBJECTS)
+	$(CCG) $(INCLUDE) $(OBJECTS) -shared $(LIB) -o $(TARGET)
 
 clean:
 	rm -f $(OBJECTS) *~
