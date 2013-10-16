@@ -1,6 +1,7 @@
 SHELL=/bin/bash
 
 SOURCE=$(wildcard *.cpp)
+HEADERS=$(wildcard *.h)
 OBJECTS=$(SOURCE:.cpp=.o)
 TARGET=TOPPbindings.so
 LIB=-lboost_python
@@ -24,7 +25,7 @@ help:
 	@echo '                                                          '
 
 
-%.o: %.cpp
+%.o: %.cpp $(HEADERS)
 	$(CC) $(INCLUDE) -c $< 
 
 release: $(OBJECTS)
