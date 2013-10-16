@@ -74,7 +74,6 @@ void TorqueLimits::InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vect
 }
 
 
-
 std::pair<dReal,dReal> TorqueLimits::SddLimits(dReal s, dReal sd){
     dReal alpha = -INF;
     dReal beta = INF;
@@ -101,7 +100,6 @@ std::pair<dReal,dReal> TorqueLimits::SddLimits(dReal s, dReal sd){
     std::pair<dReal,dReal> result(alpha,beta);
     return result;
 }
-
 
 
 dReal TorqueLimits::SdLimitBobrowInit(dReal s){

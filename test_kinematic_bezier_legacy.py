@@ -3,7 +3,7 @@
 #
 # This file is part of the Time-Optimal Path Parameterization (TOPP) library.
 # TOPP is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
+# it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # at your option) any later version.
 #
@@ -12,7 +12,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Lesser General Public License
+# You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
@@ -37,10 +37,14 @@ tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep
 
 ############################ Trajectory ############################
 #------------------------------------------#
-p0v = [[1,1],[1,1]]
-p1v = [[0.3,1.3],[1,2]]
-p2v = [[1,0],[0.3,1.3]]
-p3v = [[1,1],[1,1]]
+# p0v = [[1,1],[1,1]]
+# p1v = [[0.3,1.3],[1,2]]
+# p2v = [[1,0],[0.3,1.3]]
+# p3v = [[1,1],[1,1]]
+p0v = [[1,1,0],[1,1,0]]
+p1v = [[0.3,1.3,1],[1,2,-1]]
+p2v = [[1,0,1],[0.3,1.3,0]]
+p3v = [[1,1,0],[1,1,1]]
 Tv = [0.5,0.5]
 trajectorystring = TOPPpy.BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v)
 #------------------------------------------#
@@ -49,8 +53,8 @@ traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 ############################ Constraints ############################
 #------------------------------------------#
-amax = array([1,1])
-vmax = array([0.4,0.4])
+amax = array([1,1,1])
+vmax = array([0.4,0.4,0.4])
 t0 = time.time()
 constraintstring = string.join([str(v) for v in amax]) + "\n"
 constraintstring += string.join([str(v) for v in vmax])
@@ -81,8 +85,7 @@ TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
 if(ret == 1):
     x.WriteResultTrajectory()
     traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
-    dtplot = 0.01
-    TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax,amax)
+    TOPPpy.PlotKinematics(traj0,traj1,0.01,vmax,amax)
 
 
 print "\n--------------"
@@ -92,7 +95,8 @@ print "Compute profiles: ", t3-t2
 print "Reparameterize trajectory: ", t4-t3
 print "Total: ", t4-t0 
 print "Trajectory duration (estimate): ", x.resduration
-print "Trajectory duration: ", traj1.duration
+if(ret == 1):
+    print "Trajectory duration: ", traj1.duration
 
 
 # data=loadtxt('/home/cuong/Downloads/mintos/examples/res')

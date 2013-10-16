@@ -788,6 +788,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             if(sdcur > constraints.SdLimitBobrow(scur)) {
                 slist.push_back(scur);
                 sdlist.push_back(sdcur);
+                sddlist.push_back(0);
                 returntype = INT_MVC;
                 break;
             }
@@ -820,6 +821,9 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             int res = FlowVsMVC(constraints,scur,sdcur,1,dt);
             if(res == 0) {
                 // Most probably we arrived at the end
+                slist.push_back(scur);
+                sdlist.push_back(sdcur);
+                sddlist.push_back(0);
                 returntype = INT_END;
                 break;
             }
@@ -845,6 +849,9 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                     if(res2 == 0) {
                         cont = false;
                         //std::cout << "End traj\n";
+                        slist.push_back(scur);
+                        sdlist.push_back(sdcur);
+                        sddlist.push_back(0);
                         returntype = INT_END; // ZLAJPAH END
                         break;
                     }
@@ -871,6 +878,9 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                     }
                     else if(scur > constraints.trajectory.duration) {
                         cont = false;
+                        slist.push_back(scur);
+                        sdlist.push_back(sdcur);
+                        sddlist.push_back(0);
                         returntype = INT_END;
                         break;
                     }
@@ -993,22 +1003,23 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
             returntype = INT_PROFILE;
             break;
         }
-        else if(zlajpah && testmvc && sdcur >= constraints.SdLimitCombined(scur)-TINY2) {
+        else if(zlajpah && testmvc && sdcur >= constraints.SdLimitCombined(scur)-TINY2 && FlowVsMVCBackward(constraints,scur,sdcur,dt) != -1) {
             if(sdcur > constraints.SdLimitBobrow(scur)) {
                 slist.push_back(scur);
                 sdlist.push_back(sdcur);
+                sddlist.push_back(0);
                 returntype = INT_MVC;
                 break;
             }
-            // Lower the sd to the MVC
-            if(slist.size()>0) {
-                dReal sprev = slist.back(), sdprev = sdlist.back();
-                dReal slidesdd = ComputeSlidesdd(constraints,sprev,sdprev,-dt);
-                scur = sprev + sdprev*dt + 0.5*dtsq*slidesdd;
-                sdcur = sdprev + dt*slidesdd;
-                sddlist.pop_back();
-                sddlist.push_back(slidesdd);
-            }
+            // // Lower the sd to the MVC
+            // if(slist.size()>0) {
+            //     dReal sprev = slist.back(), sdprev = sdlist.back();
+            //     dReal slidesdd = ComputeSlidesddBackward(constraints,sprev,sdprev,-dt);
+            //     scur = sprev - sdprev*dt + 0.5*dtsq*slidesdd;
+            //     sdcur = sdprev - dt*slidesdd;
+            //     sddlist.pop_back();
+            //     sddlist.push_back(slidesdd);
+            // }
             //Now we have sdcombined < sdcur <= sdbobrow
             // Slide along MVCCombined, which is admissible, until either
             // alpha points above MVCCombined (trapped)
@@ -1017,6 +1028,9 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
             while(true) {
                 if(scur <0) {
                     cont = false;
+                    slist.push_back(scur);
+                    sdlist.push_back(sdcur);
+                    sddlist.push_back(0);
                     returntype = INT_END;
                     break;
                 }
@@ -1033,6 +1047,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
                     returntype = INT_PROFILE;
                     break;
                 }
+                std::cout <<"Slide from ("<< scur << "," << sdcur << ") \n";
                 dReal slidesdd = ComputeSlidesddBackward(constraints,scur,sdcur,dt);
                 dReal sprev = scur - dt * sdcur + 0.5*dtsq*slidesdd;
                 dReal sdprev = sdcur - dt * slidesdd;
@@ -1041,7 +1056,6 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
                 sddlist.push_back(slidesdd);
                 scur = sprev;
                 sdcur = sdprev;
-                //std::cout <<"Prev ("<< sprev << "," << sdprev << ") \n";
                 int res1 = FlowVsMVCBackward(constraints,sprev,sdprev,dt);
                 if(res1 == 0) {
                     cont = false;
@@ -1051,7 +1065,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
                 }
                 else if(res1 == -1) {
                     // Case b1
-                    //std::cout << "End slide with exit (" <<sprev << "," << sdprev  <<  ")\n";
+                    std::cout << "End slide with exit (" <<sprev << "," << sdprev  <<  ")\n";
                     break;
                 }
             }
@@ -1079,7 +1093,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
         sdlist.reverse();
         sddlist.reverse();
         sddlist.pop_front();
-        sddlist.push_back(0);
+        sddlist.push_back(sddlist.back());
     }
     resprofile = Profile(slist,sdlist,sddlist,dt);
     resprofile.forward = false;
