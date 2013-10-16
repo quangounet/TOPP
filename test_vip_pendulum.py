@@ -67,6 +67,7 @@ traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 taumin = array([-13,-7])
 taumax = array([13,7])
 vmax = array([0,0])
+t0 = time.time()
 constraintstring = string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax]) + "\n" + string.join([str(a) for a in vmax])
 constraintstring += TOPPopenravepy.ComputeTorquesConstraintsLegacy(robot,traj0,taumin,taumax,discrtimestep)
 #------------------------------------------#
@@ -89,9 +90,10 @@ TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
 
 
 print "\n--------------"
-print "Building TOPP Instance (including sampling dynamics in C++): ", t2-t1
-print "Compute profiles (C++): ", t3-t2
-print "Total: ", t3-t1 
+print "Python preprocessing: ", t1-t0
+print "Building TOPP Instance: ", t2-t1
+print "Compute profiles: ", t3-t2
+print "Total: ", t3-t0 
 print "(sdendmin,sdendmax) = (", x.sdendmin, ",", x.sdendmax, ")"
 
 raw_input()

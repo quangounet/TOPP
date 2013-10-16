@@ -373,7 +373,6 @@ Profile::Profile(std::list<dReal>& slist, std::list<dReal>& sdlist, std::list<dR
 }
 
 
-
 bool Profile::FindTimestepIndex(dReal t, int &index, dReal& remainder){
     if (t < -TINY || t > duration+TINY) {
         return false;
@@ -395,7 +394,6 @@ bool Profile::FindTimestepIndex(dReal t, int &index, dReal& remainder){
 }
 
 
-//Find t from s, starting search from currentindex
 bool Profile::Invert(dReal s,  dReal& t, bool searchbackward){
     if(currentindex<0 || currentindex>nsteps-1) {
         return false;
@@ -1271,8 +1269,8 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
 
 
 int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbegmin, dReal sdbegmax, dReal& sdendmin, dReal& sdendmax){
-    constraints.Preprocess(trajectory,tunings);
 
+    constraints.Preprocess(trajectory,tunings);
     if(VectorMin(constraints.mvcbobrow) <= TINY) {
         std::cout << "MVCBobrow hit 0\n";
         return 0;

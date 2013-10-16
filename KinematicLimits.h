@@ -26,9 +26,16 @@ public:
     KinematicLimits() : Constraints(){
     }
     KinematicLimits(const std::string& constraintsstring);
-    std::vector<dReal> amax;
+
+    //////////////// Overloaded methods //////////////////////
     std::pair<dReal,dReal> SddLimits(dReal s, dReal sd);
-    dReal SdLimitBobrowInit(dReal s);
     void FindSingularSwitchPoints();
+    void Discretize();
+    dReal SdLimitBobrowInit(dReal s);
+
+    //////////////// Specific members and methods //////////////////////
+    std::vector<dReal> amax; // Pure acceleration limits
+    std::vector<std::vector<dReal> > qdvect, qddvect;
+    void InterpolateDynamics(dReal s, std::vector<dReal>& qd, std::vector<dReal>& qdd); // Linearly interpolate dynamics coefficients
 };
 }

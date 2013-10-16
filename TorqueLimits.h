@@ -27,12 +27,15 @@ public:
     TorqueLimits() : Constraints(){
     }
     TorqueLimits(const std::string& constraintsstring);
-    std::vector<dReal> taumin, taumax;
-    std::vector<std::vector<dReal> > avect, bvect, cvect;
+
+    //////////////// Overloaded methods //////////////////////
     std::pair<dReal,dReal> SddLimits(dReal s, dReal sd);
-    int dimension;
-    void InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c);
     dReal SdLimitBobrowInit(dReal s);
     void FindSingularSwitchPoints();
+
+    //////////////// Specific members and methods //////////////////////
+    std::vector<dReal> taumin, taumax; // Torque limits
+    std::vector<std::vector<dReal> > avect, bvect, cvect; // Dynamics coefficients (torque case, different from general case of QuadraticConstraints)
+    void InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c); // Linearly interpolate dynamics coefficients
 };
 }
