@@ -52,18 +52,19 @@ namespace TOPP {
 /////////////////////////// Tunings ////////////////////////////////
 ////////////////////////////////////////////////////////////////////
 
+// Some tunings parameters
 class Tunings {
 public:
     Tunings(){
     }
     Tunings(const std::string& tuningsstring);
-    dReal discrtimestep;
-    dReal integrationtimestep;
-    dReal bisectionprecision;
-    int passswitchpointnsteps;
-    dReal reparamtimestep;
+    dReal discrtimestep; // Time step to discretize the trajectory, usually 0.01
+    dReal integrationtimestep; // Time step to integrate the profiles, usually 0.01
+    dReal reparamtimestep; // Time step for the reparameterization, usually 0.01
+    int passswitchpointnsteps; // Number of steps to integrate from the switch point when assessing whether it's addressable
+    dReal bisectionprecision; //Precision for the sd search, set to 0.01 by default
+    dReal loweringcoef; //While addressing switchpoints, lower sd by loweringcoef. Set to 0.9
 };
-
 
 
 
@@ -96,6 +97,7 @@ public:
 /////////////////////////// Profile ////////////////////////////////
 ////////////////////////////////////////////////////////////////////
 
+// Velocity profile
 class Profile {
 public:
     Profile(std::list<dReal>&slist, std::list<dReal>&sdlist, std::list<dReal>&sddlist, dReal integrationtimestep);
@@ -108,6 +110,8 @@ public:
     int nsteps;
     int currentindex;
     bool FindTimestepIndex(dReal t, int &index, dReal& remainder);
+    // Find t such that Eval(t) = s
+    // Return false if no such t
     bool Invert(dReal s,  dReal& t, bool searchbackward=false);
     dReal Eval(dReal t);
     dReal Evald(dReal t);
@@ -118,11 +122,10 @@ public:
 };
 
 
-
-
 ////////////////////////////////////////////////////////////////////
 /////////////////////////// Constraints ////////////////////////////
 ////////////////////////////////////////////////////////////////////
+
 
 class Constraints {
 public:
@@ -136,53 +139,70 @@ public:
     bool hasvelocitylimits;
     std::vector<dReal> vmax;
 
-    std::list<SwitchPoint> switchpointslist;
+    std::list<SwitchPoint> switchpointslist; // list of switch points
+    std::list<std::pair<dReal,dReal> > zlajpahlist; // list of zlajpah points
+    std::list<Profile> resprofileslist; // resulting profiles
+
+    dReal resduration;
+
 
     //////////////////////// General ///////////////////////////
 
     Constraints(){
     }
     virtual void Preprocess(Trajectory& trajectory, const Tunings &tunings);
+
+    // Discretize the time interval
     void Discretize();
+
+    // Compute the MVC given by acceleration constraints
     void ComputeMVCBobrow();
+
+    // Compute the combined MVC (incorporating pure velocity constraints)
     void ComputeMVCCombined();
+
+    // Write the MVC to stringstreams
     void WriteMVCBobrow(std::stringstream& ss, dReal dt=0.01);
     void WriteMVCCombined(std::stringstream& ss, dReal dt=0.01);
 
+    // Linear interpolation
     dReal Interpolate1D(dReal s, const std::vector<dReal>& v);
 
 
     //////////////////////// Limits ///////////////////////////
 
-    // upper limit on sd given by acceleration constraints (MVC)
-
+    // Upper limit on sd given by acceleration constraints (Bobrow)
     dReal SdLimitBobrow(dReal s);
     virtual dReal SdLimitBobrowInit(dReal s){
         std::cout << "Virtual method not implemented\n";
         throw "Virtual method not implemented";
     }
 
-    // upper limit on sd given by the combined velocity constraints
+    // Upper limit on sd after incorporating pure velocity constraints
     dReal SdLimitCombined(dReal s);
     dReal SdLimitCombinedInit(dReal s);
 
-    // lower and upper limits on sdd
+    // Pair of (lower,upper) limits on sdd
     virtual std::pair<dReal,dReal> SddLimits(dReal s, dReal sd){
         std::cout << "Virtual method not implemented\n";
         throw "Virtual method not implemented";
     }
 
     ///////////////////////// Switch Points ///////////////////////
+
+    // Find switch points
     void FindSwitchPoints();
-    void AddSwitchPoint(int i, int switchpointtype);
     void FindTangentSwitchPoints();
+    void FindDiscontinuousSwitchPoints();
     virtual void FindSingularSwitchPoints(){
         std::cout << "Virtual method not implemented\n";
         throw "Virtual method not implemented";
     };
-    void FindDiscontinuousSwitchPoints();
-};
 
+    // Add a switch point to switchpointslist
+    void AddSwitchPoint(int i, int switchpointtype);
+
+};
 
 
 
@@ -191,36 +211,39 @@ public:
 /////////////////// Quadratic Constraints //////////////////////////
 ////////////////////////////////////////////////////////////////////
 
-
 // Constraints of the form a(s)sdd + b(s)sd^2 + c(s) <= 0
-
-
 class QuadraticConstraints : public Constraints {
 public:
     QuadraticConstraints() : Constraints(){
     }
     QuadraticConstraints(const std::string& constraintsstring);
 
-    // Methods to be rewritten
+    //////////////// Methods to be overloaded //////////////////////
+
     std::pair<dReal,dReal> SddLimits(dReal s, dReal sd);
     void FindSingularSwitchPoints();
 
-    // Particular members
-    int nconstraints;
+    //////////////// Specific members and methods //////////////////////
+
+    int nconstraints;  // Number of constraints
     std::vector<std::vector<dReal> > avect, bvect, cvect;  // Dynamics coefficients
 
-    // Particular methods
-    dReal SdLimitBobrowInit(dReal s);  // Used in the initialization of the bobrow MVC
-    void InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c); // Interpolate dynamics coefficients
+    // Compute the maximum velocity curve due to dynamics at s
+    // Called at initialization
+    dReal SdLimitBobrowInit(dReal s);
 
-
+    // Linearly interpolate the dynamics coefficients a,b,c
+    void InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c);
 };
+
+
 
 
 ////////////////////////////////////////////////////////////////////
 //////////////////////// Integration ///////////////////////////////
 ////////////////////////////////////////////////////////////////////
 
+// Return type for the integration methods
 enum IntegrationReturnType {
     INT_MAXSTEPS = 0,     // reached maximum number of steps
     INT_END = 1,          // reached s = send (FW) or s = 0 (BW)
@@ -229,27 +252,27 @@ enum IntegrationReturnType {
     INT_PROFILE = 4       // crossed a profile
 };
 
+// Return type for the CLC computation
 enum CLCReturnType {
     CLC_OK = 0,        // no problem
     CLC_SWITCH = 1,    // could not pass a switchpoint
     CLC_BOTTOM = 2     // crossed sd = 0
 };
 
+// Integrate forward from (sstart,sdstart)
+int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, bool testaboveexistingprofiles=true, bool testmvc=true, bool zlajpah=false);
 
-static std::list<Profile> voidprofileslist;
+// Integrate backward from (sstart,sdstart)
+int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, bool testaboveexistingprofiles=true, bool testmvc=true, bool zlajpah=false);
 
-int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, std::list<Profile>& testprofileslist = voidprofileslist, bool testmvc=true, bool zlajpah=true);
+// Compute the CLC
+int ComputeLimitingCurves(Constraints& constraints);
 
-int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, std::list<Profile>& testprofileslist = voidprofileslist, bool testmvc=true);
-
-int ComputeLimitingCurves(Constraints& constraints, std::list<Profile>&resprofileslist, bool zlajpah = false);
-
-// Path parameterization
-int PP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbeg, dReal sdend, Trajectory& restrajectory, std::list<Profile>&resprofileslist);
+// Compute all the profiles (CLC, forward from 0, backward from send)
+int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbeg, dReal sdend);
 
 // Velocity Interval Propagation
-int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbegmin, dReal sdbegmax, dReal& sdendmin, dReal& sdendmax, std::list<Profile>&resprofileslist);
-
+int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbegmin, dReal sdbegmax, dReal& sdendmin, dReal& sdendmax);
 
 
 
@@ -262,18 +285,20 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
 dReal VectorMin(const std::vector<dReal>& v);
 dReal VectorMax(const std::vector<dReal>& v);
 
-// Read a vector of dReal from a space separated string
+// Read a vector of dReal from a space-separated string
 void VectorFromString(const std::string& s,std::vector<dReal>&resvect);
 
-//Solve a0 + a1*x + a2*x^2 = 0 in the interval [lowerbound,upperbound]
-//If more than one solution, returns the smallest
+// Solve a0 + a1*x + a2*x^2 = 0 in the interval [lowerbound,upperbound]
+// Return false if no solution in [lowerbound,upperbound], true otherwise
+// If more than one solution, choose the smallest
 bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal& sol, dReal lowerbound=-INF, dReal upperbound=INF);
 
 // Check whether the point (s,sd) is above at least one profile in the list
-bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>&testprofileslist, bool searchbackward=false, bool reinitialize=false);
+bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>& resprofileslist, bool searchbackward=false);
 
 // Find the lowest profile at s
-bool FindLowestProfile(dReal s, Profile& profile, dReal& tres, std::list<Profile>&testprofileslist);
+// Return false if no profile covers s, true otherwise
+bool FindLowestProfile(dReal s, Profile& profile, dReal& tres, std::list<Profile>& resprofileslist);
 
 }
 

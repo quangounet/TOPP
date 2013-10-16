@@ -45,34 +45,35 @@ public:
     Constraints* pconstraints;
     Trajectory* ptrajectory;
     Trajectory restrajectory;
-    std::list<Profile> resprofileslist;
 
     Tunings tunings;
     std::string restrajectorystring;
     std::string resprofilesliststring;
+    std::string switchpointsliststring;
     dReal resduration;
     dReal sdendmin,sdendmax;
 
 
-    int RunPP(dReal sdbeg, dReal sdend){
-        int ret = PP(*pconstraints, *ptrajectory, tunings, sdbeg, sdend,
-                restrajectory, resprofileslist);
-        if (ret)
-            resduration = restrajectory.duration;
-        return ret;
+    int RunComputeProfiles(dReal sdbeg, dReal sdend){
+        int res = ComputeProfiles(*pconstraints,*ptrajectory,tunings,sdbeg,sdend);
+        resduration = pconstraints->resduration;
+        return res;
     }
 
 
-    int RunVIP(dReal sdbegmin, dReal sdbegmax){
-        int ret = VIP(*pconstraints, *ptrajectory, tunings, sdbegmin, sdbegmax,
-                sdendmin, sdendmax, resprofileslist);
-        if (ret == 0) {
+    void ReparameterizeTrajectory(){
+        ptrajectory->Reparameterize(pconstraints->resprofileslist,tunings.reparamtimestep,restrajectory);
+    }
+
+
+    void RunVIP(dReal sdbegmin, dReal sdbegmax){
+        int ret = VIP(*pconstraints,*ptrajectory,tunings,sdbegmin,sdbegmax,sdendmin,sdendmax);
+        if(ret == 0) {
             sdendmin = -1;
             sdendmax = -1;
         }
         return ret;
     }
-
 
     void WriteResultTrajectory(){
         std::stringstream ss;
@@ -85,18 +86,28 @@ public:
 
 
     void WriteProfilesList(){
-        std::list<Profile>::iterator itprofile = resprofileslist.begin();
+        std::list<Profile>::iterator itprofile = pconstraints->resprofileslist.begin();
         std::stringstream ss;
         pconstraints->WriteMVCBobrow(ss);
         ss << "\n";
         pconstraints->WriteMVCCombined(ss);
         ss << "\n";
-        while(itprofile!=resprofileslist.end()) {
+        while(itprofile!=pconstraints->resprofileslist.end()) {
             itprofile->Write(ss);
             ss << "\n";
             itprofile++;
         }
         resprofilesliststring = ss.str();
+    }
+
+    void WriteSwitchPointsList(){
+        std::stringstream ss;
+        std::list<SwitchPoint>::iterator itsw = pconstraints->switchpointslist.begin();
+        while(itsw != pconstraints->switchpointslist.end()) {
+            ss << itsw->s << " " << itsw->sd << " " << itsw->switchpointtype << "\n";
+            itsw++;
+        }
+        switchpointsliststring = ss.str();
     }
 };
 
@@ -107,11 +118,14 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
             init<std::string,std::string,std::string,std::string>())
     .def_readonly("restrajectorystring", &TOPPInstance::restrajectorystring)
     .def_readonly("resprofilesliststring", &TOPPInstance::resprofilesliststring)
+    .def_readonly("switchpointsliststring", &TOPPInstance::switchpointsliststring)
     .def_readonly("resduration", &TOPPInstance::resduration)
     .def_readonly("sdendmin", &TOPPInstance::sdendmin)
     .def_readonly("sdendmax", &TOPPInstance::sdendmax)
-    .def("RunPP",&TOPPInstance::RunPP)
+    .def("RunComputeProfiles",&TOPPInstance::RunComputeProfiles)
+    .def("ReparameterizeTrajectory",&TOPPInstance::ReparameterizeTrajectory)
     .def("RunVIP",&TOPPInstance::RunVIP)
     .def("WriteResultTrajectory",&TOPPInstance::WriteResultTrajectory)
-    .def("WriteProfilesList",&TOPPInstance::WriteProfilesList);
+    .def("WriteProfilesList",&TOPPInstance::WriteProfilesList)
+    .def("WriteSwitchPointsList",&TOPPInstance::WriteSwitchPointsList);
 }
