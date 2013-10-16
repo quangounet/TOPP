@@ -15,12 +15,13 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import sys
+sys.path.append('..')
 
 import TOPPbindings
 import TOPPpy
 import time
 import string
-import sys
 from pylab import *
 from numpy import *
 
@@ -88,7 +89,7 @@ print "\n--------------"
 print "Building TOPP Instance (including sampling dynamics in C++): ", t2-t1
 print "Compute profiles (C++): ", t3-t2
 print "Reparameterize trajectory (C++): ", t4-t3
-print "Total: ", t4-t1 
+print "Total: ", t4-t1
 print "Trajectory duration (estimate): ", x.resduration
 print "Trajectory duration: ", traj1.duration
 

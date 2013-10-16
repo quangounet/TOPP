@@ -21,8 +21,8 @@ import pylab
 import string
 import StringIO
 
-from pylab import arange, array, double, zeros
-from pylab import gca, plot
+from pylab import arange, array, double, zeros, title
+from pylab import gca, plot, figure, clf, hold, axis
 
 
 ###################### Utilities #########################

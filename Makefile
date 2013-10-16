@@ -21,6 +21,7 @@ help:
 	@echo '    make distclean -- clean temporary and output files    '
 	@echo '    make rebuild -- recompile library from scratch        '
 	@echo '    make tests -- run unit tests                          '
+	@echo '                                                          '
 
 
 %.o: %.cpp
@@ -33,10 +34,10 @@ debug: $(SOURCE)
 	$(CCG) $(INCLUDE) $(SOURCE) -shared $(LIB) -o $(TARGET)
 
 clean:
-	@rm -f $(OBJECTS) *~
+	rm -f $(OBJECTS) *~
 
 distclean: clean
-	@rm -f $(TARGET)
+	rm -f $(TARGET)
 
 rebuild: distclean release
 

@@ -380,14 +380,10 @@ bool Profile::FindTimestepIndex(dReal t, int &index, dReal& remainder) {
     else if (t > duration)
         t = duration;
     
-    if (duration - t <= TINY) {
-        std::cout << "going the tricky way\n";
-        std::cout << "duration = " << duration << "\n";
+    if (duration - t <= TINY)
         index = nsteps - 1;
-    } else {
-        std::cout << "going the regular way\n";
+    else
         index = int(t / integrationtimestep);
-    }
 
     remainder = t - index * integrationtimestep;
     return true;
@@ -448,13 +444,8 @@ dReal Profile::Eval(dReal t){
 dReal Profile::Evald(dReal t) {
     int index;
     dReal remainder;
-    if (FindTimestepIndex(t, index, remainder)) {
-        std::cout << "t = " << t << "\n";
-        std::cout << "index = " << index << "\n";
-        std::cout << "len sdvect = " << sdvect.size() << "\n";
-        std::cout << "len sddvect = " << sddvect.size() << "\n";
+    if (FindTimestepIndex(t, index, remainder))
         return sdvect[index] + remainder * sddvect[index];
-    }
     return INF;
 }
 
@@ -674,7 +665,7 @@ dReal ComputeSlidesddBackward(Constraints& constraints, dReal s, dReal sd, dReal
     }
     return beta;
 }
->>>>>>> b5293e669502b8b0e3295fbe33c5ceb43f646b62
+
 
 // Determine the relative positions of the flow and the slope of the MVC
 int FlowVsMVC(Constraints& constraints, dReal s, dReal sd, int flag, dReal dt) {
@@ -1097,7 +1088,6 @@ int ComputeLimitingCurves(Constraints& constraints){
     int integratestatus;
     bool testaboveexistingprofiles = true, testmvc = true, zlajpah = false;
 
-    printf("CLC: switchpointslist size %d\n", switchpointslist0.size());
     while(switchpointslist0.size() > 0) {
         SwitchPoint switchpoint = switchpointslist0.front();
         switchpointslist0.pop_front();
@@ -1110,12 +1100,9 @@ int ComputeLimitingCurves(Constraints& constraints){
 
         // Address Switch Point
         if (!AddressSwitchPoint(constraints, switchpoint, sbackward,
-                    sdbackward, sforward, sdforward)) {
-            printf("AddressSwitchPoint\n");
+                    sdbackward, sforward, sdforward))
             continue;
-        }
 
-        printf("things get interesting...\n");
         // Add middle part
         if (sforward - sbackward > TINY) {
             std::list<dReal> slist, sdlist, sddlist;

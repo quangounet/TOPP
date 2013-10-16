@@ -66,7 +66,7 @@ public:
     }
 
 
-    void RunVIP(dReal sdbegmin, dReal sdbegmax){
+    int RunVIP(dReal sdbegmin, dReal sdbegmax){
         int ret = VIP(*pconstraints,*ptrajectory,tunings,sdbegmin,sdbegmax,sdendmin,sdendmax);
         if(ret == 0) {
             sdendmin = -1;
