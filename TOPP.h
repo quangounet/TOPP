@@ -153,7 +153,7 @@ public:
     virtual void Preprocess(Trajectory& trajectory, const Tunings &tunings);
 
     // Discretize the time interval
-    void Discretize();
+    virtual void Discretize();
 
     // Compute the MVC given by acceleration constraints
     void ComputeMVCBobrow();
@@ -173,6 +173,9 @@ public:
 
     // Upper limit on sd given by acceleration constraints (Bobrow)
     dReal SdLimitBobrow(dReal s);
+
+    // Compute the maximum velocity curve due to dynamics at s
+    // Called at initialization
     virtual dReal SdLimitBobrowInit(dReal s){
         std::cout << "Virtual method not implemented\n";
         throw "Virtual method not implemented";
@@ -190,7 +193,7 @@ public:
 
     ///////////////////////// Switch Points ///////////////////////
 
-    // Find switch points
+    // Find all switch points, add them to switchpointslist
     void FindSwitchPoints();
     void FindTangentSwitchPoints();
     void FindDiscontinuousSwitchPoints();
@@ -218,22 +221,15 @@ public:
     }
     QuadraticConstraints(const std::string& constraintsstring);
 
-    //////////////// Methods to be overloaded //////////////////////
-
+    //////////////// Overloaded methods //////////////////////
     std::pair<dReal,dReal> SddLimits(dReal s, dReal sd);
+    dReal SdLimitBobrowInit(dReal s);
     void FindSingularSwitchPoints();
 
     //////////////// Specific members and methods //////////////////////
-
     int nconstraints;  // Number of constraints
     std::vector<std::vector<dReal> > avect, bvect, cvect;  // Dynamics coefficients
-
-    // Compute the maximum velocity curve due to dynamics at s
-    // Called at initialization
-    dReal SdLimitBobrowInit(dReal s);
-
-    // Linearly interpolate the dynamics coefficients a,b,c
-    void InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c);
+    void InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c);   // Linearly interpolate the dynamics coefficients a,b,c
 };
 
 

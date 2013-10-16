@@ -47,6 +47,7 @@ traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 #------------------------------------------#
 amax = array([15,10])
 vmax = array([20,10])
+t0 = time.time()
 constraintstring = string.join([str(v) for v in amax]) + "\n"
 constraintstring += string.join([str(v) for v in vmax])
 #------------------------------------------#
@@ -81,10 +82,18 @@ if(ret == 1):
 
 
 print "\n--------------"
+<<<<<<< HEAD:tests/kinematic_2dof_legacy.py
 print "Building TOPP Instance (including sampling dynamics in C++): ", t2-t1
 print "Compute profiles (C++): ", t3-t2
 print "Reparameterize trajectory (C++): ", t4-t3
 print "Total: ", t4-t1
+=======
+print "Python preprocessing: ", t1-t0
+print "Building TOPP Instance: ", t2-t1
+print "Compute profiles: ", t3-t2
+print "Reparameterize trajectory: ", t4-t3
+print "Total: ", t4-t0 
+>>>>>>> dd3f9fef3c57fb8214d5c701e50b999c1367ca38:test_kinematic_2dof_legacy.py
 print "Trajectory duration (estimate): ", x.resduration
 print "Trajectory duration: ", traj1.duration
 

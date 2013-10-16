@@ -68,10 +68,11 @@ traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 #------------------------------------------#
 taumin = array([-15,-10])
 taumax = array([15,10])
-vmax = [2.5,3]
+vmax = [3,3]
 #taumin = array([-5,-5])
 #taumax = array([5,5])
 #vmax = array([0,0])
+t0 = time.time()
 constraintstring = string.join([str(v) for v in vmax])
 constraintstring += TOPPopenravepy.ComputeTorquesConstraints(robot,traj0,taumin,taumax,discrtimestep)
 #------------------------------------------#
@@ -107,12 +108,21 @@ if(ret == 1):
 
 
 print "\n--------------"
+<<<<<<< HEAD:tests/torques_pendulum.py
 print "Building TOPP Instance (including sampling dynamics in C++): ", t2-t1
 print "Compute profiles (C++): ", t3-t2
 print "Reparameterize trajectory (C++): ", t4-t3
 print "Total: ", t4-t1
 print "Trajectory duration (estimate): ", x.resduration
+=======
+print "Python preprocessing: ", t1-t0
+print "Building TOPP Instance: ", t2-t1
+print "Compute profiles: ", t3-t2
+print "Reparameterize trajectory: ", t4-t3
+print "Total: ", t4-t0 
+>>>>>>> dd3f9fef3c57fb8214d5c701e50b999c1367ca38:test_torques_pendulum.py
 if(ret == 1):
+    print "Trajectory duration (estimate): ", x.resduration
     print "Trajectory duration: ", traj1.duration
 
 raw_input()

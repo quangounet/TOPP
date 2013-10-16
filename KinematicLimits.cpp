@@ -34,6 +34,46 @@ KinematicLimits::KinematicLimits(const std::string& constraintsstring){
 }
 
 
+void KinematicLimits::Discretize(){
+    dReal s;
+    std::vector<dReal> qd(trajectory.dimension), qdd(trajectory.dimension);
+    ndiscrsteps = int((trajectory.duration+TINY)/tunings.discrtimestep);
+    ndiscrsteps++;
+    discrsvect.resize(0);
+    for(int i=0; i<ndiscrsteps; i++) {
+        s = i*tunings.discrtimestep;
+        trajectory.Evald(s,qd);
+        trajectory.Evaldd(s,qdd);
+        discrsvect.push_back(s);
+        qdvect.push_back(qd);
+        qddvect.push_back(qdd);
+    }
+}
+
+
+void KinematicLimits::InterpolateDynamics(dReal s, std::vector<dReal>& qd, std::vector<dReal>& qdd){
+    qd.resize(trajectory.dimension);
+    qdd.resize(trajectory.dimension);
+    assert(s>=-TINY && s<=trajectory.duration+TINY);
+    if(s<0) {
+        s=0;
+    }
+    if(s>=trajectory.duration) {
+        int n = ndiscrsteps-1;
+        for(int i=0; i<trajectory.dimension; i++) {
+            qd[i]= qdvect[n][i];
+            qdd[i]= qddvect[n][i];
+        }
+        return;
+    }
+    int n = int(s/tunings.discrtimestep);
+    dReal coef = (s-n*tunings.discrtimestep)/tunings.discrtimestep;
+    for(int i=0; i<trajectory.dimension; i++) {
+        qd[i] = (1-coef)*qdvect[n][i] + coef*qdvect[n+1][i];
+        qdd[i] = (1-coef)*qddvect[n][i] + coef*qddvect[n+1][i];
+    }
+}
+
 
 std::pair<dReal,dReal> KinematicLimits::SddLimits(dReal s, dReal sd){
     dReal alpha = -INF;
@@ -41,8 +81,9 @@ std::pair<dReal,dReal> KinematicLimits::SddLimits(dReal s, dReal sd){
     dReal sdsq = sd*sd;
     dReal a_alpha_i, a_beta_i, alpha_i, beta_i;
     std::vector<dReal> qd(trajectory.dimension), qdd(trajectory.dimension);
-    trajectory.Evald(s, qd);
-    trajectory.Evaldd(s, qdd);
+    //trajectory.Evald(s, qd);
+    //trajectory.Evaldd(s, qdd);
+    InterpolateDynamics(s,qd,qdd);
     for(int i=0; i<trajectory.dimension; i++) {
         if(qd[i]>0) {
             a_alpha_i = -amax[i];
