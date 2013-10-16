@@ -28,11 +28,11 @@ from numpy import *
 ion()
 
 ############################ Tunings ############################
-discrtimestep = 0.01;
-integrationtimestep = 0.01;
-reparamtimestep = 0.01;
-passswitchpointnsteps = 20;
-tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps);
+discrtimestep = 0.01
+integrationtimestep = 0.01
+reparamtimestep = 0.01
+passswitchpointnsteps = 20
+tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
 
 
 ############################ Trajectory ############################

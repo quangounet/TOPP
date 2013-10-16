@@ -47,12 +47,11 @@ robot.SetDOFVelocityLimits(100*vel_lim)
 
 
 ############################ Tunings ############################
-discrtimestep = 0.01;
-integrationtimestep = 0.01;
-bisectionprecision = 0.01;
-passswitchpointnsteps = 5;
-reparamtimestep = 0.01;
-tuningsstring = "%f %f %f %d %f"%(discrtimestep,integrationtimestep,bisectionprecision,passswitchpointnsteps,reparamtimestep);
+discrtimestep = 0.01
+integrationtimestep = 0.01
+reparamtimestep = 0.01
+passswitchpointnsteps = 5
+tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
 
 
 ############################ Trajectory ############################
@@ -66,12 +65,12 @@ traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 ############################ Constraints ############################
 #------------------------------------------#
-#taumin = array([-15,-10])
-#taumax = array([15,10])
-#vmax = array([3,3])
-taumin = array([-5,-5])
-taumax = array([5,5])
-vmax = array([0,0])
+taumin = array([-15,-10])
+taumax = array([15,10])
+vmax = array([3,3])
+#taumin = array([-5,-5])
+#taumax = array([5,5])
+#vmax = array([0,0])
 constraintstring = string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax]) + "\n" + string.join([str(a) for a in vmax])
 constraintstring += TOPPopenravepy.ComputeTorquesConstraintsLegacy(robot,traj0,taumin,taumax,discrtimestep)
 #------------------------------------------#

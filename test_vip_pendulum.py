@@ -45,14 +45,12 @@ vel_lim=robot.GetDOFVelocityLimits()
 robot.SetDOFLimits(-10*ones(n),10*ones(n))
 robot.SetDOFVelocityLimits(100*vel_lim)
 
-
 ############################ Tunings ############################
-discrtimestep = 0.01;
-integrationtimestep = 0.01;
-bisectionprecision = 0.01;
-passswitchpointnsteps = 5;
-reparamtimestep = 0.01;
-tuningsstring = "%f %f %f %d %f"%(discrtimestep,integrationtimestep,bisectionprecision,passswitchpointnsteps,reparamtimestep);
+discrtimestep = 0.01
+integrationtimestep = 0.01
+reparamtimestep = 0.01
+passswitchpointnsteps = 5
+tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
 
 
 ############################ Trajectory ############################

@@ -28,17 +28,16 @@ from numpy import *
 ion()
 
 ############################ Tunings ############################
-discrtimestep = 0.01;
-integrationtimestep = 0.01;
-bisectionprecision = 0.01;
-passswitchpointnsteps = 20;
-reparamtimestep = 0.01;
-tuningsstring = "%f %f %f %d %f"%(discrtimestep,integrationtimestep,bisectionprecision,passswitchpointnsteps,reparamtimestep);
+discrtimestep = 0.01
+integrationtimestep = 0.01
+reparamtimestep = 0.01
+passswitchpointnsteps = 20
+tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
 
 
 ############################ Trajectory ############################
 #------------------------------------------#
-trajectorystring = "2 \n 2\n 1 1 0 1\n 0 2 0 -1\n 3\n 2\n 11 13 6 0.1666666666666\n -4 -10 -6 0.5";
+trajectorystring = "2 \n 2\n 1 1 0 1\n 0 2 0 -1\n 3\n 2\n 11 13 6 0.1666666666666\n -4 -10 -6 0.5"
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
