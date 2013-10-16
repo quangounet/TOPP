@@ -177,7 +177,7 @@ Trajectory::Trajectory(const std::list<Chunk>& chunkslist0) {
 
 
 Trajectory::Trajectory(const std::string& trajectorystring) {
-    int buffsize = 2048;
+    int buffsize = BUFFSIZE;
     char buff[buffsize];
     std::istringstream iss(trajectorystring);
     int dimension;

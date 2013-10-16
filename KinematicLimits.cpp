@@ -23,7 +23,7 @@
 namespace TOPP {
 
 KinematicLimits::KinematicLimits(const std::string& constraintsstring){
-    int buffsize = 2048;
+    int buffsize = BUFFSIZE;
     char buff[buffsize];
     std::istringstream iss(constraintsstring);
     iss.getline(buff,buffsize);

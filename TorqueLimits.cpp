@@ -22,7 +22,7 @@
 namespace TOPP {
 
 TorqueLimits::TorqueLimits(const std::string& constraintsstring){
-    int buffsize = 2048;  // TODO: remove this dirty string interface!
+    int buffsize = BUFFSIZE;  // TODO: remove this dirty string interface!
     std::vector<dReal> tmpvect;
     char buff[buffsize];
     std::istringstream iss(constraintsstring);
