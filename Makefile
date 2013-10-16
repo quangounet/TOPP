@@ -3,6 +3,7 @@ SHELL=/bin/bash
 SOURCE=$(wildcard *.cpp)
 HEADERS=$(wildcard *.h)
 OBJECTS=$(SOURCE:.cpp=.o)
+DEBUG_OBJECTS=$(SOURCE:.cpp=.gdb.o)
 TARGET=TOPPbindings.so
 LIB=-lboost_python
 INCLUDE=$(shell python-config --includes)
@@ -31,11 +32,14 @@ help:
 release: $(OBJECTS)
 	$(CC) $(INCLUDE) $(OBJECTS) -shared $(LIB) -o $(TARGET)
 
-debug: $(OBJECTS)
-	$(CCG) $(INCLUDE) $(OBJECTS) -shared $(LIB) -o $(TARGET)
+%.gdb.o: %.cpp $(HEADERS)
+	$(CCG) $(INCLUDE) -c $< -o $@
+
+debug: $(DEBUG_OBJECTS)
+	$(CCG) $(INCLUDE) $(DEBUG_OBJECTS) -shared $(LIB) -o $(TARGET)
 
 clean:
-	rm -f $(OBJECTS) *~
+	rm -f $(OBJECTS) $(DEBUG_OBJECTS) *~
 
 distclean: clean
 	rm -f $(TARGET)
