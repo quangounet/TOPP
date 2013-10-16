@@ -92,16 +92,10 @@ TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
 
 
 print "\n--------------"
-<<<<<<< HEAD:tests/vip_pendulum.py
-print "Building TOPP Instance (including sampling dynamics in C++): ", t2-t1
-print "Compute profiles (C++): ", t3-t2
-print "Total: ", t3-t1
-=======
 print "Python preprocessing: ", t1-t0
 print "Building TOPP Instance: ", t2-t1
 print "Compute profiles: ", t3-t2
-print "Total: ", t3-t0 
->>>>>>> dd3f9fef3c57fb8214d5c701e50b999c1367ca38:test_vip_pendulum.py
+print "Total: ", t3-t0
 print "(sdendmin,sdendmax) = (", x.sdendmin, ",", x.sdendmax, ")"
 
 raw_input()
