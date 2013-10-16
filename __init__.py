@@ -47,7 +47,9 @@ class TorqueConstraints(object):
     def __str__(self):
         tau_min_str = _vect_to_str(self.tau_min)
         tau_max_str = _vect_to_str(self.tau_max)
-        v_max_str = _vect_to_str(self.v_max)
+        #v_max_str = _vect_to_str(self.v_max)
+        # zlap* does not work for now:
+        v_max_str = _vect_to_str(pylab.zeros(len(self.tau_min)))
         return "%s\n%s\n%s" % (tau_min_str, tau_max_str, v_max_str)
 
 
