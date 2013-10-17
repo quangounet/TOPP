@@ -18,10 +18,15 @@ class Polynomial(object):
 
     def __init__(self, coeff_list):
         # NB: we adopt the weak-term-first convention for inputs
+        self.coeff_list = coeff_list
         self.q = pylab.poly1d(coeff_list[::-1])
         self.qd = pylab.polyder(self.q)
         self.qdd = pylab.polyder(self.qd)
         self.degree = self.q.order
+
+    def pad_coeff_string(self, new_degree):
+        while len(self.coeff_list) <= new_degree:
+            self.coeff_list.append(0.)
 
     def Eval(self, s):
         return self.q(s)
@@ -33,15 +38,20 @@ class Polynomial(object):
         return self.qdd(s)
 
     def __str__(self):
-        return ' '.join(map(str, list(self.q.coeffs)[::-1]))
+        return ' '.join(map(str, self.coeff_list))
 
 
 class Chunk():
-    def __init__(self, duration, polynomialsvector):
-        self.polynomialsvector = polynomialsvector
-        self.dimension = len(polynomialsvector)
+    def __init__(self, duration, poly_list):
+        self.polynomialsvector = poly_list
+        self.dimension = len(poly_list)
         self.duration = duration
-        self.degree = polynomialsvector[0].degree
+
+        # TODO: current limitation in polynomials
+        degrees = [poly.degree for poly in poly_list]
+        self.degree = max(degrees)
+        for poly in poly_list:
+            poly.pad_coeff_string(self.degree)
 
     def Eval(self, s):
         q = zeros(self.dimension)
