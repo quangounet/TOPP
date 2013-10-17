@@ -379,7 +379,7 @@ bool Profile::FindTimestepIndex(dReal t, int &index, dReal& remainder){
         t = 0;
     else if (t > duration)
         t = duration;
-    
+
     if (duration - t <= TINY)
         index = nsteps - 1;
     else
@@ -435,7 +435,7 @@ dReal Profile::Eval(dReal t){
     dReal remainder;
     if(FindTimestepIndex(t, index, remainder))
         return svect[index] + remainder*sdvect[index]
-            + 0.5*remainder*remainder*sddvect[index];
+               + 0.5*remainder*remainder*sddvect[index];
     return INF;
 }
 
@@ -477,10 +477,12 @@ void Profile::Write(std::stringstream& ss, dReal dt){
 }
 
 
+
 ////////////////////////////////////////////////////////////////////
 ////////////////// Address switch points ///////////////////////////
 ////////////////////////////////////////////////////////////////////
 
+// Determine whether one can go more than passswitchpointnsteps steps away from (s,sd)
 bool PassSwitchPoint(Constraints& constraints, dReal s, dReal sd, dReal dt){
     int ret;
     Profile resprofile;
@@ -495,7 +497,7 @@ bool PassSwitchPoint(Constraints& constraints, dReal s, dReal sd, dReal dt){
     return false;
 }
 
-
+// Bisection search to find the highest sd that allows going through a tangent or discontinuous switch point
 dReal BisectionSearch(Constraints& constraints, dReal s, dReal sdbottom, dReal sdtop, dReal dt, int position){
     if(position!=1 && PassSwitchPoint(constraints,s,sdtop,dt)) {
         return sdtop;
@@ -509,7 +511,6 @@ dReal BisectionSearch(Constraints& constraints, dReal s, dReal sdbottom, dReal s
     dReal sdmid = (sdbottom+sdtop)*0.5;
     return std::max(BisectionSearch(constraints,s,sdbottom,sdmid,dt,-1),BisectionSearch(constraints,s,sdmid,sdtop,dt,1));
 }
-
 
 // Return false if cannot integrate backward or forward from the switchpoint. This does not mean that the algorithm must fail.
 // Return true otherwise. In this case, (sbackward,sdbackward) is the point where the backward integration should start and (sforward,sdforward) is the point where the forward integration should start.
@@ -935,8 +936,8 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             //beta = std::max(beta,-2.);
             sddlist.push_back(beta);
             //std::cout << scur << "," << sdcur << "," << beta << "\n";
-            dReal sdnext = sdcur + dt * beta;
             dReal snext = scur + dt * sdcur + 0.5*dtsq*beta;
+            dReal sdnext = sdcur + dt * beta;
             scur = snext;
             sdcur = sdnext;
         }
@@ -1069,10 +1070,10 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
             std ::pair<dReal,dReal> sddlimits = constraints.SddLimits(scur,sdcur);
             dReal alpha = sddlimits.first;
             sddlist.push_back(alpha);
-            dReal sdnext = sdcur - dt * alpha;
-            dReal snext = scur - dt * sdcur + 0.5*dtsq*alpha;
-            scur = snext;
-            sdcur = sdnext;
+            dReal sprev = scur - dt * sdcur + 0.5*dtsq*alpha;
+            dReal sdprev = sdcur - dt * alpha;
+            scur = sprev;
+            sdcur = sdprev;
         }
     }
     if(sddlist.size()>0) {
@@ -1113,7 +1114,7 @@ int ComputeLimitingCurves(Constraints& constraints){
 
         // Address Switch Point
         if (!AddressSwitchPoint(constraints, switchpoint, sbackward,
-                    sdbackward, sforward, sdforward))
+                                sdbackward, sforward, sdforward))
             continue;
 
         // Add middle part

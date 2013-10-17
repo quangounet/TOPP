@@ -38,14 +38,14 @@ tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep
 
 ############################ Trajectory ############################
 #------------------------------------------#
-# p0v = [[1,1],[1,1]]
-# p1v = [[0.3,1.3],[1,2]]
-# p2v = [[1,0],[0.3,1.3]]
-# p3v = [[1,1],[1,1]]
-p0v = [[1,1,0],[1,1,0]]
-p1v = [[0.3,1.3,1],[1,2,-1]]
-p2v = [[1,0,1],[0.3,1.3,0]]
-p3v = [[1,1,0],[1,1,1]]
+p0v = [[1,1],[1,1]]
+p1v = [[0.3,1.3],[1,2]]
+p2v = [[1,0],[0.3,1.3]]
+p3v = [[1,1],[1,1]]
+# p0v = [[1,1,0],[1,1,0]]
+# p1v = [[0.3,1.3,1],[1,2,-1]]
+# p2v = [[1,0,1],[0.3,1.3,0]]
+# p3v = [[1,1,0],[1,1,1]]
 Tv = [0.5,0.5]
 trajectorystring = TOPPpy.BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v)
 #------------------------------------------#
@@ -54,8 +54,8 @@ traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 ############################ Constraints ############################
 #------------------------------------------#
-amax = array([1,1,1])
-vmax = array([0.4,0.4,0.4])
+amax = array([1,1])
+vmax = array([1,1])
 t0 = time.time()
 constraintstring = string.join([str(v) for v in amax]) + "\n"
 constraintstring += string.join([str(v) for v in vmax])
