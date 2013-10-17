@@ -29,35 +29,34 @@ from pylab import gca, plot, figure, clf, hold, axis
 
 
 def Interpolate3rdDegree(q0, q1, qd0, qd1, T):
-    a = ((qd1-qd0)*T-2*(q1-q0-qd0*T))/T**3
-    b = (3*(q1-q0-qd0*T)-(qd1-qd0)*T)/T**2
+    a = ((qd1 - qd0) * T - 2 * (q1 - q0 - qd0 * T)) / T ** 3
+    b = (3 * (q1 - q0 - qd0 * T) - (qd1 - qd0) * T) / T ** 2
     c = qd0
     d = q0
     return a, b, c, d
 
 
 def BezierToPolynomial(T, p0, p1, p2, p3):
-    a = -p0 + 3*p1 - 3*p2 + p3
-    b = 3*p0 - 6*p1 + 3*p2
-    c = -3*p0 + 3*p1
+    a = -p0 + 3 * p1 - 3 * p2 + p3
+    b = 3 * p0 - 6 * p1 + 3 * p2
+    c = -3 * p0 + 3 * p1
     d = 1
-    return a/(T*T*T), b/(T*T), c/T, d
+    return a / (T * T * T), b / (T * T), c / T, d
 
 
 def BezierToTrajectoryString(Tv, p0v, p1v, p2v, p3v):
     nchunks = len(Tv)
     dimension = len(p0v[0])
-    trajectorystring = "";
+    trajectorystring = ""
     for i in range(nchunks):
         if i > 0:
             trajectorystring += "\n"
         trajectorystring += str(Tv[i]) + "\n" + str(dimension)
         for j in range(dimension):
-            a, b, c, d = BezierToPolynomial(Tv[i], p0v[i][j], p1v[i][j], p2v[i][j], p3v[i][j])
-            trajectorystring += "\n%f %f %f %f"%(d, c, b, a)
+            a, b, c, d = BezierToPolynomial(Tv[i], p0v[i][j], p1v[i][j],
+                                            p2v[i][j], p3v[i][j])
+            trajectorystring += "\n%f %f %f %f" % (d, c, b, a)
     return trajectorystring
-
-
 
 
 ################# Reading from string #####################
@@ -100,13 +99,12 @@ def VectorFromString(s):
 ################# Compute constraints #####################
 
 
-def ComputeKinematicConstraints(traj,amax,discrtimestep):
+def ComputeKinematicConstraints(traj, amax, discrtimestep):
     # Sample the dynamics constraints
-    ndiscrsteps = int((traj.duration+1e-10)/discrtimestep)+1;
+    ndiscrsteps = int((traj.duration + 1e-10) / discrtimestep) + 1
     constraintstring = ""
     for i in range(ndiscrsteps):
-        t = i*discrtimestep
-        q = traj.Eval(t)
+        t = i * discrtimestep
         qd = traj.Evald(t)
         qdd = traj.Evaldd(t)
         constraintstring += "\n" + string.join([str(x) for x in qd]) + " " + string.join([str(x) for x in -qd])
@@ -207,15 +205,12 @@ class Polynomial(object):
         self.degree = self.q.order
 
     def Eval(self, s):
-        # left for compatibility TODO: remove?
         return self.q(s)
 
     def Evald(self, s):
-        # left for compatibility TODO: remove?
         return self.qd(s)
 
     def Evaldd(self, s):
-        # left for compatibility TODO: remove?
         return self.qdd(s)
 
     def __str__(self):
