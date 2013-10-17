@@ -339,8 +339,11 @@ void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
 }
 
 
-void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal
+int Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal
         reparamtimestep, Trajectory& restrajectory) {
+
+    if (profileslist.size() < 1)
+        return -1;
 
     dReal scur, sdcur, snext, sdnext, sdnext2, sdd;
     dReal dt = reparamtimestep;
@@ -354,7 +357,6 @@ void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal
     int currentchunkindex = 0;
     dReal processedcursor = 0;
 
-
     // Reset currentindex
     std::list<Profile>::iterator it = profileslist.begin();
     while(it != profileslist.end()) {
@@ -364,7 +366,7 @@ void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal
 
     scur = 0;
     dReal t = 0;
-    FindLowestProfile(scur,profile,tres,profileslist);
+    FindLowestProfile(scur, profile, tres, profileslist);
     sdcur = profile.Evald(tres);
 
     while(scur<duration) {
@@ -389,7 +391,9 @@ void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal
         scur = snext;
         sdcur = sdnext2;
     }
+
     restrajectory = Trajectory(newchunkslist);
+    return 1;
 }
 
 

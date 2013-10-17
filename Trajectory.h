@@ -65,20 +65,27 @@ public:
     void Evaldd(dReal s, std::vector<dReal>&qdd);
 
     // Reparameterize one chunk
-    void ComputeChunk(dReal t, dReal t0, dReal s, dReal sd, dReal sdd, const Chunk& currentchunk, Chunk& newchunk);
+    void ComputeChunk(dReal t, dReal t0, dReal s, dReal sd, dReal sdd, const
+            Chunk& currentchunk, Chunk& newchunk);
 
     // Reparameterize a S-piece into chunkslist
     // Inputs:
     // - s-piece : s+sd*t+0.5*sdd*t^2 for t in [0,T]
     // - index of current chunk (original trajectory)
-    // - processedcursor : time instant up to which the current chunk has been processed
+    // - processedcursor : time instant up to which the current chunk has been
+    //                     processed
     // - pointer to current chunk
     // Return the list of reparameterized chunks
-    void SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int& currentchunkindex, dReal& processedcursor, std::list<Chunk>::iterator& itcurrentchunk, std::list<Chunk>& chunkslist);
+    void SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
+            currentchunkindex, dReal& processedcursor,
+            std::list<Chunk>::iterator& itcurrentchunk, std::list<Chunk>&
+            chunkslist);
 
     // Reparameterize the trajectory
-    // The degree of the polynomials of restrajectory will be 2*d where d is the degree of the polynomials in the original trajectory
-    void Reparameterize(std::list<Profile>& profileslist, dReal integrationtimestep, Trajectory& restrajectory);
+    // The degree of the polynomials of restrajectory will be 2*d where d is
+    // the degree of the polynomials in the original trajectory
+    int Reparameterize(std::list<Profile>& profileslist, dReal
+            integrationtimestep, Trajectory& restrajectory);
 
     // Write the trajectory to the stream
     void Write(std::stringstream& ss);

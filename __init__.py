@@ -94,8 +94,8 @@ class RaveTorqueInstance(object):
         return invdyn_str
 
     def parametrize_path(self):
-        return_code = self.solver.RunPP(1e-4, 1e-4)
-        if return_code == 0:
+        return_code = self.solver.ReparameterizeTrajectory()
+        if return_code < 0:
             raise NoTrajectoryFound
 
         self.solver.WriteResultTrajectory()
