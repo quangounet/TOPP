@@ -258,7 +258,7 @@ void Trajectory::Evaldd(dReal s, std::vector<dReal>&qdd) {
 
 
 void Trajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal
-        sdd, const Chunk& currentchunk, Chunk& newchunk) {
+                              sdd, const Chunk& currentchunk, Chunk& newchunk) {
     assert(currentchunk.degree <= 3);
     dReal a0, a1, a2, b0, b1, b2, b3, b4, c0, c1, c2, c3, c4, c5, c6, u0, u1, u2, u3;
     std::vector<dReal> coefficientsvector;
@@ -307,8 +307,8 @@ void Trajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal
 
 
 void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
-        currentchunkindex, dReal& processedcursor, std::list<Chunk>::iterator&
-        itcurrentchunk, std::list<Chunk>& chunkslist) {
+                                currentchunkindex, dReal& processedcursor, std::list<Chunk>::iterator&
+                                itcurrentchunk, std::list<Chunk>& chunkslist) {
 
     dReal t = 0, tnext;
     dReal snext = s + T*sd + 0.5*T*T*sdd;
@@ -340,7 +340,7 @@ void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
 
 
 void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal
-        reparamtimestep, Trajectory& restrajectory) {
+                                reparamtimestep, Trajectory& restrajectory) {
 
     dReal scur, sdcur, snext, sdnext, sdnext2, sdd;
     dReal dt = reparamtimestep;
@@ -381,7 +381,7 @@ void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal
                 sdd = (sdnext2-sdcur)/dtmod;
             }
             SPieceToChunks(scur, sdcur, sdd, dtmod, currentchunkindex,
-                    processedcursor, itcurrentchunk, newchunkslist);
+                           processedcursor, itcurrentchunk, newchunkslist);
         }
         else
             break;

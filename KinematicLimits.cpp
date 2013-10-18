@@ -85,6 +85,9 @@ std::pair<dReal,dReal> KinematicLimits::SddLimits(dReal s, dReal sd){
     //trajectory.Evaldd(s, qdd);
     InterpolateDynamics(s,qd,qdd);
     for(int i=0; i<trajectory.dimension; i++) {
+        if(std::abs(qd[i])<TINY) {
+            continue;
+        }
         if(qd[i]>0) {
             a_alpha_i = -amax[i];
             a_beta_i = amax[i];

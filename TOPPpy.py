@@ -83,6 +83,8 @@ def ProfilesFromString(s):
 
 
 def SwitchPointsFromString(s):
+    if(len(s))==0:
+        return []
     s = s.strip(" \n")
     switchpointslist = []
     lines = [l.strip(" \n") for l in s.split('\n')]
@@ -265,7 +267,7 @@ class PiecewisePolynomialTrajectory():
 
     @staticmethod
     def FromString(trajectorystring):
-        print "PiecewisePoly.FromString: '%s'" % trajectorystring
+        #print "PiecewisePoly.FromString: '%s'" % trajectorystring
         buff = StringIO.StringIO(trajectorystring)
         chunkslist = []
         while buff.pos < buff.len:

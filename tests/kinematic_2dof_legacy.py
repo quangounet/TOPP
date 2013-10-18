@@ -38,7 +38,8 @@ tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep
 
 ############################ Trajectory ############################
 #------------------------------------------#
-trajectorystring = "2 \n 2\n 1 1 0 1\n 0 2 0 -1\n 3\n 2\n 11 13 6 0.1666666666666\n -4 -10 -6 0.5"
+#trajectorystring = "2 \n 2\n 1 1 0 1\n 0 2 0 -1\n 3\n 2\n 11 13 6 0.1666666666666\n -4 -10 -6 0.5"
+trajectorystring = "2 \n 2\n 1 1 0 1\n 0 0 0 0\n 3\n 2\n 11 13 6 0.1666666666666\n 0 0 0 0"
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 

@@ -47,8 +47,7 @@ TorqueLimits::TorqueLimits(const std::string& constraintsstring){
 }
 
 
-void TorqueLimits::InterpolateDynamics(dReal s, std::vector<dReal>& a,
-        std::vector<dReal>& b, std::vector<dReal>& c){
+void TorqueLimits::InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c){
     a.resize(trajectory.dimension);
     b.resize(trajectory.dimension);
     c.resize(trajectory.dimension);
@@ -84,6 +83,9 @@ std::pair<dReal,dReal> TorqueLimits::SddLimits(dReal s, dReal sd){
     InterpolateDynamics(s,a,b,c);
 
     for(int i=0; i<trajectory.dimension; i++) {
+        if(std::abs(a[i])<TINY) {
+            continue;
+        }
         if(a[i]>0) {
             taumin_i = taumin[i];
             taumax_i = taumax[i];

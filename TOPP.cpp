@@ -293,6 +293,14 @@ std::pair<dReal,dReal> QuadraticConstraints::SddLimits(dReal s, dReal sd){
     InterpolateDynamics(s,a,b,c);
 
     for(int i=0; i<nconstraints; i++) {
+        if(std::abs(a[i])<TINY) {
+            if(b[i]*sdsq+c[i]>0) {
+                // Constraint not satisfied
+                beta = -INF;
+                alpha = INF;
+            }
+            continue;
+        }
         if(a[i]>0) {
             beta_i = (-sdsq*b[i]-c[i])/a[i];
             beta = std::min(beta,beta_i);
@@ -930,10 +938,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             slist.push_back(scur);
             sdlist.push_back(sdcur);
             std ::pair<dReal,dReal> sddlimits = constraints.SddLimits(scur,sdcur);
-            //dReal alpha = sddlimits.first;
             dReal beta = sddlimits.second;
-            //beta = std::min(beta,2.);
-            //beta = std::max(beta,-2.);
             sddlist.push_back(beta);
             //std::cout << scur << "," << sdcur << "," << beta << "\n";
             dReal snext = scur + dt * sdcur + 0.5*dtsq*beta;
@@ -1035,7 +1040,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
                     returntype = INT_PROFILE;
                     break;
                 }
-                std::cout <<"Slide from ("<< scur << "," << sdcur << ") \n";
+                //std::cout <<"Slide from ("<< scur << "," << sdcur << ") \n";
                 dReal slidesdd = ComputeSlidesddBackward(constraints,scur,sdcur,dt);
                 dReal sprev = scur - dt * sdcur + 0.5*dtsq*slidesdd;
                 dReal sdprev = sdcur - dt * slidesdd;
