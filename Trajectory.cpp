@@ -94,17 +94,8 @@ Chunk::Chunk(dReal duration0, const std::vector<Polynomial>& polynomialsvector0)
         if (polynomialsvector[i].degree > degree)
             degree = polynomialsvector[i].degree;
     // All polynomials must have the same degree
-    for(int i = 1; i < dimension; i++) {
-        // TODO: the padding below is a temporary fix (S., 2013-10-10)
-        if (polynomialsvector[i].degree < degree) {
-            std::vector<dReal> coeffs(polynomialsvector[i].coefficientsvector);
-            unsigned ubound = degree + 1;
-            while (coeffs.size() < ubound)
-                coeffs.push_back(0);
-            polynomialsvector[i] = Polynomial(coeffs);
-        }
+    for(int i = 1; i < dimension; i++)
         assert(degree == polynomialsvector[i].degree);
-    }
 }
 
 
@@ -339,8 +330,11 @@ void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
 }
 
 
-void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal
-                                reparamtimestep, Trajectory& restrajectory) {
+int Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal reparamtimestep, Trajectory& restrajectory) {
+
+
+    if (profileslist.size() < 1)
+        return -1;
 
     dReal scur, sdcur, snext, sdnext, sdnext2, sdd;
     dReal dt = reparamtimestep;
@@ -354,7 +348,6 @@ void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal
     int currentchunkindex = 0;
     dReal processedcursor = 0;
 
-
     // Reset currentindex
     std::list<Profile>::iterator it = profileslist.begin();
     while(it != profileslist.end()) {
@@ -364,7 +357,7 @@ void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal
 
     scur = 0;
     dReal t = 0;
-    FindLowestProfile(scur,profile,tres,profileslist);
+    FindLowestProfile(scur, profile, tres, profileslist);
     sdcur = profile.Evald(tres);
 
     while(scur<duration) {
@@ -389,7 +382,9 @@ void Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal
         scur = snext;
         sdcur = sdnext2;
     }
+
     restrajectory = Trajectory(newchunkslist);
+    return 1;
 }
 
 

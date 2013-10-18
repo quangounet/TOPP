@@ -1137,14 +1137,17 @@ int ComputeLimitingCurves(Constraints& constraints){
         }
 
         // Integrate backward
-        integratestatus = IntegrateBackward(constraints,sbackward,sdbackward,constraints.tunings.integrationtimestep,tmpprofile);
+        integratestatus = IntegrateBackward(constraints, sbackward, sdbackward,
+                constraints.tunings.integrationtimestep, tmpprofile);
         if(tmpprofile.nsteps>1)
             constraints.resprofileslist.push_back(tmpprofile);
         if(integratestatus == INT_BOTTOM)
             return CLC_BOTTOM;
 
         // Integrate forward
-        integratestatus = IntegrateForward(constraints,sforward,sdforward,constraints.tunings.integrationtimestep,tmpprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
+        integratestatus = IntegrateForward(constraints, sforward, sdforward,
+                constraints.tunings.integrationtimestep, tmpprofile, 1e5,
+                testaboveexistingprofiles, testmvc, zlajpah);
         if(tmpprofile.nsteps>1)
             constraints.resprofileslist.push_back(tmpprofile);
         if(integratestatus == INT_BOTTOM)

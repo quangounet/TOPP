@@ -61,13 +61,16 @@ public:
     }
 
 
-    void ReparameterizeTrajectory(){
-        ptrajectory->Reparameterize(pconstraints->resprofileslist,tunings.reparamtimestep,restrajectory);
+    int ReparameterizeTrajectory(){
+        int ret = ptrajectory->Reparameterize(pconstraints->resprofileslist,
+                tunings.reparamtimestep, restrajectory);
+        return ret;
     }
 
 
     int RunVIP(dReal sdbegmin, dReal sdbegmax){
-        int ret = VIP(*pconstraints,*ptrajectory,tunings,sdbegmin,sdbegmax,sdendmin,sdendmax);
+        int ret = VIP(*pconstraints, *ptrajectory, tunings, sdbegmin, sdbegmax,
+                sdendmin, sdendmax);
         if(ret == 0) {
             sdendmin = -1;
             sdendmax = -1;
