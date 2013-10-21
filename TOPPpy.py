@@ -77,8 +77,10 @@ class RaveTorqueInstance(object):
         self.tunings = tunings
         self.traj = traj
 
-        buffsize = 100000
-        input_str = str(constraints) + self.get_dynamics_str()
+        buffsize = 200000
+        args = rave_robot, traj, tau_min, tau_max, tunings.mvc_tstep
+        constring = vect2str(v_max)
+        constring += TOPPopenravepy.ComputeTorquesConstraints(*args)
 
         assert len(input_str) < buffsize, \
             "%d is bigger than buffer size" % len(input_str)
