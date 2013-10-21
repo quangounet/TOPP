@@ -38,30 +38,65 @@ dtplot = 0.01
 # "QuadraticConstraints" or "TorqueLimits"
 constraints_type = "TorqueLimits"
 
+
+def append_traj(traj_list, traj_str, sd_min=0., sd_max=1e-4,
+                tauref=array([1e4, 1e4])):
+    if all(taumax <= +tauref) and all(taumin >= -tauref):
+        traj_list.append((traj_str, sd_min, sd_max))
+
 #
-# Test trajectories
+# Traversable test trajectories
 #
 
 traversable_trajs = []
 
+#append_traj(traversable_trajs, """1.0
+#2
+#-3 -3 3
+#-2 -2 0""")
+#
+#append_traj(traversable_trajs, """1.0
+#2
+#3 3 -3
+#-3 0 1""")
+
+#
+# Non-traversable test trajectories
+#
+
+tau84 = array([8.0001, 4.0001])
+
 impossible_trajs = []
-impossible_trajs.append("""1.000000
+
+append_traj(impossible_trajs, """1.000000
 2
 0.0 -1.4059993022 -6.56388799235 4.82829464097
-0.0 0.0 0.0 0.0""")
-impossible_trajs.append("""1.000000
+0.0 0.0 0.0 0.0""", tauref=tau84)
+
+append_traj(impossible_trajs, """1.000000
 2
 0.0 0.0 0.200440827515 -0.132913533868
-0.0 0.0 -1.71157060946 1.19264863791""")
-impossible_trajs.append("""1.000000
+0.0 0.0 -1.71157060946 1.19264863791""", tauref=tau84)
+
+append_traj(impossible_trajs, """1.000000
 2
 0.0 0.0 0.195445036188 -0.127917742541
-0.0 0.0 -2.07278156403 1.55385959248""")
-impossible_trajs.append("""1.000000
+0.0 0.0 -2.07278156403 1.55385959248""", tauref=tau84)
+
+append_traj(impossible_trajs, """1.000000
 2
 0.0 0.0 -2.83958418094 1.08180684145
-0.0 0.0 0.449231695596 0.877459944237""")
+0.0 0.0 0.449231695596 0.877459944237""", tauref=tau84)
 
+append_traj(impossible_trajs, """1.000000
+2
+0.0 0.0 9.6622280813 -6.6326750309
+0.0 0.0 0.289254321757 -0.184727934151""", tauref=tau84)
+
+append_traj(impossible_trajs, """1.000000
+2
+0.0 0.0 11.0005555849 -7.9710025345
+0.0 0.0 0.232496359281 -0.127969971675""", tauref=tau84)
 
 #
 # Test cases
@@ -100,7 +135,7 @@ class TorquePendulumExec(unittest.TestCase):
         self.ret = None
         self.ret_vip = None
 
-    def run_topp(self, traj_str, sd_min=0., sd_max=1e-4):
+    def run_topp(self, traj_str, sd_min, sd_max):
         from TOPPopenravepy import ComputeTorquesConstraints
         from TOPPbindings import TOPPInstance
         self.traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(traj_str)
@@ -159,14 +194,14 @@ class TorquePendulumExec(unittest.TestCase):
                                        3)
 
     def test_traversable(self):
-        for i, traj_str in enumerate(traversable_trajs):
-            self.run_topp(traj_str)
+        for i, trajuple in enumerate(traversable_trajs):
+            self.run_topp(*trajuple)
             self.assertEqual(self.ret, 1)
             self.assertNotEqual(self.ret_vip, 0)
 
-    def test_non_traversable(self):
-        for i, traj_str in enumerate(impossible_trajs):
-            self.run_topp(traj_str)
+    def test_nfw(self):
+        for i, trajuple in enumerate(impossible_trajs):
+            self.run_topp(*trajuple)
             self.assertNotEqual(self.ret, 1)
             self.assertEqual(self.ret_vip, 0)
 
