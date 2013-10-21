@@ -32,33 +32,35 @@ discrtimestep = 0.01
 integrationtimestep = 0.01
 reparamtimestep = 0.01
 passswitchpointnsteps = 2
-constraints_type = "QuadraticConstraints"  # or "TorqueLimits"
 robotfile = "../robots/twodof.robot.xml"
 dtplot = 0.01
+
+# "QuadraticConstraints" or "TorqueLimits"
+constraints_type = "TorqueLimits"
 
 #
 # Test trajectories
 #
 
 traversable_trajs = []
-impossible_trajs = []
 
+impossible_trajs = []
 impossible_trajs.append("""1.000000
 2
 0.0 -1.4059993022 -6.56388799235 4.82829464097
 0.0 0.0 0.0 0.0""")
-
-if True:
-    traversable_trajs.append("""1.000000
-    2
-    0.0 0.0 0.200440827515 -0.132913533868
-    0.0 0.0 -1.71157060946 1.19264863791""")
-
-if False:
-    traversable_trajs.append("""1.000000
-    2
-    0.0 0.0 0.195445036188 -0.127917742541
-    0.0 0.0 -2.07278156403 1.55385959248""")
+impossible_trajs.append("""1.000000
+2
+0.0 0.0 0.200440827515 -0.132913533868
+0.0 0.0 -1.71157060946 1.19264863791""")
+impossible_trajs.append("""1.000000
+2
+0.0 0.0 0.195445036188 -0.127917742541
+0.0 0.0 -2.07278156403 1.55385959248""")
+impossible_trajs.append("""1.000000
+2
+0.0 0.0 -2.83958418094 1.08180684145
+0.0 0.0 0.449231695596 0.877459944237""")
 
 
 #
@@ -95,6 +97,9 @@ class TorquePendulumExec(unittest.TestCase):
                                               reparamtimestep,
                                               passswitchpointnsteps)
 
+        self.ret = None
+        self.ret_vip = None
+
     def run_topp(self, traj_str, sd_min=0., sd_max=1e-4):
         from TOPPopenravepy import ComputeTorquesConstraints
         from TOPPbindings import TOPPInstance
@@ -124,6 +129,7 @@ class TorquePendulumExec(unittest.TestCase):
         self.ret_vip = self.topp.RunVIP(sd_min, sd_max)
         self.sd_end_min = self.topp.sdendmin
         self.sd_end_max = self.topp.sdendmax
+        print "ret_vip =", self.ret_vip
 
     def print_comp_times(self):
         print "Python preprocessing: ", (self.t1 - self.t0)
@@ -152,11 +158,13 @@ class TorquePendulumExec(unittest.TestCase):
                                        self.dtplot, self.taumin, self.taumax,
                                        3)
 
-    def test_trajectories(self):
+    def test_traversable(self):
         for i, traj_str in enumerate(traversable_trajs):
             self.run_topp(traj_str)
             self.assertEqual(self.ret, 1)
             self.assertNotEqual(self.ret_vip, 0)
+
+    def test_non_traversable(self):
         for i, traj_str in enumerate(impossible_trajs):
             self.run_topp(traj_str)
             self.assertNotEqual(self.ret, 1)
