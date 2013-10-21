@@ -89,10 +89,7 @@ class TorquePendulumExec(object):
         self.topp.WriteProfilesList()
         self.topp.WriteSwitchPointsList()
 
-        self.print_comp_times()
-
     def print_comp_times(self):
-        print "\n--------------"
         print "Python preprocessing: ", (self.t1 - self.t0)
         print "Building TOPP Instance: ", (self.t2 - self.t1)
         print "Compute profiles: ", (self.t3 - self.t2)
@@ -135,8 +132,12 @@ trajectories.append("""1.000000
 if __name__ == '__main__':
     topp_exec = TorquePendulumExec()
     try:
-        for traj_str in trajectories:
+        for i, traj_str in enumerate(trajectories):
+            print "Running on trajectory %d... " % i
             topp_exec.run(traj_str)
+            print "\n----- Trajectory %d: OK -----" % i
+            topp_exec.print_comp_times()
+            print ""
     except:
         print ""
         print "-------------------- TEST FAILURE --------------------"
