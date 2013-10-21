@@ -129,20 +129,20 @@ dReal TorqueLimits::SdLimitBobrowInit(dReal s){
             dReal num, denum, r;
             num = a[k]*(tau_alpha[m]-c[m])-a[m]*(tau_beta[k]-c[k]);
             denum = a[k]*b[m]-a[m]*b[k];
-            // if(std::abs(denum) >= TINY) {
-            r = num/denum;
-            if(r>=0) {
-                sdmin = std::min(sdmin,sqrt(r));
+            if(std::abs(denum) > TINY) {
+                r = num/denum;
+                if(r>=0) {
+                    sdmin = std::min(sdmin,sqrt(r));
+                }
             }
-            //}
             num = a[m]*(tau_alpha[k]-c[k])-a[k]*(tau_beta[m]-c[m]);
             denum = -denum;
-            //if(std::abs(denum) >= TINY) {
-            r = num/denum;
-            if(r>=0) {
-                sdmin = std::min(sdmin,sqrt(r));
+            if(std::abs(denum) > TINY) {
+                r = num/denum;
+                if(r>=0) {
+                    sdmin = std::min(sdmin,sqrt(r));
+                }
             }
-            //}
         }
     }
     return sdmin;

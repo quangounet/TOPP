@@ -331,9 +331,11 @@ dReal QuadraticConstraints::SdLimitBobrowInit(dReal s){
             if(a[k]*a[m]<0) {
                 num = a[k]*c[m]-a[m]*c[k];
                 denum = -a[k]*b[m]+a[m]*b[k];
-                r = num/denum;
-                if(r>=0) {
-                    sdmin = std::min(sdmin,sqrt(r));
+                if(std::abs(denum)>TINY) {
+                    r = num/denum;
+                    if(r>=0) {
+                        sdmin = std::min(sdmin,sqrt(r));
+                    }
                 }
             }
         }
@@ -1138,7 +1140,7 @@ int ComputeLimitingCurves(Constraints& constraints){
 
         // Integrate backward
         integratestatus = IntegrateBackward(constraints, sbackward, sdbackward,
-                constraints.tunings.integrationtimestep, tmpprofile);
+                                            constraints.tunings.integrationtimestep, tmpprofile);
         if(tmpprofile.nsteps>1)
             constraints.resprofileslist.push_back(tmpprofile);
         if(integratestatus == INT_BOTTOM)
@@ -1146,8 +1148,8 @@ int ComputeLimitingCurves(Constraints& constraints){
 
         // Integrate forward
         integratestatus = IntegrateForward(constraints, sforward, sdforward,
-                constraints.tunings.integrationtimestep, tmpprofile, 1e5,
-                testaboveexistingprofiles, testmvc, zlajpah);
+                                           constraints.tunings.integrationtimestep, tmpprofile, 1e5,
+                                           testaboveexistingprofiles, testmvc, zlajpah);
         if(tmpprofile.nsteps>1)
             constraints.resprofileslist.push_back(tmpprofile);
         if(integratestatus == INT_BOTTOM)
