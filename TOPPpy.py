@@ -124,6 +124,10 @@ class RaveTorqueInstance(object):
         return invdyn_str
 
     def parametrize_path(self):
+        return_code = self.solver.RunComputeProfiles(0, 0)
+        if return_code != 1:
+            raise NoTrajectoryFound
+
         return_code = self.solver.ReparameterizeTrajectory()
         if return_code < 0:
             raise NoTrajectoryFound
@@ -202,7 +206,7 @@ def ProfilesFromString(s):
 
 
 def SwitchPointsFromString(s):
-    if(len(s))==0:
+    if len(s) == 0:
         return []
     s = s.strip(" \n")
     switchpointslist = []
