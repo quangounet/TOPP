@@ -18,108 +18,128 @@
 import sys
 sys.path.append('..')
 
-import TOPPbindings
 import TOPPpy
 import TOPPopenravepy
 import time
 import string
-from pylab import *
-from numpy import *
-from openravepy import *
+from pylab import array, ones, ion
+from openravepy import Environment
 
 
+class TorquePendulumExec(object):
+    def __init__(self,
+                 taumin=array([-8, -4]),
+                 taumax=array([+8, +4]),
+                 vmax=[0, 0],
+                 discrtimestep=0.01,
+                 integrationtimestep=0.01,
+                 reparamtimestep=0.01,
+                 passswitchpointnsteps=2,
+                 dtplot=0.01):
+        self.taumin = taumin
+        self.taumax = taumax
+        self.discrtimestep = discrtimestep
+        self.dtplot = dtplot
+        self.vmax = vmax
+        self.env = Environment()  # create openrave environment
+        robotfile = "../robots/twodof.robot.xml"
+        self.env.Load(robotfile)
+        self.robot = self.env.GetRobots()[0]
+        self.robot.SetTransform(array([
+            [0, 0, 1, 0],
+            [0, 1, 0, 0],
+            [-1, 0, 0, 0.3],
+            [0, 0, 0, 1]]))
 
-ion()
+        # Robot
+        n = self.robot.GetDOF()
+        vel_lim = self.robot.GetDOFVelocityLimits()
+        self.robot.SetDOFLimits(-10 * ones(n), 10 * ones(n))
+        self.robot.SetDOFVelocityLimits(100 * vel_lim)
+        self.robot.GetEnv().GetPhysicsEngine().SetGravity([0, 0, -9.81])
 
-########################### Robot ################################
-env = Environment() # create openrave environment
-#------------------------------------------#
-robotfile = "../robots/twodof.robot.xml"
-env.Load(robotfile)
-robot=env.GetRobots()[0]
-robot.SetTransform(array([[0,0,1,0],[0,1,0,0],[-1,0,0,0.3],[0,0,0,1]]))
-#------------------------------------------#
-grav=[0,0,-9.8]
-n=robot.GetDOF()
-dof_lim=robot.GetDOFLimits()
-vel_lim=robot.GetDOFVelocityLimits()
-robot.SetDOFLimits(-10*ones(n),10*ones(n))
-robot.SetDOFVelocityLimits(100*vel_lim)
+        # Tunings
+        self.tuningsstring = "%f %f %f %d" % (discrtimestep,
+                                              integrationtimestep,
+                                              reparamtimestep,
+                                              passswitchpointnsteps)
+
+    def run(self, traj_str):
+        from TOPPopenravepy import ComputeTorquesConstraints
+        from TOPPbindings import TOPPInstance
+        self.traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(traj_str)
+        self.t0 = time.time()
+        self.constraintstring = string.join([str(v) for v in self.vmax])
+        self.constraintstring += ComputeTorquesConstraints(self.robot,
+                                                           self.traj0,
+                                                           self.taumin,
+                                                           self.taumax,
+                                                           self.discrtimestep)
+        self.t1 = time.time()
+        self.topp = TOPPInstance("QuadraticConstraints",
+                                 self.constraintstring,
+                                 traj_str,
+                                 self.tuningsstring)
+        self.t2 = time.time()
+        self.ret = self.topp.RunComputeProfiles(0, 0)
+        self.t3 = time.time()
+        if self.ret == 1:
+            self.topp.ReparameterizeTrajectory()
+        self.t4 = time.time()
+        self.topp.WriteProfilesList()
+        self.topp.WriteSwitchPointsList()
+
+        self.print_comp_times()
+
+    def print_comp_times(self):
+        print "\n--------------"
+        print "Python preprocessing: ", (self.t1 - self.t0)
+        print "Building TOPP Instance: ", (self.t2 - self.t1)
+        print "Compute profiles: ", (self.t3 - self.t2)
+        print "Reparameterize trajectory: ", (self.t4 - self.t3)
+        print "Total: ", (self.t4 - self.t0)
+        if self.ret == 1:
+            print "Trajectory duration (estimate): ", self.topp.resduration
+            print "Trajectory duration: ", self.traj1.duration
+
+    def plot_result(self):
+        from TOPPpy import ProfilesFromString, SwitchPointsFromString
+        from TOPPpy import PiecewisePolynomialTrajectory
+        ion()
+        profileslist = ProfilesFromString(self.topp.resprofilesliststring)
+        splist_str = self.topp.switchpointsliststring
+        switchpointslist = SwitchPointsFromString(splist_str)
+        TOPPpy.PlotProfiles(profileslist, switchpointslist, 4)
+        if self.ret == 1:
+            self.topp.WriteResultTrajectory()
+            restraj = self.topp.restrajectorystring
+            traj1 = PiecewisePolynomialTrajectory.FromString(restraj)
+            TOPPpy.PlotKinematics(self.traj0, traj1, self.dtplot, self.vmax)
+            TOPPopenravepy.PlotTorques(self.robot, self.traj0, traj1,
+                                       self.dtplot, self.taumin, self.taumax,
+                                       3)
 
 
-############################ Tunings ############################
-discrtimestep = 0.01
-integrationtimestep = 0.01
-reparamtimestep = 0.01
-passswitchpointnsteps = 2
-tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
+trajectories = []
 
-
-############################ Trajectory ############################
-#------------------------------------------#
-T=1
-[a1,b1,c1,a2,b2,c2] =  [3, -3, -3, 0, -2, -2] #[-3, 3, 3, -1, 0, -3]
-[a1,b1,c1,a2,b2,c2] = [0,-0.788287681899,0,-6.66133814775e-16,2.83192150777,0] 
-trajectorystring = """1.000000
+trajectories.append("""1.000000
 2
 0.0 -1.4059993022 -6.56388799235 4.82829464097
-0.0 0.0 0.0 0.0"""
+0.0 0.0 0.0 0.0""")
 
-#------------------------------------------#
-traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
+trajectories.append("""1.000000
+2
+0.0 0.0 0.200440827515 -0.132913533868
+0.0 0.0 -1.71157060946 1.19264863791""")
 
-
-############################ Constraints ############################
-#------------------------------------------#
-taumin = array([-8,-4])
-taumax = array([8,4])
-vmax = [0,0]
-#taumin = array([-5,-5])
-#taumax = array([5,5])
-#vmax = array([0,0])
-t0 = time.time()
-constraintstring = string.join([str(v) for v in vmax])
-constraintstring += TOPPopenravepy.ComputeTorquesConstraints(robot,traj0,taumin,taumax,discrtimestep)
-#------------------------------------------#
-
-
-############################ Run TOPP ############################
-t1 = time.time()
-x = TOPPbindings.TOPPInstance("QuadraticConstraints",constraintstring,trajectorystring,tuningsstring);
-t2 = time.time()
-ret = x.RunComputeProfiles(0,0)
-t3 = time.time()
-
-if(ret == 1):
-    x.ReparameterizeTrajectory()
-
-t4 = time.time()
-
-################ Plotting the MVC and the profiles #################
-x.WriteProfilesList()
-x.WriteSwitchPointsList()
-profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
-switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
-TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
-
-
-##################### Plotting the trajectories #####################
-if(ret == 1):
-    x.WriteResultTrajectory()
-    traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
-    dtplot = 0.01
-    TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax)
-    TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)
-
-
-print "\n--------------"
-print "Python preprocessing: ", t1-t0
-print "Building TOPP Instance: ", t2-t1
-print "Compute profiles: ", t3-t2
-print "Reparameterize trajectory: ", t4-t3
-print "Total: ", t4-t0
-if(ret == 1):
-    print "Trajectory duration (estimate): ", x.resduration
-    print "Trajectory duration: ", traj1.duration
-
-raw_input()
+if __name__ == '__main__':
+    topp_exec = TorquePendulumExec()
+    try:
+        for traj_str in trajectories:
+            topp_exec.run(traj_str)
+    except:
+        print ""
+        print "-------------------- TEST FAILURE --------------------"
+        print "Error for trajectory:"
+        print traj_str
+        raise

@@ -87,17 +87,18 @@ class RaveTorqueInstance(object):
 
         print "Trajectory:"
         print str(self.traj)
-        print "q(0.0)  =", self.traj.Eval(0)
-        print "qd(0.0) =", self.traj.Evald(0)
-        print ""
-        print "q(0.5)  =", self.traj.Eval(0.5)
-        print "qd(0.5) =", self.traj.Evald(0.5)
-        print ""
-        print "q(1.0)  =", self.traj.Eval(1)
-        print "qd(1.0) =", self.traj.Evald(1)
-        print "--"
-        print ""
-        raw_input()
+        if False:
+            print "q(0.0)  =", self.traj.Eval(0)
+            print "qd(0.0) =", self.traj.Evald(0)
+            print ""
+            print "q(0.5)  =", self.traj.Eval(0.5)
+            print "qd(0.5) =", self.traj.Evald(0.5)
+            print ""
+            print "q(1.0)  =", self.traj.Eval(1)
+            print "qd(1.0) =", self.traj.Evald(1)
+            print "--"
+            print ""
+            raw_input()
 
         self.solver = TOPPbindings.TOPPInstance(
             "TorqueLimits", input_str, str(self.traj), str(self.tunings))
