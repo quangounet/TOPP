@@ -16,10 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from pylab import array, arange, double, gca, plot, figure
-from pylab import clf, hold, axis, title, zeros
+from pylab import array, double, gca, plot, figure, clf, hold, axis, title
 
 import TOPPbindings
+import TOPPopenravepy
 
 from Trajectory import PiecewisePolynomialTrajectory
 from Trajectory import NoTrajectoryFound
@@ -52,77 +52,46 @@ class Tunings(object):
             self.switchpoint_steps, self.reparam_tstep)
 
 
-class TorqueConstraints(object):
-    def __init__(self, tau_min, tau_max, v_max):
-        self.tau_min = tau_min
-        self.tau_max = tau_max
-        self.v_max = v_max
-
-    def __str__(self):
-        tau_min_str = vect2str(self.tau_min)
-        tau_max_str = vect2str(self.tau_max)
-        #v_max_str = vect2str(self.v_max)
-        # zlap* does not work for now:
-        v_max_str = vect2str(zeros(len(self.tau_min)))
-        return "%s\n%s\n%s" % (tau_min_str, tau_max_str, v_max_str)
-
-
 class RaveTorqueInstance(object):
-    def __init__(self, constraints, openrave_robot, traj, tunings):
-        assert isinstance(constraints, TorqueConstraints)
+    def __init__(self, rave_robot, traj, tunings, tau_min, tau_max, v_max):
         assert isinstance(traj, PiecewisePolynomialTrajectory)
-
-        self.constraints = constraints
-        self.robot = openrave_robot
+        self.robot = rave_robot
         self.tunings = tunings
         self.traj = traj
 
-        buffsize = 100000
-        input_str = str(constraints) + self.get_dynamics_str()
+        buffsize = 200000
+        args = rave_robot, traj, tau_min, tau_max, tunings.mvc_tstep
+        constring = vect2str(v_max)
+        constring += TOPPopenravepy.ComputeTorquesConstraints(*args)
 
-        assert len(input_str) < buffsize, \
-            "%d is bigger than buffer size" % len(input_str)
+        assert len(constring) < buffsize, \
+            "%d is bigger than buffer size" % len(constring)
         assert len(str(self.traj)) < buffsize
         assert len(str(self.tunings)) < buffsize
 
-        # print "Trajectory:"
-        # print str(self.traj)
-        # print "q(0.0)  =", self.traj.Eval(0)
-        # print "qd(0.0) =", self.traj.Evald(0)
-        # print ""
-        # print "q(0.5)  =", self.traj.Eval(0.5)
-        # print "qd(0.5) =", self.traj.Evald(0.5)
-        # print ""
-        # print "q(1.0)  =", self.traj.Eval(1)
-        # print "qd(1.0) =", self.traj.Evald(1)
-        # print "--"
-        # print ""
-        raw_input()
+        print "Trajectory:"
+        print str(self.traj)
+        if False:
+            print "q(0.0)  =", self.traj.Eval(0)
+            print "qd(0.0) =", self.traj.Evald(0)
+            print ""
+            print "q(0.5)  =", self.traj.Eval(0.5)
+            print "qd(0.5) =", self.traj.Evald(0.5)
+            print ""
+            print "q(1.0)  =", self.traj.Eval(1)
+            print "qd(1.0) =", self.traj.Evald(1)
+            print "--"
+            print ""
+            raw_input()
 
         self.solver = TOPPbindings.TOPPInstance(
-            "TorqueLimits", input_str, str(self.traj), str(self.tunings))
-
-    def get_dynamics_str(self):
-        dt = self.tunings.mvc_tstep
-        nb_steps = 1 + int((self.traj.duration + 1e-10) / dt)
-        trange = arange(nb_steps) * dt
-        invdyn_str = ''
-        for i, t in enumerate(trange):
-            q = self.traj.Eval(t)
-            qd = self.traj.Evald(t)
-            qdd = self.traj.Evaldd(t)
-            with self.robot:
-                self.robot.SetDOFValues(q)
-                self.robot.SetDOFVelocities(qd)
-                args, kwargs = (qdd, None), {'returncomponents': True}
-                tm, tc, tg = self.robot.ComputeInverseDynamics(*args, **kwargs)
-                to = self.robot.ComputeInverseDynamics(qd) - tc - tg
-                invdyn_str += '\n' + vect2str(to)       # a vector
-                invdyn_str += '\n' + vect2str(tm + tc)  # b vector
-                invdyn_str += '\n' + vect2str(tg)       # c vector
-        return invdyn_str
+            "TorqueLimits", constring, str(self.traj), str(self.tunings))
 
     def parametrize_path(self):
+        return_code = self.solver.RunComputeProfiles(0, 0)
+        if return_code != 1:
+            raise NoTrajectoryFound
+
         return_code = self.solver.ReparameterizeTrajectory()
         if return_code < 0:
             raise NoTrajectoryFound
@@ -201,7 +170,7 @@ def ProfilesFromString(s):
 
 
 def SwitchPointsFromString(s):
-    if(len(s))==0:
+    if len(s) == 0:
         return []
     s = s.strip(" \n")
     switchpointslist = []
