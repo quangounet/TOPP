@@ -33,14 +33,13 @@ ion()
 discrtimestep = 0.01
 integrationtimestep = 0.01
 reparamtimestep = 0.01
-passswitchpointnsteps = 20
+passswitchpointnsteps = 10
 tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
 
 
 ############################ Trajectory ############################
 #------------------------------------------#
-#trajectorystring = "2 \n 2\n 1 1 0 1\n 0 2 0 -1\n 3\n 2\n 11 13 6 0.1666666666666\n -4 -10 -6 0.5"
-trajectorystring = "2 \n 2\n 1 1 0 1\n 0 0 0 0\n 3\n 2\n 11 13 6 0.1666666666666\n 0 0 0 0"
+trajectorystring = "2 \n 2\n 1 1 0 1\n 0 2 0 -1\n 3\n 2\n 11 13 6 0.1666666666666\n -4 -10 -6 0.5"
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
@@ -48,7 +47,7 @@ traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 ############################ Constraints ############################
 #------------------------------------------#
 amax = array([15,10])
-vmax = array([20,10])
+vmax = array([10,10])
 t0 = time.time()
 constraintstring = string.join([str(v) for v in vmax])
 constraintstring += TOPPpy.ComputeKinematicConstraints(traj0,amax,discrtimestep)
@@ -89,7 +88,8 @@ print "Compute profiles: ", t3-t2
 print "Reparameterize trajectory: ", t4-t3
 print "Total: ", t4-t0
 print "Trajectory duration (estimate): ", x.resduration
-print "Trajectory duration: ", traj1.duration
+if(ret == 1):
+    print "Trajectory duration: ", traj1.duration
 
 
 raw_input()

@@ -85,18 +85,18 @@ class RaveTorqueInstance(object):
         assert len(str(self.traj)) < buffsize
         assert len(str(self.tunings)) < buffsize
 
-        print "Trajectory:"
-        print str(self.traj)
-        print "q(0.0)  =", self.traj.Eval(0)
-        print "qd(0.0) =", self.traj.Evald(0)
-        print ""
-        print "q(0.5)  =", self.traj.Eval(0.5)
-        print "qd(0.5) =", self.traj.Evald(0.5)
-        print ""
-        print "q(1.0)  =", self.traj.Eval(1)
-        print "qd(1.0) =", self.traj.Evald(1)
-        print "--"
-        print ""
+        # print "Trajectory:"
+        # print str(self.traj)
+        # print "q(0.0)  =", self.traj.Eval(0)
+        # print "qd(0.0) =", self.traj.Evald(0)
+        # print ""
+        # print "q(0.5)  =", self.traj.Eval(0.5)
+        # print "qd(0.5) =", self.traj.Evald(0.5)
+        # print ""
+        # print "q(1.0)  =", self.traj.Eval(1)
+        # print "qd(1.0) =", self.traj.Evald(1)
+        # print "--"
+        # print ""
         raw_input()
 
         self.solver = TOPPbindings.TOPPInstance(
@@ -219,7 +219,6 @@ def VectorFromString(s):
 
 ################# Compute constraints #####################
 
-
 def ComputeKinematicConstraints(traj, amax, discrtimestep):
     # Sample the dynamics constraints
     ndiscrsteps = int((traj.duration + 1e-10) / discrtimestep) + 1
@@ -230,7 +229,7 @@ def ComputeKinematicConstraints(traj, amax, discrtimestep):
         qdd = traj.Evaldd(t)
         constraintstring += "\n" + vect2str(+qd) + " " + vect2str(-qd)
         constraintstring += "\n" + vect2str(+qdd) + " " + vect2str(-qdd)
-        constraintstring += "\n" + vect2str(+amax) + " " + vect2str(-amax)
+        constraintstring += "\n" + vect2str(-amax) + " " + vect2str(-amax)
     return constraintstring
 
 

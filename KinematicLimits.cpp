@@ -75,14 +75,38 @@ void KinematicLimits::InterpolateDynamics(dReal s, std::vector<dReal>& qd, std::
 }
 
 
+void KinematicLimits::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector) {
+    dReal delta = 0.001, s2, qdp, qddp, slope;
+    std::vector<dReal> qd, qdd, qd2, qdd2;
+    if(s>delta) {
+        delta = -delta;
+    }
+    s2 = s + delta;
+    InterpolateDynamics(s,qd,qdd);
+    InterpolateDynamics(s2,qd2,qdd2);
+
+    std::vector<std::pair<dReal,int> > vp;
+    for(int i=0; i<trajectory.dimension; i++) {
+        vp.push_back(std::pair<dReal,int>(std::abs(qd[i]),i));
+    }
+    std::sort(vp.begin(),vp.end());
+    slopesvector.resize(0);
+    for(int i=0; i<trajectory.dimension; i++) {
+        qdp = (qd2[vp[i].second]-qd[vp[i].second])/delta;
+        qddp = (qdd2[vp[i].second]-qdd[vp[i].second])/delta;
+        slope = (-qddp*sd*sd)/((2*qdd[vp[i].second]+qdp)*sd);
+        std::cout << vp[i].second << " " << slope << "***\n";
+        slopesvector.push_back(slope);
+    }
+}
+
+
 std::pair<dReal,dReal> KinematicLimits::SddLimits(dReal s, dReal sd){
     dReal alpha = -INF;
     dReal beta = INF;
     dReal sdsq = sd*sd;
     dReal a_alpha_i, a_beta_i, alpha_i, beta_i;
-    std::vector<dReal> qd(trajectory.dimension), qdd(trajectory.dimension);
-    //trajectory.Evald(s, qd);
-    //trajectory.Evaldd(s, qdd);
+    std::vector<dReal> qd, qdd;
     InterpolateDynamics(s,qd,qdd);
     for(int i=0; i<trajectory.dimension; i++) {
         if(std::abs(qd[i])<=TINY) {

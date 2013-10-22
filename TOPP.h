@@ -25,6 +25,7 @@
 #include <iomanip>
 #include <ctime>
 #include <chrono>
+#include <algorithm>
 
 #include <vector>
 #include <list>
@@ -193,12 +194,19 @@ public:
         throw "Virtual method not implemented";
     }
 
+
     ///////////////////////// Switch Points ///////////////////////
 
     // Find all switch points, add them to switchpointslist
     void FindSwitchPoints();
     void FindTangentSwitchPoints();
     void FindDiscontinuousSwitchPoints();
+
+    // Compute the slope of the profiles near a dynamic singularity
+    virtual void ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector){
+        std::cout << "Virtual method not implemented\n";
+        throw "Virtual method not implemented";
+    }
     virtual void FindSingularSwitchPoints(){
         std::cout << "Virtual method not implemented\n";
         throw "Virtual method not implemented";
@@ -227,11 +235,13 @@ public:
     std::pair<dReal,dReal> SddLimits(dReal s, dReal sd);
     dReal SdLimitBobrowInit(dReal s);
     void FindSingularSwitchPoints();
+    void ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector);
 
     //////////////// Specific members and methods //////////////////////
     int nconstraints;  // Number of constraints
     std::vector<std::vector<dReal> > avect, bvect, cvect;  // Dynamics coefficients
     void InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c);   // Linearly interpolate the dynamics coefficients a,b,c
+
 };
 
 

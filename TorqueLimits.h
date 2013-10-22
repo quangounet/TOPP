@@ -32,6 +32,7 @@ public:
     std::pair<dReal,dReal> SddLimits(dReal s, dReal sd);
     dReal SdLimitBobrowInit(dReal s);
     void FindSingularSwitchPoints();
+    void ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector);
 
     //////////////// Specific members and methods //////////////////////
     std::vector<dReal> taumin, taumax; // Torque limits
