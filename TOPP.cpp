@@ -283,6 +283,30 @@ void QuadraticConstraints::InterpolateDynamics(dReal s, std::vector<dReal>& a, s
 }
 
 
+void QuadraticConstraints::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector) {
+    dReal delta = 0.001, s2, ap, bp, cp, slope;
+    std::vector<dReal> a, b, c, a2, b2, c2;
+    s2 = s - delta;
+    InterpolateDynamics(s,a,b,c);
+    InterpolateDynamics(s2,a2,b2,c2);
+
+    std::vector<std::pair<dReal,int> > vp;
+    for(int i=0; i<trajectory.dimension; i++) {
+        vp.push_back(std::pair<dReal,int>(std::abs(a[i]),i));
+    }
+    std::sort(vp.begin(),vp.end());
+    slopesvector.resize(0);
+    for(int i=0; i<trajectory.dimension; i++) {
+        ap = (a[vp[i].second]-a2[vp[i].second])/delta;
+        bp = (b[vp[i].second]-b2[vp[i].second])/delta;
+        cp = (c[vp[i].second]-c2[vp[i].second])/delta;
+        slope = (-bp*sd*sd-cp)/((2*b[vp[i].second]+ap)*sd);
+        slopesvector.push_back(slope);
+    }
+}
+
+
+
 std::pair<dReal,dReal> QuadraticConstraints::SddLimits(dReal s, dReal sd){
     dReal alpha = -INF;
     dReal beta = INF;
@@ -529,9 +553,7 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
     dReal sd = switchpoint.sd;
     dReal discr = constraints.tunings.discrtimestep;
     dReal dt = 0; // should be changed
-    int ret;
     Profile resprofile;
-    bool testaboveexistingprofiles = false, testmvc = false, zlajpah = false;
 
     if(switchpoint.switchpointtype == SP_TANGENT || switchpoint.switchpointtype == SP_DISCONTINUOUS || switchpoint.switchpointtype == SP_ZLAJPAH) {
         dt = discr/2;
@@ -546,25 +568,59 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
         return true;
     }
     else{
-        // here switchpointtype == SP_SINGULAR
-        dt = discr/2;
-        ret = IntegrateBackward(constraints,s-discr,sd*constraints.tunings.loweringcoef,dt,resprofile,constraints.tunings.passswitchpointnsteps,testaboveexistingprofiles,testmvc);
-        if(ret==INT_MAXSTEPS || ret==INT_END || ret==INT_PROFILE) {
-            sbackward = resprofile.Eval(0);
-            sdbackward = resprofile.Evald(0);
-            if(sdbackward>constraints.SdLimitBobrow(sbackward)) {
-                return false;
-            }
-            ret = IntegrateForward(constraints,s+discr,sd*constraints.tunings.loweringcoef,dt,resprofile,constraints.tunings.passswitchpointnsteps,testaboveexistingprofiles,testmvc,zlajpah);
-            if(ret==INT_MAXSTEPS || ret==INT_END || ret==INT_PROFILE) {
-                sforward = resprofile.Eval(resprofile.duration);
-                sdforward = resprofile.Evald(resprofile.duration);
-                if(sdforward>constraints.SdLimitBobrow(sforward)) {
-                    return false;
+        dReal sstep = constraints.tunings.passswitchpointnsteps*constraints.tunings.integrationtimestep;
+        std::vector<dReal> slopesvector;
+        dReal bestslope = 0;
+        dReal bestscore = INF;
+        constraints.ComputeSlopeDynamicSingularity(s,sd,slopesvector);
+        sforward = s + sstep;
+        sbackward = s - sstep;
+        if(sforward>constraints.trajectory.duration || sbackward<0) {
+            return false;
+        }
+        for(int i = 0; i<int(slopesvector.size()); i++) {
+            dReal slope = slopesvector[i];
+            sdforward = sd + sstep*slope;
+            sdbackward = sd - sstep*slope;
+            dReal alphabackward = constraints.SddLimits(sbackward,sdbackward).first/sd;
+            dReal betaforward = constraints.SddLimits(sforward,sdforward).second/sd;
+            dReal bob1 = constraints.SdLimitBobrow(sbackward)-sdbackward;
+            dReal bob2 = constraints.SdLimitBobrow(sforward)-sdforward;
+            dReal slopediff1 = std::abs(alphabackward-slope);
+            dReal slopediff2 = std::abs(betaforward-slope);
+            std::cout << s << " " << bob1 << " " << bob2  << " " << slopediff1 << " " << slopediff2 << "\n";
+            if(bob1>=0 && bob2>=0) {
+                dReal score = slopediff1+slopediff2;
+                if(score<bestscore) {
+                    bestslope = slope;
+                    bestscore = score;
                 }
-                return true;
             }
         }
+        sdforward = sd + sstep*bestslope;
+        sdbackward = sd - sstep*bestslope;
+        dReal threshold = 1;
+        return bestscore<threshold;
+
+        // here switchpointtype == SP_SINGULAR
+        // dt = discr/2;
+        // ret = IntegrateBackward(constraints,s-discr,sd*constraints.tunings.loweringcoef,dt,resprofile,constraints.tunings.passswitchpointnsteps,testaboveexistingprofiles,testmvc);
+        // if(ret==INT_MAXSTEPS || ret==INT_END || ret==INT_PROFILE) {
+        //     sbackward = resprofile.Eval(0);
+        //     sdbackward = resprofile.Evald(0);
+        //     if(sdbackward>constraints.SdLimitBobrow(sbackward)) {
+        //         return false;
+        //     }
+        //     ret = IntegrateForward(constraints,s+discr,sd*constraints.tunings.loweringcoef,dt,resprofile,constraints.tunings.passswitchpointnsteps,testaboveexistingprofiles,testmvc,zlajpah);
+        //     if(ret==INT_MAXSTEPS || ret==INT_END || ret==INT_PROFILE) {
+        //         sforward = resprofile.Eval(resprofile.duration);
+        //         sdforward = resprofile.Evald(resprofile.duration);
+        //         if(sdforward>constraints.SdLimitBobrow(sforward)) {
+        //             return false;
+        //         }
+        //         return true;
+        //     }
+        // }
     }
     return false;
 }

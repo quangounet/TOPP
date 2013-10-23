@@ -33,7 +33,7 @@ tstep = 0.01
 discrtimestep = tstep
 integrationtimestep = tstep
 reparamtimestep = tstep
-passswitchpointnsteps = 20*0.01/tstep
+passswitchpointnsteps = 5
 tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
 
 
@@ -49,13 +49,21 @@ tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep
 # p3v = [[1,1,0],[1,1,1]]
 Tv = [0.5,0.5]
 
-ndof = 1
+ndof = 4
 p0v = [rand(ndof)*2*pi-pi]
 p1v = [rand(ndof)*2*pi-pi]
 p2v = [rand(ndof)*2*pi-pi]
 p3v = [rand(ndof)*2*pi-pi]
 Tv = [1]
+trajectorystring="""1
+4
+1.000000 2.470956 -10.919157 7.560062
+1.000000 7.035632 -19.469777 10.784539
+1.000000 -1.698041 0.044432 -0.813732
+1.000000 -12.510435 16.035721 -5.413611"""
 trajectorystring = TOPPpy.BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v)
+
+print trajectorystring
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 

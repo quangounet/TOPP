@@ -72,6 +72,27 @@ void TorqueLimits::InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vect
     }
 }
 
+void TorqueLimits::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector) {
+    dReal delta = 0.001, s2, ap, bp, cp, slope;
+    std::vector<dReal> a, b, c, a2, b2, c2;
+    s2 = s - delta;
+    InterpolateDynamics(s,a,b,c);
+    InterpolateDynamics(s2,a2,b2,c2);
+
+    std::vector<std::pair<dReal,int> > vp;
+    for(int i=0; i<trajectory.dimension; i++) {
+        vp.push_back(std::pair<dReal,int>(std::abs(a[i]),i));
+    }
+    std::sort(vp.begin(),vp.end());
+    slopesvector.resize(0);
+    for(int i=0; i<trajectory.dimension; i++) {
+        ap = (a[vp[i].second]-a2[vp[i].second])/delta;
+        bp = (b[vp[i].second]-b2[vp[i].second])/delta;
+        cp = (c[vp[i].second]-c2[vp[i].second])/delta;
+        slope = (-bp*sd*sd-cp)/((2*b[vp[i].second]+ap)*sd);
+        slopesvector.push_back(slope);
+    }
+}
 
 std::pair<dReal,dReal> TorqueLimits::SddLimits(dReal s, dReal sd){
     dReal alpha = -INF;

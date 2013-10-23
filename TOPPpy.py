@@ -197,7 +197,6 @@ def VectorFromString(s):
 
 ################# Compute constraints #####################
 
-
 def ComputeKinematicConstraints(traj, amax, discrtimestep):
     # Sample the dynamics constraints
     ndiscrsteps = int((traj.duration + 1e-10) / discrtimestep) + 1
@@ -208,7 +207,7 @@ def ComputeKinematicConstraints(traj, amax, discrtimestep):
         qdd = traj.Evaldd(t)
         constraintstring += "\n" + vect2str(+qd) + " " + vect2str(-qd)
         constraintstring += "\n" + vect2str(+qdd) + " " + vect2str(-qdd)
-        constraintstring += "\n" + vect2str(+amax) + " " + vect2str(-amax)
+        constraintstring += "\n" + vect2str(-amax) + " " + vect2str(-amax)
     return constraintstring
 
 

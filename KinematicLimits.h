@@ -32,6 +32,8 @@ public:
     void FindSingularSwitchPoints();
     void Discretize();
     dReal SdLimitBobrowInit(dReal s);
+    void ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector);
+
 
     //////////////// Specific members and methods //////////////////////
     std::vector<dReal> amax; // Pure acceleration limits
