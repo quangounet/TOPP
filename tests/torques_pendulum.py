@@ -160,11 +160,12 @@ class TorquePendulumExec(unittest.TestCase):
         self.topp.WriteProfilesList()
         self.topp.WriteSwitchPointsList()
 
-        # now run VIP as well
+        # run VIP as well
         self.ret_vip = self.topp.RunVIP(sd_min, sd_max)
         self.sd_end_min = self.topp.sdendmin
         self.sd_end_max = self.topp.sdendmax
-        print "ret_vip =", self.ret_vip
+        print "ret_vip =", self.ret_vip,
+        print "and sd:", (self.sd_end_min, self.sd_end_max)
 
     def print_comp_times(self):
         print "Python preprocessing: ", (self.t1 - self.t0)
