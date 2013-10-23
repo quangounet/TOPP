@@ -36,7 +36,7 @@ robotfile = "../robots/twodof.robot.xml"
 dtplot = 0.01
 
 # "QuadraticConstraints" or "TorqueLimits"
-constraints_type = "TorqueLimits"
+constraints_type = "QuadraticConstraints"
 
 
 def append_traj(traj_list, traj_str, sd_min=0., sd_max=1e-4,
