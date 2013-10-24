@@ -1,11 +1,10 @@
 #ifndef TRAJECTORY_H
 #define TRAJECTORY_H
 
-
 namespace TOPP {
 
 
-class Profile;  // defined in TOPP.h
+class Constraints;  // defined in TOPP.h
 
 
 class Polynomial {
@@ -66,7 +65,7 @@ public:
 
     // Reparameterize one chunk
     void ComputeChunk(dReal t, dReal t0, dReal s, dReal sd, dReal sdd, const
-            Chunk& currentchunk, Chunk& newchunk);
+                      Chunk& currentchunk, Chunk& newchunk);
 
     // Reparameterize a S-piece into chunkslist
     // Inputs:
@@ -77,15 +76,13 @@ public:
     // - pointer to current chunk
     // Return the list of reparameterized chunks
     void SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
-            currentchunkindex, dReal& processedcursor,
-            std::list<Chunk>::iterator& itcurrentchunk, std::list<Chunk>&
-            chunkslist);
+                        currentchunkindex, dReal& processedcursor,
+                        std::list<Chunk>::iterator& itcurrentchunk, std::list<Chunk>& chunkslist);
 
     // Reparameterize the trajectory
     // The degree of the polynomials of restrajectory will be 2*d where d is
     // the degree of the polynomials in the original trajectory
-    int Reparameterize(std::list<Profile>& profileslist, dReal
-            integrationtimestep, Trajectory& restrajectory);
+    int Reparameterize(Constraints& constraints, Trajectory& restrajectory);
 
     // Write the trajectory to the stream
     void Write(std::stringstream& ss);

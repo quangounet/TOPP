@@ -95,8 +95,11 @@ void TorqueLimits::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector
 }
 
 std::pair<dReal,dReal> TorqueLimits::SddLimits(dReal s, dReal sd){
-    dReal alpha = -INF;
-    dReal beta = INF;
+    dReal dtsq = tunings.integrationtimestep;
+    dtsq = dtsq*dtsq;
+    dReal hardbound = trajectory.duration/dtsq/100;
+    dReal alpha = -hardbound;
+    dReal beta = hardbound;
     dReal sdsq = sd*sd;
     std::vector<dReal> a, b, c;
 

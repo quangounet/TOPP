@@ -32,7 +32,7 @@ ion()
 ############################ Tunings ############################
 discrtimestep = 0.01
 integrationtimestep = 0.01
-reparamtimestep = 0.01
+reparamtimestep = 0
 passswitchpointnsteps = 10
 tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
 

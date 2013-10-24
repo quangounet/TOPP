@@ -29,10 +29,9 @@ from numpy import *
 ion()
 
 ############################ Tunings ############################
-tstep = 0.01
-discrtimestep = tstep
-integrationtimestep = tstep
-reparamtimestep = tstep
+discrtimestep = 0.005
+integrationtimestep = discrtimestep
+reparamtimestep = 0#auto
 passswitchpointnsteps = 5
 tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
 
@@ -57,10 +56,10 @@ p3v = [rand(ndof)*2*pi-pi]
 Tv = [1]
 trajectorystring="""1
 4
-1.000000 2.470956 -10.919157 7.560062
-1.000000 7.035632 -19.469777 10.784539
-1.000000 -1.698041 0.044432 -0.813732
-1.000000 -12.510435 16.035721 -5.413611"""
+1.000000 10.373414 -4.707224 -2.346506
+1.000000 -1.122818 10.508739 -11.195961
+1.000000 -10.674742 7.488998 -0.971001
+1.000000 10.300799 -7.083564 -0.486469"""
 trajectorystring = TOPPpy.BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v)
 
 print trajectorystring
@@ -114,6 +113,8 @@ print "Total: ", t4-t0
 print "Trajectory duration (estimate): ", x.resduration
 if(ret == 1):
     print "Trajectory duration: ", traj1.duration
+    print "Trajectory 0 nsteps: ", len(traj0.chunkslist)
+    print "Trajectory 1 nsteps: ", len(traj1.chunkslist)
 
 
 # data=loadtxt('/home/cuong/Downloads/mintos/examples/res')

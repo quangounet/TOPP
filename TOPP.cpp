@@ -308,8 +308,11 @@ void QuadraticConstraints::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std
 
 
 std::pair<dReal,dReal> QuadraticConstraints::SddLimits(dReal s, dReal sd){
-    dReal alpha = -INF;
-    dReal beta = INF;
+    dReal dtsq = tunings.integrationtimestep;
+    dtsq = dtsq*dtsq;
+    dReal hardbound = trajectory.duration/dtsq/100;
+    dReal alpha = -hardbound;
+    dReal beta = hardbound;
     dReal sdsq = sd*sd;
     std::vector<dReal> a, b, c;
 
@@ -320,8 +323,8 @@ std::pair<dReal,dReal> QuadraticConstraints::SddLimits(dReal s, dReal sd){
         if(std::abs(a[i])<TINY) {
             if(b[i]*sdsq+c[i]>0) {
                 // Constraint not satisfied
-                beta = -INF;
-                alpha = INF;
+                beta = -hardbound;
+                alpha = hardbound;
             }
             continue;
         }
@@ -457,7 +460,11 @@ bool Profile::Invert(dReal s,  dReal& t, bool searchbackward){
             return false;
         }
         dReal tres;
-        assert(SolveQuadraticEquation(svect[currentindex-1]-s,sdvect[currentindex-1],0.5*sddvect[currentindex-1],tres,0,integrationtimestep));
+        bool solved = SolveQuadraticEquation(svect[currentindex-1]-s,sdvect[currentindex-1],0.5*sddvect[currentindex-1],tres,0,integrationtimestep);
+        if(!solved) {
+            SolveQuadraticEquation(svect[currentindex-1]-s,sdvect[currentindex-1],0.5*sddvect[currentindex-1],tres,0,integrationtimestep);
+        }
+        assert(solved);
         t = (currentindex-1)*integrationtimestep + tres;
         return true;
     }
@@ -599,8 +606,7 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
         }
         sdforward = sd + sstep*bestslope;
         sdbackward = sd - sstep*bestslope;
-        dReal threshold = 1;
-        return bestscore<threshold;
+        return bestscore<INF;
 
         // here switchpointtype == SP_SINGULAR
         // dt = discr/2;
@@ -828,6 +834,9 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
         }
         else if(sdcur < 0) {
             //TODO: double check whether alpha>beta
+            slist.push_back(scur);
+            sdlist.push_back(sdcur);
+            sddlist.push_back(0);
             returntype = INT_BOTTOM;
             break;
         }
@@ -940,6 +949,9 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                     }
                     else if(sdcur < 0) {
                         cont = false;
+                        slist.push_back(scur);
+                        sdlist.push_back(sdcur);
+                        sddlist.push_back(0);
                         returntype = INT_BOTTOM;
                         break;
                     }
@@ -1044,6 +1056,9 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
         }
         else if(sdcur < 0) {
             //TODO: double check whether alpha>beta
+            slist.push_back(scur);
+            sdlist.push_back(sdcur);
+            sddlist.push_back(0);
             returntype = INT_BOTTOM;
             break;
         }
@@ -1087,6 +1102,9 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
                 }
                 else if(sdcur < 0) {
                     cont = false;
+                    slist.push_back(scur);
+                    sdlist.push_back(sdcur);
+                    sddlist.push_back(0);
                     returntype = INT_BOTTOM;
                     break;
                 }
@@ -1132,6 +1150,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
             sdlist.push_back(sdcur);
             std ::pair<dReal,dReal> sddlimits = constraints.SddLimits(scur,sdcur);
             dReal alpha = sddlimits.first;
+            //std::cout << scur << " " << sdcur << " " << alpha << "\n";
             sddlist.push_back(alpha);
             dReal sprev = scur - dt * sdcur + 0.5*dtsq*alpha;
             dReal sdprev = sdcur - dt * alpha;
@@ -1291,7 +1310,7 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
     // Estimate resulting trajectory duration
     constraints.resduration = 0;
     Profile profile;
-    dReal ds = tunings.reparamtimestep/20;
+    dReal ds = tunings.discrtimestep/10;
     dReal sdprev,sdnext;
     dReal tres;
     if(FindLowestProfile(0,profile,tres,constraints.resprofileslist)) {
@@ -1447,9 +1466,10 @@ dReal VectorMax(const std::vector<dReal>&v){
 
 bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal& sol, dReal lowerbound, dReal upperbound) {
     dReal delta = a1*a1- 4*a0*a2;
-    if(delta<0) {
+    if(delta<-TINY2) {
         return false;
     }
+    delta = std::max(delta,0.);
     if(a2<0) {
         a2=-a2;
         a1=-a1;

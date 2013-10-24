@@ -102,8 +102,9 @@ void KinematicLimits::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vec
 
 
 std::pair<dReal,dReal> KinematicLimits::SddLimits(dReal s, dReal sd){
-    dReal alpha = -INF;
-    dReal beta = INF;
+    dReal hardbound = trajectory.duration/tunings.integrationtimestep/10;
+    dReal alpha = -hardbound;
+    dReal beta = hardbound;
     dReal sdsq = sd*sd;
     dReal a_alpha_i, a_beta_i, alpha_i, beta_i;
     std::vector<dReal> qd, qdd;

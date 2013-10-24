@@ -330,14 +330,18 @@ void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
 }
 
 
-int Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal reparamtimestep, Trajectory& restrajectory) {
+int Trajectory::Reparameterize(Constraints& constraints, Trajectory& restrajectory) {
 
-
-    if (profileslist.size() < 1)
+    if (constraints.resprofileslist.size() < 1)
         return -1;
 
     dReal scur, sdcur, snext, sdnext, sdnext2, sdd;
-    dReal dt = reparamtimestep;
+    dReal dt = constraints.tunings.reparamtimestep;
+
+    if(dt<=TINY && constraints.resduration>TINY) {
+        dt = constraints.tunings.discrtimestep*constraints.resduration/duration;
+    }
+
     dReal dtsq = dt*dt;
     dReal dtmod;
     Profile profile;
@@ -349,22 +353,22 @@ int Trajectory::Reparameterize(std::list<Profile>& profileslist, dReal reparamti
     dReal processedcursor = 0;
 
     // Reset currentindex
-    std::list<Profile>::iterator it = profileslist.begin();
-    while(it != profileslist.end()) {
+    std::list<Profile>::iterator it = constraints.resprofileslist.begin();
+    while(it != constraints.resprofileslist.end()) {
         it->currentindex = 0;
         it++;
     }
 
     scur = 0;
     dReal t = 0;
-    FindLowestProfile(scur, profile, tres, profileslist);
+    FindLowestProfile(scur, profile, tres, constraints.resprofileslist);
     sdcur = profile.Evald(tres);
 
     while(scur<duration) {
         sdd = profile.Evaldd(tres);
         sdnext = sdcur + dt*sdd;
         snext = scur + dt*sdcur + 0.5*dtsq*sdd;
-        if(snext >= scur+TINY && FindLowestProfile(snext,profile,tres,profileslist)) {
+        if(snext >= scur+TINY && FindLowestProfile(snext,profile,tres,constraints.resprofileslist)) {
             sdnext2 = profile.Evald(tres);
             dtmod = dt;
             // If discrepancy between integrated sd and profile's sd then

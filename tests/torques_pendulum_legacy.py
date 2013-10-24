@@ -48,8 +48,8 @@ robot.SetDOFVelocityLimits(100*vel_lim)
 
 ############################ Tunings ############################
 discrtimestep = 0.01
-integrationtimestep = 0.01
-reparamtimestep = 0.01
+integrationtimestep = discrtimestep
+reparamtimestep = 0 #auto
 passswitchpointnsteps = 5
 tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
 
@@ -59,17 +59,21 @@ tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep
 T=1
 [a1,b1,c1,a2,b2,c2] =  [3, -3, -3, 0, -2, -2] #[-3, 3, 3, -1, 0, -3]
 trajectorystring = "%f\n%d\n%f %f %f\n%f %f %f"%(T,2,c1,b1,a1,c2,b2,a2)
+trajectorystring =  """1.000000
+2
+0.0 0.0 -2.83958418094 1.08180684145
+0.0 0.0 0.449231695596 0.877459944237"""
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 
 ############################ Constraints ############################
 #------------------------------------------#
-taumin = array([-15,-10])
-taumax = array([15,10])
+#taumin = array([-15,-10])
+#taumax = array([15,10])
 vmax = array([0,0])
-#taumin = array([-5,-5])
-#taumax = array([5,5])
+taumin = array([-8,-4])
+taumax = array([8,4])
 #vmax = array([0,0])
 t0 = time.time()
 constraintstring = string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax]) + "\n" + string.join([str(a) for a in vmax])
@@ -81,7 +85,9 @@ constraintstring += TOPPopenravepy.ComputeTorquesConstraintsLegacy(robot,traj0,t
 t1 = time.time()
 x = TOPPbindings.TOPPInstance("TorqueLimits",constraintstring,trajectorystring,tuningsstring)
 t2 = time.time()
-ret = x.RunComputeProfiles(0,0)
+#ret = x.RunComputeProfiles(0,0)
+ret = x.RunVIP(0,1e-4)
+print ret
 t3 = time.time()
 
 if(ret == 1):
@@ -95,7 +101,7 @@ x.WriteSwitchPointsList()
 profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
 switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
 TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
-
+axis([0,1,0,100])
 
 ##################### Plotting the trajectories #####################
 if(ret == 1):

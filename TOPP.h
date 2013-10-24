@@ -63,7 +63,7 @@ public:
     Tunings(const std::string& tuningsstring);
     dReal discrtimestep; // Time step to discretize the trajectory, usually 0.01
     dReal integrationtimestep; // Time step to integrate the profiles, usually 0.01
-    dReal reparamtimestep; // Time step for the reparameterization, usually 0.01
+    dReal reparamtimestep; // Time step for the reparameterization, usually 0.01. If 0, set reparamtimestep so as to keep the number of discretization points unchanged
     int passswitchpointnsteps; // Number of steps to integrate from the switch point when assessing whether it's addressable
     dReal bisectionprecision; //Precision for the sd search, set to 0.01 by default
     dReal loweringcoef; //While addressing switchpoints, lower sd by loweringcoef. Set to 0.9

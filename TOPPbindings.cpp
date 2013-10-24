@@ -30,8 +30,8 @@ using namespace TOPP;
 class TOPPInstance {
 public:
     TOPPInstance(std::string problemtype, std::string
-            constraintsstring, std::string trajectorystring, 
-            std::string tuningsstring) {
+                 constraintsstring, std::string trajectorystring,
+                 std::string tuningsstring) {
         if (problemtype.compare("KinematicLimits")==0)
             pconstraints = new KinematicLimits(constraintsstring);
         else if (problemtype.compare("TorqueLimits")==0)
@@ -62,15 +62,14 @@ public:
 
 
     int ReparameterizeTrajectory(){
-        int ret = ptrajectory->Reparameterize(pconstraints->resprofileslist,
-                tunings.reparamtimestep, restrajectory);
+        int ret = ptrajectory->Reparameterize(*pconstraints, restrajectory);
         return ret;
     }
 
 
     int RunVIP(dReal sdbegmin, dReal sdbegmax){
         int ret = VIP(*pconstraints, *ptrajectory, tunings, sdbegmin, sdbegmax,
-                sdendmin, sdendmax);
+                      sdendmin, sdendmax);
         if(ret == 0) {
             sdendmin = -1;
             sdendmax = -1;
@@ -81,8 +80,8 @@ public:
     void WriteResultTrajectory(){
         std::stringstream ss;
         printf("WriteResultTrajectory: %d %f %d blah\n",
-                restrajectory.dimension, restrajectory.duration,
-                restrajectory.degree);
+               restrajectory.dimension, restrajectory.duration,
+               restrajectory.degree);
         restrajectory.Write(ss);
         restrajectorystring = ss.str();
     }
@@ -118,7 +117,7 @@ public:
 BOOST_PYTHON_MODULE(TOPPbindings) {
     using namespace boost::python;
     class_<TOPPInstance>("TOPPInstance",
-            init<std::string,std::string,std::string,std::string>())
+                         init<std::string,std::string,std::string,std::string>())
     .def_readonly("restrajectorystring", &TOPPInstance::restrajectorystring)
     .def_readonly("resprofilesliststring", &TOPPInstance::resprofilesliststring)
     .def_readonly("switchpointsliststring", &TOPPInstance::switchpointsliststring)
