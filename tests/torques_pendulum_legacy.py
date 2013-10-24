@@ -61,8 +61,8 @@ T=1
 trajectorystring = "%f\n%d\n%f %f %f\n%f %f %f"%(T,2,c1,b1,a1,c2,b2,a2)
 trajectorystring =  """1.000000
 2
-0.0 0.0 -2.83958418094 1.08180684145
-0.0 0.0 0.449231695596 0.877459944237"""
+0.0 0.0 0.200440827515 -0.132913533868
+0.0 0.0 -1.71157060946 1.19264863791"""
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
@@ -85,8 +85,8 @@ constraintstring += TOPPopenravepy.ComputeTorquesConstraintsLegacy(robot,traj0,t
 t1 = time.time()
 x = TOPPbindings.TOPPInstance("TorqueLimits",constraintstring,trajectorystring,tuningsstring)
 t2 = time.time()
-#ret = x.RunComputeProfiles(0,0)
-ret = x.RunVIP(0,1e-4)
+ret = x.RunComputeProfiles(0,0)
+#ret = x.RunVIP(0,1e-4)
 print ret
 t3 = time.time()
 

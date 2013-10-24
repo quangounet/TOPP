@@ -310,9 +310,9 @@ void QuadraticConstraints::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std
 std::pair<dReal,dReal> QuadraticConstraints::SddLimits(dReal s, dReal sd){
     dReal dtsq = tunings.integrationtimestep;
     dtsq = dtsq*dtsq;
-    dReal hardbound = trajectory.duration/dtsq/100;
-    dReal alpha = -hardbound;
-    dReal beta = hardbound;
+    dReal safetybound = tunings.discrtimestep/dtsq;
+    dReal alpha = -safetybound;
+    dReal beta = safetybound;
     dReal sdsq = sd*sd;
     std::vector<dReal> a, b, c;
 
@@ -323,8 +323,8 @@ std::pair<dReal,dReal> QuadraticConstraints::SddLimits(dReal s, dReal sd){
         if(std::abs(a[i])<TINY) {
             if(b[i]*sdsq+c[i]>0) {
                 // Constraint not satisfied
-                beta = -hardbound;
-                alpha = hardbound;
+                beta = -INF;
+                alpha = INF;
             }
             continue;
         }
@@ -595,7 +595,7 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
             dReal bob2 = constraints.SdLimitBobrow(sforward)-sdforward;
             dReal slopediff1 = std::abs(alphabackward-slope);
             dReal slopediff2 = std::abs(betaforward-slope);
-            std::cout << s << " " << bob1 << " " << bob2  << " " << slopediff1 << " " << slopediff2 << "\n";
+            //std::cout << s << " " << bob1 << " " << bob2  << " " << slopediff1 << " " << slopediff2 << "\n";
             if(bob1>=0 && bob2>=0) {
                 dReal score = slopediff1+slopediff2;
                 if(score<bestscore) {
