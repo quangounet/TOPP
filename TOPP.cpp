@@ -848,7 +848,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             break;
         }
         else if(zlajpah && testmvc && sdcur >= constraints.SdLimitCombined(scur)-TINY2) {
-            if(sdcur > constraints.SdLimitBobrow(scur)) {
+            if(constraints.SdLimitBobrow(scur)-constraints.SdLimitCombined(scur)<TINY2) {
                 slist.push_back(scur);
                 sdlist.push_back(sdcur);
                 sddlist.push_back(0);
@@ -1134,7 +1134,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
                 }
                 else if(res1 == -1) {
                     // Case b1
-                    std::cout << "End slide with exit (" <<sprev << "," << sdprev  <<  ")\n";
+                    //std::cout << "End slide with exit (" <<sprev << "," << sdprev  <<  ")\n";
                     break;
                 }
             }
@@ -1279,6 +1279,23 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
     if(ret==INT_BOTTOM) {
         std::cout << "BW reached 0\n";
         return 0;
+    }
+
+
+    // Add separation points between MVCBobrow and MVCCombined to zlajpahlist
+    bool active = false;
+    for(int i = 0; i<constraints.ndiscrsteps; i++) {
+        if(std::abs(constraints.mvcbobrow[i]-constraints.mvccombined[i])<TINY2) {
+            if(!active) {
+                active = true;
+            }
+        }
+        else{
+            if(active) {
+                active = false;
+                constraints.zlajpahlist.push_back(std::pair<dReal,dReal>(constraints.discrsvect[i],constraints.mvccombined[i]));
+            }
+        }
     }
 
     // Integrate forward from Zlajpah points

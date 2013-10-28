@@ -79,9 +79,9 @@ public:
 
     void WriteResultTrajectory(){
         std::stringstream ss;
-        printf("WriteResultTrajectory: %d %f %d blah\n",
-               restrajectory.dimension, restrajectory.duration,
-               restrajectory.degree);
+        // printf("WriteResultTrajectory: %d %f %d blah\n",
+        //        restrajectory.dimension, restrajectory.duration,
+        //        restrajectory.degree);
         restrajectory.Write(ss);
         restrajectorystring = ss.str();
     }

@@ -28,8 +28,10 @@ from numpy import *
 
 ion()
 
+#random.seed(0)
+
 ############################ Tunings ############################
-discrtimestep = 0.005
+discrtimestep = 0.001
 integrationtimestep = discrtimestep
 reparamtimestep = 0#auto
 passswitchpointnsteps = 5
@@ -46,31 +48,30 @@ tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep
 # p1v = [[0.3,1.3,1],[1,2,-1]]
 # p2v = [[1,0,1],[0.3,1.3,0]]
 # p3v = [[1,1,0],[1,1,1]]
-Tv = [0.5,0.5]
+# Tv = [0.5,0.5]
 
-ndof = 4
+ndof = 2
 p0v = [rand(ndof)*2*pi-pi]
 p1v = [rand(ndof)*2*pi-pi]
 p2v = [rand(ndof)*2*pi-pi]
 p3v = [rand(ndof)*2*pi-pi]
 Tv = [1]
 trajectorystring="""1
-4
-1.000000 10.373414 -4.707224 -2.346506
-1.000000 -1.122818 10.508739 -11.195961
-1.000000 -10.674742 7.488998 -0.971001
-1.000000 10.300799 -7.083564 -0.486469"""
-trajectorystring = TOPPpy.BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v)
+2
+1.000000 -4.476723 -4.127280 4.327536
+1.000000 -10.662396 12.189375 -4.581347"""
+#trajectorystring = TOPPpy.BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v)
 
 print trajectorystring
+
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 
 ############################ Constraints ############################
 #------------------------------------------#
-amax = ones(ndof)
-vmax = 2*ones(ndof)
+amax = 1*ones(ndof)
+vmax = 1*ones(ndof)
 t0 = time.time()
 constraintstring = string.join([str(v) for v in amax]) + "\n"
 constraintstring += string.join([str(v) for v in vmax])

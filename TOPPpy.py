@@ -269,7 +269,9 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
     for v in vmax:
         plot([0, Tmax], [-v, -v], '-.')
     if len(vmax) > 0:
-        Vmax = 1.2 * max(10,max(vmax))
+        Vmax = 1.2 * max(vmax)
+        if Vmax < 0.1:
+            Vmax = 10
         axis([0, Tmax, -Vmax, Vmax])
     title('Joint velocities')
     # Acceleration

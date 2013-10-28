@@ -95,7 +95,7 @@ void KinematicLimits::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vec
         qdp = (qd2[vp[i].second]-qd[vp[i].second])/delta;
         qddp = (qdd2[vp[i].second]-qdd[vp[i].second])/delta;
         slope = (-qddp*sd*sd)/((2*qdd[vp[i].second]+qdp)*sd);
-        std::cout << vp[i].second << " " << slope << "***\n";
+        //std::cout << vp[i].second << " " << slope << "***\n";
         slopesvector.push_back(slope);
     }
 }
