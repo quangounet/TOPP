@@ -28,11 +28,11 @@ from numpy import *
 
 ion()
 
-#random.seed(0)
+random.seed(0)
 
 ############################ Tunings ############################
 discrtimestep = 0.001
-integrationtimestep = discrtimestep
+integrationtimestep = 0#auto
 reparamtimestep = 0#auto
 passswitchpointnsteps = 5
 tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
@@ -60,6 +60,11 @@ trajectorystring="""1
 2
 1.000000 -4.476723 -4.127280 4.327536
 1.000000 -10.662396 12.189375 -4.581347"""
+
+# """1
+# 2
+# 1.000000 -4.476723 -4.127280 4.327536
+# 1.000000 -10.662396 12.189375 -4.581347"""
 #trajectorystring = TOPPpy.BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v)
 
 print trajectorystring
@@ -70,8 +75,8 @@ traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 ############################ Constraints ############################
 #------------------------------------------#
-amax = 1*ones(ndof)
-vmax = 1*ones(ndof)
+amax = 0.1*ones(ndof)
+vmax = 0.3*ones(ndof)
 t0 = time.time()
 constraintstring = string.join([str(v) for v in amax]) + "\n"
 constraintstring += string.join([str(v) for v in vmax])
@@ -105,7 +110,6 @@ if(ret == 1):
     TOPPpy.PlotKinematics(traj0,traj1,0.01,vmax,amax)
 
 
-print "\n--------------"
 print "Python preprocessing: ", t1-t0
 print "Building TOPP Instance: ", t2-t1
 print "Compute profiles: ", t3-t2

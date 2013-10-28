@@ -198,6 +198,11 @@ void Trajectory::FindChunkIndex(dReal s, int& index, dReal& remainder) {
         remainder = 0;
         return;
     }
+    if(s>=chunkcumulateddurationslist.back()) {
+        index = int(chunkslist.size())-1;
+        remainder = chunkslist.back().duration;
+        return;
+    }
     index = 0;
     while(it != chunkcumulateddurationslist.end() && s > *it) {
         index++;
@@ -338,7 +343,8 @@ int Trajectory::Reparameterize(Constraints& constraints, Trajectory& restrajecto
     dReal scur, sdcur, snext, sdnext, sdnext2, sdd;
     dReal dt = constraints.tunings.reparamtimestep;
 
-    if(dt<=TINY && constraints.resduration>TINY) {
+    // Set the reparam timestep automatically if it is initially set to 0
+    if(dt == 0 && constraints.resduration>TINY) {
         dt = constraints.tunings.discrtimestep*constraints.resduration/duration;
     }
 

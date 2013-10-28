@@ -140,6 +140,7 @@ public:
     std::vector<dReal> mvcbobrow;
     std::vector<dReal> mvccombined;
     bool hasvelocitylimits;
+    int maxrep; // Max number of reps to try integrating profiles (reduce integrationtimestep at each rep). Set to 1.
     std::vector<dReal> vmax;
 
     std::list<SwitchPoint> switchpointslist; // list of switch points

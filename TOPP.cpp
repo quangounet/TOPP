@@ -60,6 +60,18 @@ void Constraints::Preprocess(Trajectory& trajectory0, const Tunings& tunings0) {
     ComputeMVCBobrow();
     ComputeMVCCombined();
     FindSwitchPoints();
+
+    // Set the reparam timestep automatically if it is initially set to 0
+    dReal meanmvc = 0;
+    if(tunings.integrationtimestep == 0) {
+        for(int i=0; i<ndiscrsteps; i++) {
+            meanmvc += std::min(mvccombined[i],10.);
+        }
+        meanmvc /= ndiscrsteps;
+        meanmvc = std::min(1.,meanmvc);
+        tunings.integrationtimestep = tunings.discrtimestep/meanmvc;
+        std::cout << "\n--------------\nIntegration timestep: " << tunings.integrationtimestep << "\n";
+    }
 }
 
 
@@ -253,6 +265,7 @@ QuadraticConstraints::QuadraticConstraints(const std::string& constraintsstring)
     }
     nconstraints = int(avect.front().size());
     hasvelocitylimits =  VectorMax(vmax) > TINY;
+    maxrep = 1;
 }
 
 
@@ -445,7 +458,10 @@ bool Profile::Invert(dReal s,  dReal& t, bool searchbackward){
             return false;
         }
         dReal tres;
-        assert(SolveQuadraticEquation(svect[currentindex]-s,sdvect[currentindex],0.5*sddvect[currentindex],tres,0,integrationtimestep));
+        if(!SolveQuadraticEquation(svect[currentindex]-s,sdvect[currentindex],0.5*sddvect[currentindex],tres,0,integrationtimestep)) {
+            std::cout << "***************** Inversion warning: tres=" << tres << " while integrationtimestep= "<< integrationtimestep << "****************\n";
+            SolveQuadraticEquation(svect[currentindex]-s,sdvect[currentindex],0.5*sddvect[currentindex],tres,0,integrationtimestep);
+        }
         t = currentindex*integrationtimestep + tres;
         return true;
     }
@@ -1248,111 +1264,142 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
     Profile resprofile;
     int ret;
 
-
     t1 = std::chrono::system_clock::now();
 
-    // Compute the CLC
-    ret = ComputeLimitingCurves(constraints);
-    if(ret!=CLC_OK) {
-        std::cout << "CLC failed\n";
-        return 0;
-    }
+    bool integrateprofilesstatus = true;
 
-    // flags
-    bool testaboveexistingprofiles = true, testmvc = true, zlajpah = false;
+    for(int rep=0; rep<constraints.maxrep; rep++) {
 
-    // Integrate forward from s = 0
-    ret = IntegrateForward(constraints,0,sdbeg,constraints.tunings.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
-    if(resprofile.nsteps>1) {
-        constraints.resprofileslist.push_back(resprofile);
-    }
-    if(ret==INT_BOTTOM) {
-        std::cout << "FW reached 0\n";
-        return 0;
-    }
-
-    // Integrate backward from s = s_end
-    ret = IntegrateBackward(constraints,trajectory.duration,sdend,constraints.tunings.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
-    if(resprofile.nsteps>1) {
-        constraints.resprofileslist.push_back(resprofile);
-    }
-    if(ret==INT_BOTTOM) {
-        std::cout << "BW reached 0\n";
-        return 0;
-    }
-
-
-    // Add separation points between MVCBobrow and MVCCombined to zlajpahlist
-    bool active = false;
-    for(int i = 0; i<constraints.ndiscrsteps; i++) {
-        if(std::abs(constraints.mvcbobrow[i]-constraints.mvccombined[i])<TINY2) {
-            if(!active) {
-                active = true;
-            }
+        // Lower integrationtimestep
+        if(rep>0) {
+            constraints.tunings.integrationtimestep /= 3.3;
+            std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!! Try lower integration timestep: " << constraints.tunings.integrationtimestep << "!!!!!!!!!!!!!!!!!!!!!!!!\n";
         }
-        else{
-            if(active) {
-                active = false;
-                constraints.zlajpahlist.push_back(std::pair<dReal,dReal>(constraints.discrsvect[i],constraints.mvccombined[i]));
-            }
-        }
-    }
+        constraints.resprofileslist.resize(0);
+        constraints.zlajpahlist.resize(0);
 
-    // Integrate forward from Zlajpah points
-    zlajpah = true;
-    std::list<std::pair<dReal,dReal> >::iterator zit = constraints.zlajpahlist.begin();
-    while(zit!=constraints.zlajpahlist.end()) {
-        dReal zs = zit->first;
-        dReal zsd = zit->second;
-        ret = IntegrateForward(constraints,zs,zsd,constraints.tunings.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
+        // Compute the CLC
+        ret = ComputeLimitingCurves(constraints);
+        if(ret!=CLC_OK) {
+            std::cout << "CLC failed\n";
+            integrateprofilesstatus = false;
+            continue;
+        }
+
+        // flags
+        bool testaboveexistingprofiles = true, testmvc = true, zlajpah = false;
+
+        // Integrate forward from s = 0
+        ret = IntegrateForward(constraints,0,sdbeg,constraints.tunings.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
+        if(resprofile.nsteps>1) {
+            constraints.resprofileslist.push_back(resprofile);
+        }
+        if(ret==INT_BOTTOM) {
+            std::cout << "FW reached 0\n";
+            integrateprofilesstatus = false;
+            continue;
+        }
+
+        // Integrate backward from s = s_end
+        ret = IntegrateBackward(constraints,trajectory.duration,sdend,constraints.tunings.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
         if(resprofile.nsteps>1) {
             constraints.resprofileslist.push_back(resprofile);
         }
         if(ret==INT_BOTTOM) {
             std::cout << "BW reached 0\n";
-            return 0;
+            integrateprofilesstatus = false;
+            continue;
         }
-        zit++;
+
+        // Add separation points between MVCBobrow and MVCCombined to zlajpahlist
+        bool active = false;
+        for(int i = 0; i<constraints.ndiscrsteps; i++) {
+            if(std::abs(constraints.mvcbobrow[i]-constraints.mvccombined[i])<TINY2) {
+                if(!active) {
+                    active = true;
+                }
+            }
+            else{
+                if(active) {
+                    active = false;
+                    constraints.zlajpahlist.push_back(std::pair<dReal,dReal>(constraints.discrsvect[i],constraints.mvccombined[i]));
+                }
+            }
+        }
+
+        // Integrate forward from Zlajpah points
+        zlajpah = true;
+        std::list<std::pair<dReal,dReal> >::iterator zit = constraints.zlajpahlist.begin();
+        while(zit!=constraints.zlajpahlist.end()) {
+            dReal zs = zit->first;
+            dReal zsd = zit->second;
+            ret = IntegrateForward(constraints,zs,zsd,constraints.tunings.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
+            if(resprofile.nsteps>1) {
+                constraints.resprofileslist.push_back(resprofile);
+            }
+            if(ret==INT_BOTTOM) {
+                std::cout << "BW reached 0\n";
+                integrateprofilesstatus = false;
+                continue;
+            }
+            zit++;
+        }
+
+        // Reset currentindex
+        std::list<Profile>::iterator it = constraints.resprofileslist.begin();
+        while(it != constraints.resprofileslist.end()) {
+            it->currentindex = 0;
+            it++;
+        }
+
+        // Estimate resulting trajectory duration
+        constraints.resduration = 0;
+        Profile profile;
+        dReal ds = tunings.discrtimestep/10;
+        dReal sdprev,sdnext;
+        dReal tres;
+        if(FindLowestProfile(0,profile,tres,constraints.resprofileslist)) {
+            sdprev = profile.Evald(tres);
+        }
+        else{
+            std::cout << "CLC discontinuous\n";
+            integrateprofilesstatus = false;
+            continue;
+        }
+        bool clcdiscontinuous = false;
+        for(dReal s=ds; s<=trajectory.duration; s+=ds) {
+            if(FindLowestProfile(s,profile,tres,constraints.resprofileslist)) {
+                sdnext = profile.Evald(tres);
+                constraints.resduration += 2*ds/(sdprev+sdnext);
+                sdprev = sdnext;
+            }
+            else{
+                clcdiscontinuous = true;
+                break;
+            }
+        }
+        if(clcdiscontinuous) {
+            std::cout << "CLC discontinuous\n";
+            integrateprofilesstatus = false;
+            continue;
+        }
+
+        integrateprofilesstatus = true;
+        break;
+
+    }
+
+
+    if(!integrateprofilesstatus) {
+        return 0;
     }
 
     t2 = std::chrono::system_clock::now();
 
-    // Reset currentindex
-    std::list<Profile>::iterator it = constraints.resprofileslist.begin();
-    while(it != constraints.resprofileslist.end()) {
-        it->currentindex = 0;
-        it++;
-    }
-
-    // Estimate resulting trajectory duration
-    constraints.resduration = 0;
-    Profile profile;
-    dReal ds = tunings.discrtimestep/10;
-    dReal sdprev,sdnext;
-    dReal tres;
-    if(FindLowestProfile(0,profile,tres,constraints.resprofileslist)) {
-        sdprev = profile.Evald(tres);
-    }
-    else{
-        return 0;
-    }
-    for(dReal s=ds; s<=trajectory.duration; s+=ds) {
-        if(FindLowestProfile(s,profile,tres,constraints.resprofileslist)) {
-            sdnext = profile.Evald(tres);
-            constraints.resduration += 2*ds/(sdprev+sdnext);
-            sdprev = sdnext;
-        }
-        else{
-            return 0;
-        }
-    }
-
-    t3 = std::chrono::system_clock::now();
-
-    d1 = t1-t0;
-    d2 = t2-t1;
-    d3 = t3-t2;
-    dtot = t3-t0;
+    // d1 = t1-t0;
+    // d2 = t2-t1;
+    // d3 = t3-t2;
+    // dtot = t3-t0;
 
     //std::cout << "Constraints preprocessing: " << d1.count() << "\n";
     //std::cout << "Profiles calculation: " <<  d2.count() << "\n";
@@ -1502,6 +1549,9 @@ bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal& sol, dReal lowe
     sol = (-a1-sqrt(delta))/(2*a2);
     if(sol>=lowerbound-TINY2 && sol<=upperbound+TINY2) {
         return true;
+    }
+    if(sol>upperbound+TINY2) {
+        return false;
     }
     sol = (-a1+sqrt(delta))/(2*a2);
     return sol>=lowerbound-TINY2 && sol<=upperbound+TINY2;

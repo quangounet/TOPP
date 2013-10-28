@@ -58,6 +58,7 @@ public:
     std::list<dReal> chunkdurationslist;
     std::list<dReal> chunkcumulateddurationslist;
 
+    // Return the index of the chunk that contains s, remainder indicates the s-time elapsed between the beginning of that chunk and s
     void FindChunkIndex(dReal s, int& index, dReal& remainder);
     void Eval(dReal s, std::vector<dReal>&q);
     void Evald(dReal s, std::vector<dReal>&qd);
