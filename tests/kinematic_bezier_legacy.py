@@ -33,7 +33,7 @@ ion()
 #random.seed(0)
 
 ############################ Tunings ############################
-discrtimestep = 0.002
+discrtimestep = 0.005
 integrationtimestep = 0#auto
 reparamtimestep = 0#auto
 passswitchpointnsteps = 5
@@ -90,8 +90,8 @@ traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 ############################ Constraints ############################
 #------------------------------------------#
-vmax = ones(ndof)
-amax = 0.5*ones(ndof)
+vmax = 0.2*ones(ndof)
+amax = 0.2*ones(ndof)
 t0 = time.time()
 constraintstring = string.join([str(v) for v in amax]) + "\n"
 constraintstring += string.join([str(v) for v in vmax])

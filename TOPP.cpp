@@ -476,11 +476,10 @@ bool Profile::Invert(dReal s,  dReal& t, bool searchbackward){
             return false;
         }
         dReal tres;
-        bool solved = SolveQuadraticEquation(svect[currentindex-1]-s,sdvect[currentindex-1],0.5*sddvect[currentindex-1],tres,0,integrationtimestep);
-        if(!solved) {
+        if(!SolveQuadraticEquation(svect[currentindex-1]-s,sdvect[currentindex-1],0.5*sddvect[currentindex-1],tres,0,integrationtimestep)) {
+            //std::cout << "***************** Inversion warning: tres=" << tres << " while integrationtimestep= "<< integrationtimestep << "****************\n";
             SolveQuadraticEquation(svect[currentindex-1]-s,sdvect[currentindex-1],0.5*sddvect[currentindex-1],tres,0,integrationtimestep);
         }
-        assert(solved);
         t = (currentindex-1)*integrationtimestep + tres;
         return true;
     }
