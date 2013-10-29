@@ -70,7 +70,7 @@ void Constraints::Preprocess(Trajectory& trajectory0, const Tunings& tunings0) {
         meanmvc /= ndiscrsteps;
         meanmvc = std::min(1.,meanmvc);
         tunings.integrationtimestep = tunings.discrtimestep/meanmvc;
-        std::cout << "\n--------------\nIntegration timestep: " << tunings.integrationtimestep << "\n";
+        //std::cout << "\n--------------\nIntegration timestep: " << tunings.integrationtimestep << "\n";
     }
 }
 
@@ -459,7 +459,7 @@ bool Profile::Invert(dReal s,  dReal& t, bool searchbackward){
         }
         dReal tres;
         if(!SolveQuadraticEquation(svect[currentindex]-s,sdvect[currentindex],0.5*sddvect[currentindex],tres,0,integrationtimestep)) {
-            std::cout << "***************** Inversion warning: tres=" << tres << " while integrationtimestep= "<< integrationtimestep << "****************\n";
+            //std::cout << "***************** Inversion warning: tres=" << tres << " while integrationtimestep= "<< integrationtimestep << "****************\n";
             SolveQuadraticEquation(svect[currentindex]-s,sdvect[currentindex],0.5*sddvect[currentindex],tres,0,integrationtimestep);
         }
         t = currentindex*integrationtimestep + tres;
@@ -1268,12 +1268,13 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
 
     bool integrateprofilesstatus = true;
 
+    std::string message;
     for(int rep=0; rep<constraints.maxrep; rep++) {
 
         // Lower integrationtimestep
         if(rep>0) {
             constraints.tunings.integrationtimestep /= 3.3;
-            std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!! Try lower integration timestep: " << constraints.tunings.integrationtimestep << "!!!!!!!!!!!!!!!!!!!!!!!!\n";
+            //std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!! Try lower integration timestep: " << constraints.tunings.integrationtimestep << "!!!!!!!!!!!!!!!!!!!!!!!!\n";
         }
         constraints.resprofileslist.resize(0);
         constraints.zlajpahlist.resize(0);
@@ -1281,7 +1282,7 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
         // Compute the CLC
         ret = ComputeLimitingCurves(constraints);
         if(ret!=CLC_OK) {
-            std::cout << "CLC failed\n";
+            message = "CLC failed\n";
             integrateprofilesstatus = false;
             continue;
         }
@@ -1295,7 +1296,7 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
             constraints.resprofileslist.push_back(resprofile);
         }
         if(ret==INT_BOTTOM) {
-            std::cout << "FW reached 0\n";
+            message = "FW reached 0\n";
             integrateprofilesstatus = false;
             continue;
         }
@@ -1306,7 +1307,7 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
             constraints.resprofileslist.push_back(resprofile);
         }
         if(ret==INT_BOTTOM) {
-            std::cout << "BW reached 0\n";
+            message = "BW reached 0\n";
             integrateprofilesstatus = false;
             continue;
         }
@@ -1330,6 +1331,7 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
         // Integrate forward from Zlajpah points
         zlajpah = true;
         std::list<std::pair<dReal,dReal> >::iterator zit = constraints.zlajpahlist.begin();
+        bool zlajpaherror = false;
         while(zit!=constraints.zlajpahlist.end()) {
             dReal zs = zit->first;
             dReal zsd = zit->second;
@@ -1338,11 +1340,15 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
                 constraints.resprofileslist.push_back(resprofile);
             }
             if(ret==INT_BOTTOM) {
-                std::cout << "BW reached 0\n";
-                integrateprofilesstatus = false;
-                continue;
+                zlajpaherror = true;
+                break;
             }
             zit++;
+        }
+        if(zlajpaherror) {
+            message = "Zlajpah error";
+            integrateprofilesstatus = false;
+            continue;
         }
 
         // Reset currentindex
@@ -1362,7 +1368,7 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
             sdprev = profile.Evald(tres);
         }
         else{
-            std::cout << "CLC discontinuous\n";
+            message = "CLC discontinuous";
             integrateprofilesstatus = false;
             continue;
         }
@@ -1379,7 +1385,7 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
             }
         }
         if(clcdiscontinuous) {
-            std::cout << "CLC discontinuous\n";
+            message = "CLC discontinuous";
             integrateprofilesstatus = false;
             continue;
         }
@@ -1391,6 +1397,7 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
 
 
     if(!integrateprofilesstatus) {
+        std::cout << message << "\n";
         return 0;
     }
 

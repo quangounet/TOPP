@@ -290,3 +290,15 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
         Amax = 1.2 * max(amax)
         axis([0, Tmax, -Amax, Amax])
     title('Joint accelerations')
+
+
+def string2p(s):
+    lines = [l.strip(" \n") for l in s.split('\n')]
+    l = [float(x) for x in lines[1].split(' ')]
+    l.pop(0)
+    ndof = int(l[0])
+    p0 = [l[1:ndof+1]]
+    p1 = [l[ndof+2:2*(ndof+1)]]
+    p2 = [l[2*(ndof+1)+1:3*(ndof+1)]]
+    p3 = [l[3*(ndof+1)+1:4*(ndof+1)]]
+    return [p0,p1,p2,p3]

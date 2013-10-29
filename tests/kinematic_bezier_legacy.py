@@ -26,12 +26,14 @@ from pylab import *
 from numpy import *
 
 
+plotting = True
+
 ion()
 
-random.seed(0)
+#random.seed(0)
 
 ############################ Tunings ############################
-discrtimestep = 0.001
+discrtimestep = 0.002
 integrationtimestep = 0#auto
 reparamtimestep = 0#auto
 passswitchpointnsteps = 5
@@ -50,7 +52,7 @@ tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep
 # p3v = [[1,1,0],[1,1,1]]
 # Tv = [0.5,0.5]
 
-ndof = 2
+ndof = 20
 p0v = [rand(ndof)*2*pi-pi]
 p1v = [rand(ndof)*2*pi-pi]
 p2v = [rand(ndof)*2*pi-pi]
@@ -67,7 +69,20 @@ trajectorystring="""1
 # 1.000000 -10.662396 12.189375 -4.581347"""
 #trajectorystring = TOPPpy.BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v)
 
-print trajectorystring
+# trajfile = 'testfiles/traj-10-0'
+# h = open(trajfile,'r')
+# s = h.read()
+# h.close()      
+# [p0v,p1v,p2v,p3v] = TOPPpy.string2p(s)
+# Tv = [1]
+trajectorystring = TOPPpy.BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v)
+
+
+trajectorystring = """1
+2
+1.000000 4.351032 -14.383305 5.595961
+1.000000 2.689188 -3.397875 -0.546376"""
+
 
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
@@ -75,8 +90,8 @@ traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 ############################ Constraints ############################
 #------------------------------------------#
-amax = 0.1*ones(ndof)
-vmax = 0.3*ones(ndof)
+vmax = ones(ndof)
+amax = 0.5*ones(ndof)
 t0 = time.time()
 constraintstring = string.join([str(v) for v in amax]) + "\n"
 constraintstring += string.join([str(v) for v in vmax])
@@ -100,14 +115,16 @@ x.WriteProfilesList()
 x.WriteSwitchPointsList()
 profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
 switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
-TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
+if plotting:
+    TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
 
 
 ##################### Plotting the trajectories #####################
 if(ret == 1):
     x.WriteResultTrajectory()
     traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
-    TOPPpy.PlotKinematics(traj0,traj1,0.01,vmax,amax)
+    #if plotting:
+        #TOPPpy.PlotKinematics(traj0,traj1,0.01,vmax,amax)
 
 
 print "Python preprocessing: ", t1-t0
@@ -119,23 +136,7 @@ print "Trajectory duration (estimate): ", x.resduration
 if(ret == 1):
     print "Trajectory duration: ", traj1.duration
     print "Trajectory 0 nsteps: ", len(traj0.chunkslist)
-    print "Trajectory 1 nsteps: ", len(traj1.chunkslist)
 
 
-# data=loadtxt('/home/cuong/Downloads/mintos/examples/res')
-# tvect = data[:,0]
-# xvect = data[:,2]
-# yvect = data[:,3]
-
-# dt2 = tvect[1]-tvect[0]
-# figure(0)
-# plot(tvect,xvect,'m')
-# plot(tvect,yvect,'c')
-# figure(1)
-# plot(tvect[:-1],diff(xvect)/dt2,'m')
-# plot(tvect[:-1],diff(yvect)/dt2,'c')
-# figure(2)
-# plot(tvect[:-2],diff(diff(xvect))/dt2/dt2,'m')
-# plot(tvect[:-2],diff(diff(yvect))/dt2/dt2,'c')
 
 raw_input()
