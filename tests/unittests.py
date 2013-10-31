@@ -30,7 +30,7 @@ taumax = array([+8, +4])
 vmax = [0, 0]
 discrtimestep = 0.01
 integrationtimestep = discrtimestep
-reparamtimestep = 0 #auto
+reparamtimestep = 0  # auto
 passswitchpointnsteps = 5
 robotfile = "../robots/twodof.robot.xml"
 dtplot = 0.01
@@ -48,30 +48,9 @@ def append_traj(traj_list, traj_str, sd_min=0., sd_max=1e-4,
 # Traversable test trajectories
 #
 
-traversable_trajs = []
-
-#append_traj(traversable_trajs, """1.0
-#2
-#-3 -3 3
-#-2 -2 0""")
-#
-#append_traj(traversable_trajs, """1.0
-#2
-#3 3 -3
-#-3 0 1""")
-
-#
-# Non-traversable test trajectories
-#
-
 tau84 = array([8.0001, 4.0001])
 
-impossible_trajs = []
-
-append_traj(impossible_trajs, """1.000000
-2
-0.0 -1.4059993022 -6.56388799235 4.82829464097
-0.0 0.0 0.0 0.0""", tauref=tau84)
+traversable_trajs = []
 
 append_traj(traversable_trajs, """1.000000
 2
@@ -83,6 +62,17 @@ append_traj(traversable_trajs, """1.000000
 0.0 0.0 0.195445036188 -0.127917742541
 0.0 0.0 -2.07278156403 1.55385959248""", tauref=tau84)
 
+
+#
+# Non-traversable test trajectories
+#
+
+impossible_trajs = []
+
+append_traj(impossible_trajs, """1.000000
+2
+0.0 -1.4059993022 -6.56388799235 4.82829464097
+0.0 0.0 0.0 0.0""", tauref=tau84)
 
 append_traj(impossible_trajs, """1.000000
 2
@@ -98,6 +88,11 @@ append_traj(impossible_trajs, """1.000000
 2
 0.0 0.0 11.0005555849 -7.9710025345
 0.0 0.0 0.232496359281 -0.127969971675""", tauref=tau84)
+
+append_traj(impossible_trajs, """0.985516
+2
+0.0 -0.996909732549
+0.0 -0.0785556181874""", tauref=tau84)
 
 
 #
@@ -159,24 +154,21 @@ class TorquePendulumExec(unittest.TestCase):
         self.t3 = time.time()
         if self.ret == 1:
             self.topp.ReparameterizeTrajectory()
-            print "---- Time duration =",self.topp.resduration
+            print "---- Time duration =", self.topp.resduration
         else:
             print "---- Impossible from (0,0)"
         self.t4 = time.time()
-
-
 
         # run VIP as well
         self.topp = TOPPInstance(self.constraints_type,
                                  self.constraintstring,
                                  traj_str,
                                  self.tuningsstring)
-        self.ret_vip = self.topp.RunVIP(sd_min, sd_max)        
+        self.ret_vip = self.topp.RunVIP(sd_min, sd_max)
         self.sd_end_min = self.topp.sdendmin
         self.sd_end_max = self.topp.sdendmax
         print "---- Ret_vip =", self.ret_vip,
         print "and sd:", (self.sd_end_min, self.sd_end_max)
-
 
     def print_comp_times(self):
         print "Python preprocessing: ", (self.t1 - self.t0)
@@ -211,7 +203,6 @@ class TorquePendulumExec(unittest.TestCase):
             self.run_topp(*trajuple)
             self.assertEqual(self.ret, 1)
             self.assertNotEqual(self.ret_vip, 0)
-
 
     def test_nfw(self):
         for i, trajuple in enumerate(impossible_trajs):

@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import pylab
 from pylab import array, double, gca, plot, figure, clf, hold, axis, title
 
 import TOPPbindings
@@ -28,28 +29,17 @@ from Trajectory import NoTrajectoryFound
 ################### Public interface ######################
 
 class Tunings(object):
-    def __init__(self, dt, mvc_dt=None, integ_dt=None, sd_prec=None,
-                 switchpoint_steps=20, reparam_dt=None):
-        """
-
-        mvc_dt -- time step for discretizing the MVC
-        integ_dt -- time step for integrating velocity profiles
-        sd_prec -- precision for sdot search around switch points
-        switchpoint_steps -- number of time steps to integrate around dynamic
-                             singularities
-        reparam_dt -- time step for reparametrization
-
-        """
+    def __init__(self, dt, mvc_dt=None, integ_dt=None, switchpoint_steps=5,
+                 reparam_dt=None):
         self.mvc_tstep = mvc_dt if mvc_dt else dt
         self.integ_tstep = integ_dt if integ_dt else dt
         self.reparam_tstep = reparam_dt if reparam_dt else dt
-        self.sd_prec = sd_prec if sd_prec else dt
         self.switchpoint_steps = switchpoint_steps
 
     def __str__(self):
-        return "%f %f %f %d %f" % (
-            self.mvc_tstep, self.integ_tstep, self.sd_prec,
-            self.switchpoint_steps, self.reparam_tstep)
+        return "%f %f %f %d" % (
+            self.mvc_tstep, self.integ_tstep, self.reparam_tstep,
+            self.switchpoint_steps)
 
 
 class RaveTorqueInstance(object):
@@ -61,8 +51,11 @@ class RaveTorqueInstance(object):
 
         buffsize = 200000
         args = rave_robot, traj, tau_min, tau_max, tunings.mvc_tstep
-        constring = vect2str(v_max)
-        constring += TOPPopenravepy.ComputeTorquesConstraints(*args)
+        v_max = pylab.zeros(2)
+        constring = vect2str(tau_min) + "\n"
+        constring += vect2str(tau_max) + "\n"
+        constring += vect2str(v_max)
+        constring += TOPPopenravepy.ComputeTorquesConstraintsLegacy(*args)
 
         assert len(constring) < buffsize, \
             "%d is bigger than buffer size" % len(constring)
@@ -82,7 +75,6 @@ class RaveTorqueInstance(object):
             print "qd(1.0) =", self.traj.Evald(1)
             print "--"
             print ""
-            raw_input()
 
         self.solver = TOPPbindings.TOPPInstance(
             "TorqueLimits", constring, str(self.traj), str(self.tunings))
@@ -106,15 +98,15 @@ class RaveTorqueInstance(object):
             raise NoTrajectoryFound
 
         print "**** all right, got a solution with return code", return_code
-        print "sd_min =", sd_min
-        print "sd_max =", sd_max
-        print "traj:", str(self.traj)
+        print "    sd_min =", sd_min
+        print "    sd_max =", sd_max
+        #print "traj:", str(self.traj)
 
         sd_end_min = self.solver.sdendmin
         sd_end_max = self.solver.sdendmax
-        print "sd_end_min =", sd_end_min
-        print "sd_end_max =", sd_end_max
-        assert False
+        print "    sd_end_min =", sd_end_min
+        print "    sd_end_max =", sd_end_max
+        #assert False
 
         return (sd_end_min, sd_end_max)
 
@@ -297,8 +289,8 @@ def string2p(s):
     l = [float(x) for x in lines[1].split(' ')]
     l.pop(0)
     ndof = int(l[0])
-    p0 = [l[1:ndof+1]]
-    p1 = [l[ndof+2:2*(ndof+1)]]
-    p2 = [l[2*(ndof+1)+1:3*(ndof+1)]]
-    p3 = [l[3*(ndof+1)+1:4*(ndof+1)]]
-    return [p0,p1,p2,p3]
+    p0 = [l[1:ndof + 1]]
+    p1 = [l[ndof + 2:2 * (ndof + 1)]]
+    p2 = [l[2 * (ndof + 1) + 1:3 * (ndof + 1)]]
+    p3 = [l[3 * (ndof + 1) + 1:4 * (ndof + 1)]]
+    return [p0, p1, p2, p3]

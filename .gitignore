@@ -3,3 +3,4 @@ TOPPbindings.so
 *.pyc
 *.o
 *~
+timeopt
