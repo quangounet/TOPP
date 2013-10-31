@@ -96,8 +96,11 @@ t3 = time.time()
 print x.sdendmin
 print x.sdendmax
 
-if(ret == 1) and False:
-    x.ReparameterizeTrajectory()
+print x.sdendmin
+print x.sdendmax
+
+# if(ret == 1):
+#     x.ReparameterizeTrajectory()
 
 t4 = time.time()
 
@@ -109,23 +112,24 @@ switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
 TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
 axis([0,1,0,100])
 
+
 ##################### Plotting the trajectories #####################
-if(ret == 1) and False:
-    x.WriteResultTrajectory()
-    traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
-    dtplot = 0.01
-    TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax)
-    TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)
+# if(ret == 1):
+#     x.WriteResultTrajectory()
+#     traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
+#     dtplot = 0.01
+#     TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax)
+#     TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)
 
 
-print "\n--------------"
-print "Python preprocessing: ", t1-t0
-print "Building TOPP Instance: ", t2-t1
-print "Compute profiles: ", t3-t2
-print "Reparameterize trajectory: ", t4-t3
-print "Total: ", t4-t0
-if(ret == 1) and False:
-    print "Trajectory duration (estimate): ", x.resduration
-    print "Trajectory duration: ", traj1.duration
+# print "\n--------------"
+# print "Python preprocessing: ", t1-t0
+# print "Building TOPP Instance: ", t2-t1
+# print "Compute profiles: ", t3-t2
+# print "Reparameterize trajectory: ", t4-t3
+# print "Total: ", t4-t0
+# if(ret == 1):
+#     print "Trajectory duration (estimate): ", x.resduration
+#     print "Trajectory duration: ", traj1.duration
 
-raw_input()
+#raw_input()
