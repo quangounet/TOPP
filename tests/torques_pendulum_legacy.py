@@ -59,10 +59,10 @@ tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep
 T=1
 [a1,b1,c1,a2,b2,c2] =  [3, -3, -3, 0, -2, -2] #[-3, 3, 3, -1, 0, -3]
 trajectorystring = "%f\n%d\n%f %f %f\n%f %f %f"%(T,2,c1,b1,a1,c2,b2,a2)
-trajectorystring =  """0.985516
+trajectorystring =  """1.000000
 2
-0.0 -0.996909732549
-0.0 -0.0785556181874"""
+0.0 0.280641438732 -1.38946387942 0.84562395633
+0.0 3.46940504119 -10.3267357647 5.62007589178"""
 
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
@@ -70,17 +70,12 @@ traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 ############################ Constraints ############################
 #------------------------------------------#
-#taumin = array([-15,-10])
-#taumax = array([15,10])
 vmax = array([0,0])
 taumin = array([-11,-7])
 taumax = array([11,7])
-#vmax = array([0,0])
 t0 = time.time()
 constraintstring = string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax]) + "\n" + string.join([str(a) for a in vmax])
-print str(traj0)
 constraintstring += TOPPopenravepy.ComputeTorquesConstraintsLegacy(robot,traj0,taumin,taumax,discrtimestep)
-print "len(cstring) =", len(constraintstring)
 
 #------------------------------------------#
 
@@ -93,11 +88,8 @@ t2 = time.time()
 ret = x.RunVIP(0,1e-4)
 print ret
 t3 = time.time()
-print x.sdendmin
-print x.sdendmax
-
-print x.sdendmin
-print x.sdendmax
+print "sdendmin =", x.sdendmin
+print "sdendmax =", x.sdendmax
 
 # if(ret == 1):
 #     x.ReparameterizeTrajectory()

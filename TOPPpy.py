@@ -51,10 +51,9 @@ class RaveTorqueInstance(object):
 
         buffsize = 200000
         args = rave_robot, traj, tau_min, tau_max, tunings.mvc_tstep
-        v_max = pylab.zeros(2)
         constring = vect2str(tau_min) + "\n"
         constring += vect2str(tau_max) + "\n"
-        constring += vect2str(v_max)
+        constring += vect2str(pylab.zeros(2))  # vmax
         constring += TOPPopenravepy.ComputeTorquesConstraintsLegacy(*args)
 
         assert len(constring) < buffsize, \
