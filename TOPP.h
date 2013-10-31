@@ -154,7 +154,7 @@ public:
 
     Constraints(){
     }
-    virtual void Preprocess(Trajectory& trajectory, const Tunings &tunings);
+    virtual void Preprocess(Trajectory& trajectory, Tunings &tunings);
 
     // Discretize the time interval
     virtual void Discretize();

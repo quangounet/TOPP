@@ -53,8 +53,12 @@ Tunings::Tunings(const std::string& tuningsstring) {
 ////////////////////////////////////////////////////////////////////
 
 
-void Constraints::Preprocess(Trajectory& trajectory0, const Tunings& tunings0) {
+void Constraints::Preprocess(Trajectory& trajectory0, Tunings& tunings0) {
     trajectory = trajectory0;
+    // Change discrtimestep so as it becomes a divisor of trajectory duration 
+    int ndiscrsteps = int((trajectory.duration+1e-10)/tunings0.discrtimestep);
+    tunings0.discrtimestep = trajectory.duration/ndiscrsteps;
+    //std::cout << tunings0.discrtimestep << "\n";
     tunings = tunings0;
     Discretize();
     ComputeMVCBobrow();
