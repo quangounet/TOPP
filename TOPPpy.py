@@ -98,15 +98,15 @@ class RaveTorqueInstance(object):
             raise NoTrajectoryFound
 
         print "**** all right, got a solution with return code", return_code
-        print "sd_min =", sd_min
-        print "sd_max =", sd_max
-        print "traj:", str(self.traj)
+        print "    sd_min =", sd_min
+        print "    sd_max =", sd_max
+        #print "traj:", str(self.traj)
 
         sd_end_min = self.solver.sdendmin
         sd_end_max = self.solver.sdendmax
-        print "sd_end_min =", sd_end_min
-        print "sd_end_max =", sd_end_max
-        assert False
+        print "    sd_end_min =", sd_end_min
+        print "    sd_end_max =", sd_end_max
+        #assert False
 
         return (sd_end_min, sd_end_max)
 
