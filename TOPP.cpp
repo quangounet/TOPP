@@ -1421,6 +1421,10 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
 
 
 int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbegmin, dReal sdbegmax, dReal& sdendmin, dReal& sdendmax){
+    if (trajectory.duration <= 0) {
+        std::cout << "[TOPP] Warning: trajectory duration is <= 0\n";
+        return 0;
+    }
 
     constraints.Preprocess(trajectory,tunings);
     if(VectorMin(constraints.mvcbobrow) <= TINY) {
