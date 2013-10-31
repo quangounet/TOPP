@@ -40,60 +40,32 @@ constraints_type = "QuadraticConstraints"
 def append_traj(traj_list, traj_str, tauref, sd_min=0., sd_max=1e-4):
     traj_list.append((traj_str, sd_min, sd_max, +tauref, -tauref))
 
-#
-# Traversable test trajectories
-#
-
 tau_8_4 = array([8.0001, 4.0001])
 tau_11_7 = array([11.0001, 7.0001])
 
 traversable_trajs = []
-
 append_traj(traversable_trajs, """1.000000
 2
-0.0 0.0 0.200440827515 -0.132913533868
-0.0 0.0 -1.71157060946 1.19264863791""", tau_8_4)
-
+0.0 0.280641438732 -1.38946387942 0.84562395633
+0.0 3.46940504119 -10.3267357647 5.62007589178""", tau_11_7)
 append_traj(traversable_trajs, """1.000000
 2
-0.0 0.0 0.195445036188 -0.127917742541
-0.0 0.0 -2.07278156403 1.55385959248""", tau_8_4)
-
+0.0 -0.420982931761 -1.66533453694e-16 1.11022302463e-16
+0.0 -0.630425778814 1.66533453694e-16 -2.22044604925e-16""", tau_11_7)
 append_traj(traversable_trajs, """1.000000
 2
-0.0 0.0935471462441 -1.10530824184 0.748562611233
-0.0 1.15646834706 -4.94523847985 2.55151530108""", tau_11_7)
-
-#
-# Non-traversable test trajectories
-#
+0.0 -0.626567074367 -1.66533453694e-16
+0.0 -0.458558522489 0.0""", tau_11_7)
 
 impossible_trajs = []
-
-append_traj(impossible_trajs, """1.000000
-2
-0.0 -1.4059993022 -6.56388799235 4.82829464097
-0.0 0.0 0.0 0.0""", tau_8_4)
-
-append_traj(impossible_trajs, """1.000000
-2
-0.0 0.0 -2.83958418094 1.08180684145
-0.0 0.0 0.449231695596 0.877459944237""", tau_8_4)
-
 append_traj(impossible_trajs, """1.000000
 2
 0.0 0.0 9.6622280813 -6.6326750309
 0.0 0.0 0.289254321757 -0.184727934151""", tau_8_4)
-
 append_traj(impossible_trajs, """1.000000
 2
 0.0 0.0 11.0005555849 -7.9710025345
 0.0 0.0 0.232496359281 -0.127969971675""", tau_8_4)
-
-append_traj(impossible_trajs, """0.985516
-2
-0.0 -0.996909732549
-0.0 -0.0785556181874""", tau_8_4)
 
 
 #
@@ -104,7 +76,6 @@ class TorquePendulumExec(unittest.TestCase):
     def setUp(self):
         self.discrtimestep = discrtimestep
         self.dtplot = dtplot
-        self.vmax = vmax
         self.constraints_type = constraints_type
         self.env = Environment()  # create openrave environment
         self.env.Load(robotfile)
@@ -133,18 +104,20 @@ class TorquePendulumExec(unittest.TestCase):
 
     def run_topp(self, traj_str, sd_min, sd_max, tau_min, tau_max):
         print traj_str
-        from TOPPopenravepy import ComputeTorquesConstraints
+        from TOPPopenravepy import ComputeTorquesConstraintsLegacy
         from TOPPbindings import TOPPInstance
         self.cur_tau_min = tau_min
         self.cur_tau_max = tau_max
         self.traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(traj_str)
         self.t0 = time.time()
-        self.constraintstring = ' '.join([str(v) for v in self.vmax])
-        self.constraintstring += ComputeTorquesConstraints(self.robot,
-                                                           self.traj0,
-                                                           tau_min,
-                                                           tau_max,
-                                                           self.discrtimestep)
+        self.constraintstring = ' '.join([str(v) for v in tau_min]) + "\n"
+        self.constraintstring += ' '.join([str(v) for v in tau_max]) + "\n"
+        self.constraintstring += ' '.join([str(v) for v in vmax])
+        self.constraintstring += ComputeTorquesConstraintsLegacy(self.robot,
+                                                                 self.traj0,
+                                                                 tau_min,
+                                                                 tau_max,
+                                                                 discrtimestep)
         self.t1 = time.time()
         self.topp = TOPPInstance(self.constraints_type,
                                  self.constraintstring,
@@ -193,7 +166,7 @@ class TorquePendulumExec(unittest.TestCase):
             self.topp.WriteResultTrajectory()
             restraj = self.topp.restrajectorystring
             traj1 = PiecewisePolynomialTrajectory.FromString(restraj)
-            TOPPpy.PlotKinematics(self.traj0, traj1, self.dtplot, self.vmax)
+            TOPPpy.PlotKinematics(self.traj0, traj1, self.dtplot, vmax)
             TOPPopenravepy.PlotTorques(self.robot, self.traj0, traj1,
                                        self.dtplot, self.cur_tau_min,
                                        self.cur_tau_max, 3)
