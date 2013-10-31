@@ -1257,7 +1257,7 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
 
     constraints.Preprocess(trajectory,tunings);
     if(VectorMin(constraints.mvcbobrow) <= TINY) {
-        std::cout << "MVCBobrow hit 0\n";
+        //std::cout << "MVCBobrow hit 0\n";
         return 0;
     }
     Profile resprofile;
@@ -1420,7 +1420,7 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
 
     constraints.Preprocess(trajectory,tunings);
     if(VectorMin(constraints.mvcbobrow) <= TINY) {
-        std::cout << "MVCBobrow hit 0\n";
+        //std::cout << "MVCBobrow hit 0\n";
         return 0;
     }
 
