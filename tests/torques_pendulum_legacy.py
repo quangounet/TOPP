@@ -47,7 +47,7 @@ robot.SetDOFVelocityLimits(100*vel_lim)
 
 
 ############################ Tunings ############################
-discrtimestep = 0.01
+discrtimestep = 0.005
 integrationtimestep = discrtimestep
 reparamtimestep = 0 #auto
 passswitchpointnsteps = 5
@@ -59,10 +59,11 @@ tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep
 T=1
 [a1,b1,c1,a2,b2,c2] =  [3, -3, -3, 0, -2, -2] #[-3, 3, 3, -1, 0, -3]
 trajectorystring = "%f\n%d\n%f %f %f\n%f %f %f"%(T,2,c1,b1,a1,c2,b2,a2)
-trajectorystring =  """1.000000
+trajectorystring =  """0.985516
 2
-0.0 0.0 0.200440827515 -0.132913533868
-0.0 0.0 -1.71157060946 1.19264863791"""
+0.0 -0.996909732549
+0.0 -0.0785556181874"""
+
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
@@ -72,12 +73,15 @@ traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 #taumin = array([-15,-10])
 #taumax = array([15,10])
 vmax = array([0,0])
-taumin = array([-8,-4])
-taumax = array([8,4])
+taumin = array([-11,-7])
+taumax = array([11,7])
 #vmax = array([0,0])
 t0 = time.time()
 constraintstring = string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax]) + "\n" + string.join([str(a) for a in vmax])
+print str(traj0)
 constraintstring += TOPPopenravepy.ComputeTorquesConstraintsLegacy(robot,traj0,taumin,taumax,discrtimestep)
+print "len(cstring) =", len(constraintstring)
+
 #------------------------------------------#
 
 
@@ -85,12 +89,14 @@ constraintstring += TOPPopenravepy.ComputeTorquesConstraintsLegacy(robot,traj0,t
 t1 = time.time()
 x = TOPPbindings.TOPPInstance("TorqueLimits",constraintstring,trajectorystring,tuningsstring)
 t2 = time.time()
-ret = x.RunComputeProfiles(0,0)
-#ret = x.RunVIP(0,1e-4)
+#ret = x.RunComputeProfiles(0,0)
+ret = x.RunVIP(0,1e-4)
 print ret
 t3 = time.time()
+print x.sdendmin
+print x.sdendmax
 
-if(ret == 1):
+if(ret == 1) and False:
     x.ReparameterizeTrajectory()
 
 t4 = time.time()
@@ -104,7 +110,7 @@ TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
 axis([0,1,0,100])
 
 ##################### Plotting the trajectories #####################
-if(ret == 1):
+if(ret == 1) and False:
     x.WriteResultTrajectory()
     traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
     dtplot = 0.01
@@ -118,7 +124,7 @@ print "Building TOPP Instance: ", t2-t1
 print "Compute profiles: ", t3-t2
 print "Reparameterize trajectory: ", t4-t3
 print "Total: ", t4-t0
-if(ret == 1):
+if(ret == 1) and False:
     print "Trajectory duration (estimate): ", x.resduration
     print "Trajectory duration: ", traj1.duration
 
