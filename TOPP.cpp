@@ -1455,16 +1455,29 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
     constraints.resprofileslist.push_back(tmpprofile);
     if(resintfw == INT_BOTTOM || resintfw == INT_MVC)
         return 0;
-    else if (resintfw == INT_END)
+    else if (resintfw == INT_END && tmpprofile.Eval(tmpprofile.duration)<= constraints.mvccombined[constraints.mvccombined.size()-1]){
         sdendmax = tmpprofile.Evald(tmpprofile.duration);
+    }
     else if (resintfw == INT_PROFILE) {
         // Look for the lowest profile at the end
-        if(FindLowestProfile(trajectory.duration-smallincrement,tmpprofile,tres,constraints.resprofileslist))
+      if(FindLowestProfile(trajectory.duration-smallincrement,tmpprofile,tres,constraints.resprofileslist) && tmpprofile.Evald(tres) <= constraints.mvccombined[constraints.mvccombined.size()-1]){
             sdendmax = tmpprofile.Evald(tres);
+      }
         else {
             // No profile reaches the end, consider the MVC instead
             sdendmax = constraints.mvccombined[constraints.mvccombined.size()-1];
-            int resintbw = IntegrateBackward(constraints,trajectory.duration,sdendmax,constraints.tunings.integrationtimestep,tmpprofile,1e5);
+	    int count = 0;
+	    int resintbw;
+	    dReal dtint = constraints.tunings.integrationtimestep;
+	    // If integrating from sdendmax fails with INT_BOTTOM or INT_MVC, then the trajectory is not traversable. However, since integrating backward from a high sdendmax might be risky, we give three chances by decreasing the value of the integration step
+	    while(count<3){
+	      count++;
+	      resintbw = IntegrateBackward(constraints,trajectory.duration,sdendmax,dtint,tmpprofile,1e5);
+	      if(resintbw != INT_BOTTOM && resintbw != INT_MVC){
+		break;
+	      }
+	      dtint /= 3.3;
+	    }
             if(resintbw == INT_BOTTOM || resintbw == INT_MVC)
                 return 0;
         }

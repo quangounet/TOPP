@@ -59,6 +59,10 @@ tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep
 T=1
 [a1,b1,c1,a2,b2,c2] =  [3, -3, -3, 0, -2, -2] #[-3, 3, 3, -1, 0, -3]
 trajectorystring = "%f\n%d\n%f %f %f\n%f %f %f"%(T,2,c1,b1,a1,c2,b2,a2)
+trajectorystring = """1.000000
+2
+0.0 0.280641438732 -1.38946387942 0.84562395633
+0.0 3.46940504119 -10.3267357647 5.62007589178"""
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
@@ -86,7 +90,7 @@ ret = x.RunVIP(0,1e-4)
 print ret
 t3 = time.time()
 
-
+#print x.resduration
 print x.sdendmin
 print x.sdendmax
 
