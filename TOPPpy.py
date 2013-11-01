@@ -29,7 +29,7 @@ from Trajectory import NoTrajectoryFound
 ################### Public interface ######################
 
 class Tunings(object):
-    def __init__(self, dt, mvc_dt=None, integ_dt=None, switchpoint_steps=5,
+    def __init__(self, dt, mvc_dt=None, integ_dt=None, switchpoint_steps=20,
                  reparam_dt=None):
         self.mvc_tstep = mvc_dt if mvc_dt else dt
         self.integ_tstep = integ_dt if integ_dt else dt
@@ -51,10 +51,9 @@ class RaveTorqueInstance(object):
 
         buffsize = 200000
         args = rave_robot, traj, tau_min, tau_max, tunings.mvc_tstep
-        v_max = pylab.zeros(2)
         constring = vect2str(tau_min) + "\n"
         constring += vect2str(tau_max) + "\n"
-        constring += vect2str(v_max)
+        constring += vect2str(pylab.zeros(2))  # vmax
         constring += TOPPopenravepy.ComputeTorquesConstraintsLegacy(*args)
 
         assert len(constring) < buffsize, \
@@ -97,16 +96,17 @@ class RaveTorqueInstance(object):
         if return_code == 0:
             raise NoTrajectoryFound
 
-        print "**** all right, got a solution with return code", return_code
-        print "    sd_min =", sd_min
-        print "    sd_max =", sd_max
-        #print "traj:", str(self.traj)
-
         sd_end_min = self.solver.sdendmin
         sd_end_max = self.solver.sdendmax
-        print "    sd_end_min =", sd_end_min
-        print "    sd_end_max =", sd_end_max
-        #assert False
+
+        if False:
+            print "**** all right, got a solution with return code", return_code
+            print "    sd_min =", sd_min
+            print "    sd_max =", sd_max
+            print "traj:", str(self.traj)
+            print "    sd_end_min =", sd_end_min
+            print "    sd_end_max =", sd_end_max
+            #assert False
 
         return (sd_end_min, sd_end_max)
 
