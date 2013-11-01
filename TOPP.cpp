@@ -301,9 +301,12 @@ void QuadraticConstraints::InterpolateDynamics(dReal s, std::vector<dReal>& a, s
 
 
 void QuadraticConstraints::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector) {
-    dReal delta = 0.001, s2, ap, bp, cp, slope;
+    dReal delta = TINY2, s2, ap, bp, cp, slope;
     std::vector<dReal> a, b, c, a2, b2, c2;
-    s2 = s - delta;
+    if(s>delta) {
+        delta = -delta;
+    }
+    s2 = s + delta;
     InterpolateDynamics(s,a,b,c);
     InterpolateDynamics(s2,a2,b2,c2);
 
@@ -1444,7 +1447,7 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
     // Determine the lowest profile at t=0
     dReal bound;
     if(FindLowestProfile(smallincrement,tmpprofile,tres,constraints.resprofileslist))
-        bound = tmpprofile.Evald(tres);
+      bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[0]); // just to make sure the profile is below mvccombined
     else
         bound = constraints.mvccombined[0];
 

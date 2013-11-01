@@ -77,7 +77,7 @@ void KinematicLimits::InterpolateDynamics(dReal s, std::vector<dReal>& qd, std::
 
 
 void KinematicLimits::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector) {
-    dReal delta = 0.001, s2, qdp, qddp, slope;
+    dReal delta = TINY2, s2, qdp, qddp, slope;
     std::vector<dReal> qd, qdd, qd2, qdd2;
     if(s>delta) {
         delta = -delta;
