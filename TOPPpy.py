@@ -29,7 +29,7 @@ from Trajectory import NoTrajectoryFound
 ################### Public interface ######################
 
 class Tunings(object):
-    def __init__(self, dt, mvc_dt=None, integ_dt=None, switchpoint_steps=20,
+    def __init__(self, dt, mvc_dt=None, integ_dt=None, switchpoint_steps=5,
                  reparam_dt=None):
         self.mvc_tstep = mvc_dt if mvc_dt else dt
         self.integ_tstep = integ_dt if integ_dt else dt
@@ -49,31 +49,26 @@ class RaveTorqueInstance(object):
         self.tunings = tunings
         self.traj = traj
 
+        print "[TOPPpy] Trajectory:"
+        print str(traj)
+
         buffsize = 200000
         args = rave_robot, traj, tau_min, tau_max, tunings.mvc_tstep
         constring = vect2str(tau_min) + "\n"
         constring += vect2str(tau_max) + "\n"
-        constring += vect2str(pylab.zeros(2))  # vmax
+        constring += vect2str([0, 0])  # vmax
         constring += TOPPopenravepy.ComputeTorquesConstraintsLegacy(*args)
+
+        if False:
+            print "cstring:", len(constring)
+            print constring[:1000]
+            print tau_min
+            print tau_max
 
         assert len(constring) < buffsize, \
             "%d is bigger than buffer size" % len(constring)
         assert len(str(self.traj)) < buffsize
         assert len(str(self.tunings)) < buffsize
-
-        if False:
-            print "Trajectory:"
-            print str(self.traj)
-            print "q(0.0)  =", self.traj.Eval(0)
-            print "qd(0.0) =", self.traj.Evald(0)
-            print ""
-            print "q(0.5)  =", self.traj.Eval(0.5)
-            print "qd(0.5) =", self.traj.Evald(0.5)
-            print ""
-            print "q(1.0)  =", self.traj.Eval(1)
-            print "qd(1.0) =", self.traj.Evald(1)
-            print "--"
-            print ""
 
         self.solver = TOPPbindings.TOPPInstance(
             "TorqueLimits", constring, str(self.traj), str(self.tunings))
@@ -93,6 +88,7 @@ class RaveTorqueInstance(object):
 
     def propagate_velocity_interval(self, sd_min, sd_max):
         return_code = self.solver.RunVIP(sd_min, sd_max)
+        print "propagate_velocity_interval: ret code is", return_code
         if return_code == 0:
             raise NoTrajectoryFound
 
