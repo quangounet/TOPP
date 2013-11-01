@@ -83,7 +83,6 @@ trajectorystring = """1.000000
 2
 -0.0950348403623 -0.0410497641469 -7.64746617074 4.64195812166
 -0.165204811614 0.135763930185 0.370529929485 -0.341089048056"""
-
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
@@ -145,4 +144,4 @@ axis([0,1,0,100])
 #     print "Trajectory duration (estimate): ", x.resduration
 #     print "Trajectory duration: ", traj1.duration
 
-#raw_input()
+raw_input()

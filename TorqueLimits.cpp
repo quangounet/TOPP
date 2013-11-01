@@ -55,7 +55,7 @@ void TorqueLimits::InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vect
     assert(s >= -TINY && s <= trajectory.duration + TINY);
     if(s < 0)
         s = 0;
-    if(s >= trajectory.duration) {
+    if(s >= trajectory.duration - TINY) {
         int n = ndiscrsteps - 1;
         for(int i = 0; i < trajectory.dimension; i++) {
             a[i] = avect[n][i];

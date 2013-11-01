@@ -280,7 +280,7 @@ void QuadraticConstraints::InterpolateDynamics(dReal s, std::vector<dReal>& a, s
     assert(s>=-TINY && s<=trajectory.duration+TINY);
     if(s < 0)
         s = 0;
-    if(s >= trajectory.duration) {
+    if(s >= trajectory.duration-TINY) {
         int n = ndiscrsteps-1;
         for(int i = 0; i < nconstraints; i++) {
             a[i]= avect[n][i];
@@ -1473,7 +1473,7 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
 	    int count = 0;
 	    int resintbw;
 	    dReal dtint = constraints.tunings.integrationtimestep;
-	    // If integrating from sdendmax fails with INT_BOTTOM or INT_MVC, then the trajectory is not traversable. However, since integrating backward from a high sdendmax might be risky, we give three chances by decreasing the value of the integration step
+	    // If integrating from sdendmax fails with INT_BOTTOM or INT_MVC, then the trajectory is not traversable. However, since integrating backward from a high sdendmax can be risky, we give three chances by decreasing the value of the integration step
 	    while(count<3){
 	      count++;
 	      resintbw = IntegrateBackward(constraints,trajectory.duration,sdendmax,dtint,tmpprofile,1e5);
@@ -1487,7 +1487,7 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
         }
     }
 
-    // Integrate from (send,0)
+    // Integrate from (send,0). If succeeds, then sdendmin=0 and exits
     int resintbw = IntegrateBackward(constraints,trajectory.duration,0,constraints.tunings.integrationtimestep,tmpprofile,1e5);
     if((resintbw == INT_END && tmpprofile.Evald(0)>=sdbegmin) || resintbw == INT_PROFILE) {
         constraints.resprofileslist.push_back(tmpprofile);

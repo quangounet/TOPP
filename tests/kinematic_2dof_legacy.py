@@ -29,9 +29,9 @@ from numpy import *
 ion()
 
 ############################ Tunings ############################
-discrtimestep = 0.01
-integrationtimestep = 0.01
-reparamtimestep = 0.01
+discrtimestep = 0.005
+integrationtimestep = 0 #auto
+reparamtimestep = 0 #auto
 passswitchpointnsteps = 20
 tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
 

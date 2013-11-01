@@ -59,7 +59,7 @@ void KinematicLimits::InterpolateDynamics(dReal s, std::vector<dReal>& qd, std::
     if(s<0) {
         s=0;
     }
-    if(s>=trajectory.duration) {
+    if(s>=trajectory.duration-TINY) {
         int n = ndiscrsteps-1;
         for(int i=0; i<trajectory.dimension; i++) {
             qd[i]= qdvect[n][i];
