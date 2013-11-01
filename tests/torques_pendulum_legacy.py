@@ -47,10 +47,10 @@ robot.SetDOFVelocityLimits(100*vel_lim)
 
 
 ############################ Tunings ############################
-discrtimestep = 0.0001
-integrationtimestep = 0 #auto
+discrtimestep = 0.001
+integrationtimestep = discrtimestep
 reparamtimestep = 0 #auto
-passswitchpointnsteps = 5
+passswitchpointnsteps = 10
 tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
 
 
@@ -59,6 +59,26 @@ tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep
 T=1
 [a1,b1,c1,a2,b2,c2] =  [3, -3, -3, 0, -2, -2] #[-3, 3, 3, -1, 0, -3]
 trajectorystring = "%f\n%d\n%f %f %f\n%f %f %f"%(T,2,c1,b1,a1,c2,b2,a2)
+trajectorystring = """1.000000
+2
+-0.496005602127 -0.496005602078 -7.64552243845 5.49594098906
+-0.879406406487 -0.879406406399 4.27317393732 -2.51436112444"""
+trajectorystring = """1.000000
+2
+0.0 3.63455628188 -16.353755721 9.57760678553
+0.0 0.0 0.0 0.0"""
+trajectorystring = """1.000000
+2
+-0.62656707443 -0.626567074367 -8.74025088342 6.85179237862
+-0.458558522535 -0.458558522489 2.1878726109 -1.27075556587"""
+trajectorystring = """1.000000
+2
+-0.0950348403677 -0.0671368026605 -0.730655838011 0.535070401242
+-0.165204811644 -0.171841542186 -1.89093139402 0.969323283681"""
+trajectorystring = """1.000000
+2
+-0.0950348403623 -0.0410497641469 -7.64746617074 4.64195812166
+-0.165204811614 0.135763930185 0.370529929485 -0.341089048056"""
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
@@ -71,7 +91,6 @@ taumax = array([11,7])
 t0 = time.time()
 constraintstring = string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax]) + "\n" + string.join([str(a) for a in vmax])
 constraintstring += TOPPopenravepy.ComputeTorquesConstraintsLegacy(robot,traj0,taumin,taumax,discrtimestep)
-
 #------------------------------------------#
 
 
