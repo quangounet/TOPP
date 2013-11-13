@@ -1447,19 +1447,24 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
 
     // Compute the limiting curves
     int resclc = ComputeLimitingCurves(constraints);
-    if(resclc == CLC_SWITCH || resclc == CLC_BOTTOM)
+    if(resclc == CLC_SWITCH || resclc == CLC_BOTTOM) {
         return 0;
-
+    }
     // Determine the lowest profile at t=0
     dReal bound;
-    if(FindLowestProfile(smallincrement,tmpprofile,tres,constraints.resprofileslist))
-        bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[0]);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                // just to make sure the profile is below mvccombined
-    else
+    if(FindLowestProfile(smallincrement,tmpprofile,tres,constraints.resprofileslist)) {
+        bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[0]);
+    }
+    // just to make sure the profile is below mvccombined
+    else{
         bound = constraints.mvccombined[0];
+    }
 
-    if(sdbegmin>bound)
+    if(sdbegmin>bound) {
         return 0;
-    sdbegmax = std::min(sdbegmax,bound);
+    }
+
+    sdbegmax = std::min(sdbegmax,bound-tunings.bisectionprecision);
 
     bool testaboveexistingprofiles = true, testmvc = true, zlajpah = true;
 

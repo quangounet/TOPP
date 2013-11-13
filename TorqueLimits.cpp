@@ -195,9 +195,11 @@ void TorqueLimits::FindSingularSwitchPoints(){
                 if(r>0) {
                     sd = sqrt(r);
                 }
-                r = (taumax[j]-c[j])/b[j];
-                if(r>0) {
-                    sd = sqrt(r);
+                else{
+                    r = (taumax[j]-c[j])/b[j];
+                    if(r>0) {
+                        sd = sqrt(r);
+                    }
                 }
                 AddSwitchPoint(i,SP_SINGULAR,sd);
                 continue;
