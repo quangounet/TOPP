@@ -56,12 +56,29 @@ tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep
 
 ############################ Trajectory ############################
 #------------------------------------------#
-T=1
-[a1,b1,c1,a2,b2,c2] =  [3, -3, -3, 0, -2, -2] #[-3, 3, 3, -1, 0, -3]
+
+# TODO: allure mechante !
 trajectorystring = """1.000000
 2
-0.0 -0.123325480146 0.0985441803994 -0.0229950552386
-0.0 -0.539959693795 -0.0796478642521 0.266387022966"""
+-0.0950348403623 -0.0410497641469 -4.82725068944 1.82174264036
+-0.165204811614 0.135763930185 0.663416639512 -0.633975758083"""
+
+# TODO: calcul supra long et resultat chelou
+trajectorystring = """1.000000
+2
+0.0 3.63455628188 -16.353755721 9.57760678553
+0.0 0.0 0.0 0.0"""
+
+trajectorystring = """0.534643
+2
+-0.496005602127 -0.491268736192 -0.705298166892
+-0.879406406486 -0.871008053258 0.701512327246"""
+
+trajectorystring = """1.000000
+2
+0.0 1.07192318527 -5.86889775659 3.47125175185
+0.0 -0.780100289253 -1.11551525545 0.569854837452"""
+
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
@@ -101,7 +118,9 @@ x.WriteSwitchPointsList()
 profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
 switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
 TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
-axis([0,1,0,100])
+axis([0, 1, 0, 100])
+#usage: TOPPpy.PlotAlphaBeta(x, axis())
+
 
 
 ##################### Plotting the trajectories #####################
@@ -123,4 +142,4 @@ axis([0,1,0,100])
 #     print "Trajectory duration (estimate): ", x.resduration
 #     print "Trajectory duration: ", traj1.duration
 
-raw_input()
+#raw_input()

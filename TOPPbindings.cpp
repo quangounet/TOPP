@@ -54,6 +54,17 @@ public:
     dReal sdendmin,sdendmax;
 
 
+    dReal GetAlpha(dReal s, dReal sd) {
+        std::pair<dReal, dReal> sdd_lim = pconstraints->SddLimits(s, sd);
+        return sdd_lim.first;
+    }
+
+
+    dReal GetBeta(dReal s, dReal sd) {
+        std::pair<dReal, dReal> sdd_lim = pconstraints->SddLimits(s, sd);
+        return sdd_lim.second;
+    }
+
     int RunComputeProfiles(dReal sdbeg, dReal sdend){
         int res = ComputeProfiles(*pconstraints,*ptrajectory,tunings,sdbeg,sdend);
         resduration = pconstraints->resduration;
@@ -124,6 +135,9 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def_readonly("resduration", &TOPPInstance::resduration)
     .def_readonly("sdendmin", &TOPPInstance::sdendmin)
     .def_readonly("sdendmax", &TOPPInstance::sdendmax)
+    .def_readonly("pconstraints", &TOPPInstance::pconstraints)
+    .def("GetAlpha",&TOPPInstance::GetAlpha)
+    .def("GetBeta",&TOPPInstance::GetBeta)
     .def("RunComputeProfiles",&TOPPInstance::RunComputeProfiles)
     .def("ReparameterizeTrajectory",&TOPPInstance::ReparameterizeTrajectory)
     .def("RunVIP",&TOPPInstance::RunVIP)
