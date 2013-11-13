@@ -16,8 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import pylab
-from pylab import array, double, gca, plot, figure, clf, hold, axis, title
+from pylab import array, double, gca, plot, figure, linspace
+from pylab import clf, hold, axis, title, sqrt
 
 import TOPPbindings
 import TOPPopenravepy
@@ -91,19 +91,8 @@ class RaveTorqueInstance(object):
         print "propagate_velocity_interval: ret code is", return_code
         if return_code == 0:
             raise NoTrajectoryFound
-
         sd_end_min = self.solver.sdendmin
         sd_end_max = self.solver.sdendmax
-
-        if False:
-            print "**** all right, got a solution with return code", return_code
-            print "    sd_min =", sd_min
-            print "    sd_max =", sd_max
-            print "traj:", str(self.traj)
-            print "    sd_end_min =", sd_end_min
-            print "    sd_end_max =", sd_end_max
-            #assert False
-
         return (sd_end_min, sd_end_max)
 
 
@@ -227,8 +216,31 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=0):
             plot(sw[0], sw[1], 'ro', markersize=8)
         if sw[2] == 1:
             plot(sw[0], sw[1], 'go', markersize=8)
-    axis([0, mvcbobrow[0], 0, M])
+    s_max, sd_max = mvcbobrow[0], M
+    axis([0, s_max, 0, sd_max])
     title('MVCs and profiles')
+    return s_max, sd_max  # return this for PlotPhase (yurk!)
+
+
+def PlotAlphaBeta(topp_inst, prec=20):
+    smin, smax, sdmin, sdmax = axis()
+    s_coord = linspace(smin, smax, prec)
+    sd_coord = linspace(sdmin, sdmax, prec)
+    ds0 = s_coord[1] - s_coord[0]
+    dsd0 = sd_coord[1] - sd_coord[0]
+    nalpha = lambda s, sd: topp_inst.GetAlpha(s, sd) / sd
+    nbeta = lambda s, sd: topp_inst.GetBeta(s, sd) / sd
+    yscl = dsd0 / ds0
+    for s in s_coord:
+        for sd in sd_coord:
+            ds = ds0 / 2
+            a, b = nalpha(s, sd), nbeta(s, sd)
+            na, nb = 1. / sqrt(1. + a ** 2), 1. / sqrt(1. + b ** 2)
+            na = 1 / sqrt(1 + (a / yscl) ** 2)
+            nb = 1 / sqrt(1 + (b / yscl) ** 2)
+            plot([s, s + na * ds], [sd, sd + na * a * ds], 'b', alpha=.3)
+            plot([s, s + nb * ds], [sd, sd + nb * b * ds], 'r', alpha=.3)
+    axis([smin, smax, sdmin, sdmax])
 
 
 def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
