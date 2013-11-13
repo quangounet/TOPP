@@ -74,9 +74,12 @@ void TorqueLimits::InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vect
 }
 
 void TorqueLimits::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector) {
-    dReal delta = 0.001, s2, ap, bp, cp, slope;
+    dReal delta = TINY2, s2, ap, bp, cp, slope;
     std::vector<dReal> a, b, c, a2, b2, c2;
-    s2 = s - delta;
+    if(s>delta) {
+        delta = -delta;
+    }
+    s2 = s + delta;
     InterpolateDynamics(s,a,b,c);
     InterpolateDynamics(s2,a2,b2,c2);
 
