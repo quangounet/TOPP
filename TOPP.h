@@ -40,7 +40,7 @@ typedef double dReal;
 #define TINY 1e-10
 #define TINY2 1e-5
 #define INF 1.0e15
-
+#define MAXSD 100
 
 #include "Trajectory.h"
 
@@ -214,7 +214,7 @@ public:
     };
 
     // Add a switch point to switchpointslist
-    void AddSwitchPoint(int i, int switchpointtype);
+    void AddSwitchPoint(int i, int switchpointtype, dReal sd = -1);
 
 };
 

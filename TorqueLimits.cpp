@@ -190,7 +190,16 @@ void TorqueLimits::FindSingularSwitchPoints(){
         InterpolateDynamics(discrsvect[i],a,b,c);
         for(int j=0; j<trajectory.dimension; j++) {
             if(a[j]*aprev[j]<0) {
-                AddSwitchPoint(i,SP_SINGULAR);
+                dReal sd = mvcbobrow[i];
+                dReal r = (taumin[j]-c[j])/b[j];
+                if(r>0) {
+                    sd = sqrt(r);
+                }
+                r = (taumax[j]-c[j])/b[j];
+                if(r>0) {
+                    sd = sqrt(r);
+                }
+                AddSwitchPoint(i,SP_SINGULAR,sd);
                 continue;
             }
         }

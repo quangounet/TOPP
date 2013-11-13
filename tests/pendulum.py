@@ -22,11 +22,11 @@ import TOPPpy
 import TOPPopenravepy
 import time
 import unittest
-from pylab import array, ones, ion
+from pylab import array, ones, ion, axis
 from openravepy import Environment
 
 vmax = [0, 0]
-discrtimestep = 0.01
+discrtimestep = 0.001
 integrationtimestep = discrtimestep
 reparamtimestep = 0  # auto
 passswitchpointnsteps = 5
@@ -34,14 +34,14 @@ robotfile = "../robots/twodof.robot.xml"
 dtplot = 0.01
 
 # "QuadraticConstraints" or "TorqueLimits"
-constraints_type = "QuadraticConstraints"
+constraints_type = "TorqueLimits"
 
 
 def append_traj(traj_list, traj_str, tauref, sd_min=0., sd_max=1e-4):
     traj_list.append((traj_str, sd_min, sd_max, +tauref, -tauref))
 
-tau_8_4 = array([8.0001, 4.0001])
-tau_11_7 = array([11.0001, 7.0001])
+tau_8_4 = array([8.000, 4.000])
+tau_11_7 = array([11.000, 7.000])
 
 traversable_trajs = []
 append_traj(traversable_trajs, """1.000000

@@ -55,7 +55,7 @@ Tunings::Tunings(const std::string& tuningsstring) {
 
 void Constraints::Preprocess(Trajectory& trajectory0, Tunings& tunings0) {
     trajectory = trajectory0;
-    // Change discrtimestep so as it becomes a divisor of trajectory duration 
+    // Change discrtimestep so as it becomes a divisor of trajectory duration
     int ndiscrsteps = int((trajectory.duration+1e-10)/tunings0.discrtimestep);
     tunings0.discrtimestep = trajectory.duration/ndiscrsteps;
     //std::cout << tunings0.discrtimestep << "\n";
@@ -176,7 +176,7 @@ void Constraints::FindSwitchPoints() {
 }
 
 
-void Constraints::AddSwitchPoint(int i, int switchpointtype){
+void Constraints::AddSwitchPoint(int i, int switchpointtype, dReal sd){
     int iadd = i+1;
     if(mvcbobrow[i-1]<std::min(mvcbobrow[i],mvcbobrow[i+1])) {
         iadd = i-1;
@@ -188,8 +188,12 @@ void Constraints::AddSwitchPoint(int i, int switchpointtype){
     }
     std::list<SwitchPoint>::iterator it = switchpointslist.begin();
     dReal s = discrsvect[iadd];
-    dReal sd = mvcbobrow[iadd];
-    if(sd>=INF) {
+    // If no sd is specified, then take the value of the mvc
+    // (The case when sd is specified corresponds to a singular switchpoint in some cases)
+    if(sd<0) {
+        sd = mvcbobrow[iadd];
+    }
+    if(sd > MAXSD) {
         return;
     }
     while(it!=switchpointslist.end()) {
@@ -584,6 +588,7 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
     dReal dt = 0; // should be changed
     Profile resprofile;
 
+    // Tangent, Discontinuous and Zlajpah switchpoints
     if(switchpoint.switchpointtype == SP_TANGENT || switchpoint.switchpointtype == SP_DISCONTINUOUS || switchpoint.switchpointtype == SP_ZLAJPAH) {
         dt = discr/2;
         dReal sdtop = BisectionSearch(constraints,s,sd*constraints.tunings.loweringcoef,sd,dt,0);
@@ -596,6 +601,7 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
         sdforward = sdtop;
         return true;
     }
+    // Singular switchpoints
     else{
         dReal sstep = constraints.tunings.passswitchpointnsteps*constraints.tunings.integrationtimestep;
         std::vector<dReal> slopesvector;
@@ -1447,7 +1453,7 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
     // Determine the lowest profile at t=0
     dReal bound;
     if(FindLowestProfile(smallincrement,tmpprofile,tres,constraints.resprofileslist))
-      bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[0]); // just to make sure the profile is below mvccombined
+        bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[0]);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                // just to make sure the profile is below mvccombined
     else
         bound = constraints.mvccombined[0];
 
@@ -1462,29 +1468,29 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
     constraints.resprofileslist.push_back(tmpprofile);
     if(resintfw == INT_BOTTOM || resintfw == INT_MVC)
         return 0;
-    else if (resintfw == INT_END && tmpprofile.Eval(tmpprofile.duration)<= constraints.mvccombined[constraints.mvccombined.size()-1]){
+    else if (resintfw == INT_END && tmpprofile.Eval(tmpprofile.duration)<= constraints.mvccombined[constraints.mvccombined.size()-1]) {
         sdendmax = tmpprofile.Evald(tmpprofile.duration);
     }
     else if (resintfw == INT_PROFILE) {
         // Look for the lowest profile at the end
-      if(FindLowestProfile(trajectory.duration-smallincrement,tmpprofile,tres,constraints.resprofileslist) && tmpprofile.Evald(tres) <= constraints.mvccombined[constraints.mvccombined.size()-1]){
+        if(FindLowestProfile(trajectory.duration-smallincrement,tmpprofile,tres,constraints.resprofileslist) && tmpprofile.Evald(tres) <= constraints.mvccombined[constraints.mvccombined.size()-1]) {
             sdendmax = tmpprofile.Evald(tres);
-      }
+        }
         else {
             // No profile reaches the end, consider the MVC instead
             sdendmax = constraints.mvccombined[constraints.mvccombined.size()-1];
-	    int count = 0;
-	    int resintbw;
-	    dReal dtint = constraints.tunings.integrationtimestep;
-	    // If integrating from sdendmax fails with INT_BOTTOM or INT_MVC, then the trajectory is not traversable. However, since integrating backward from a high sdendmax can be risky, we give three chances by decreasing the value of the integration step
-	    while(count<3){
-	      count++;
-	      resintbw = IntegrateBackward(constraints,trajectory.duration,sdendmax,dtint,tmpprofile,1e5);
-	      if(resintbw != INT_BOTTOM && resintbw != INT_MVC){
-		break;
-	      }
-	      dtint /= 3.3;
-	    }
+            int count = 0;
+            int resintbw;
+            dReal dtint = constraints.tunings.integrationtimestep;
+            // If integrating from sdendmax fails with INT_BOTTOM or INT_MVC, then the trajectory is not traversable. However, since integrating backward from a high sdendmax can be risky, we give three chances by decreasing the value of the integration step
+            while(count<3) {
+                count++;
+                resintbw = IntegrateBackward(constraints,trajectory.duration,sdendmax,dtint,tmpprofile,1e5);
+                if(resintbw != INT_BOTTOM && resintbw != INT_MVC) {
+                    break;
+                }
+                dtint /= 3.3;
+            }
             if(resintbw == INT_BOTTOM || resintbw == INT_MVC)
                 return 0;
         }
