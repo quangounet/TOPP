@@ -101,9 +101,9 @@ public:
     void WriteProfilesList(){
         std::list<Profile>::iterator itprofile = pconstraints->resprofileslist.begin();
         std::stringstream ss;
-        pconstraints->WriteMVCBobrow(ss);
+        pconstraints->WriteMVCBobrow(ss,tunings.discrtimestep);
         ss << "\n";
-        pconstraints->WriteMVCCombined(ss);
+        pconstraints->WriteMVCCombined(ss,tunings.discrtimestep);
         ss << "\n";
         while(itprofile!=pconstraints->resprofileslist.end()) {
             itprofile->Write(ss);

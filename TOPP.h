@@ -202,6 +202,7 @@ public:
     void FindSwitchPoints();
     void FindTangentSwitchPoints();
     void FindDiscontinuousSwitchPoints();
+    // Trim nearby switch points, priority is given to singular switch points
     void TrimSwitchPoints();
 
     // Compute the slope of the profiles near a dynamic singularity
