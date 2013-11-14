@@ -25,6 +25,8 @@ import unittest
 from pylab import array, ones, ion
 from openravepy import Environment
 
+VERBOSE = False  # set to True if -v is a command-line argument
+
 vmax = [0, 0]
 discrtimestep = 0.001
 integrationtimestep = discrtimestep
@@ -235,10 +237,10 @@ class TorquePendulumExec(unittest.TestCase):
     def test_traversable(self):
         for i, trajuple in enumerate(traversable_trajs):
             self.run_topp(*trajuple)
-            print "\n\n-----------------------------------------------------"
-            print "Traversable test results"
-            self.print_info()
-            self.assertEqual(self.ret0, 1)
+            if VERBOSE:
+                print "\n\n---------------------------------------------------"
+                print "Traversable test results"
+                self.print_info()
             self.assertEqual(self.ret, 1)
             self.assertTrue(abs(self.topp0.resduration-self.topp.resduration)<1e-2)
             self.assertNotEqual(self.ret_vip, 0)
@@ -246,13 +248,14 @@ class TorquePendulumExec(unittest.TestCase):
     def test_impossible(self):
         for i, trajuple in enumerate(impossible_trajs):
             self.run_topp(*trajuple)
-            print "\n\n-----------------------------------------------------"
-            print "Impossible test results"
-            self.print_info()
-            self.assertNotEqual(self.ret0, 1)
+            if VERBOSE:
+                print "\n\n---------------------------------------------------"
+                print "Impossible test results"
+                self.print_info()
             self.assertNotEqual(self.ret, 1)
             self.assertEqual(self.ret_vip, 0)
 
 
 if __name__ == '__main__':
+    VERBOSE = '-v' in sys.argv
     unittest.main()
