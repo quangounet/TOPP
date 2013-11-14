@@ -315,12 +315,12 @@ void QuadraticConstraints::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std
     InterpolateDynamics(s2,a2,b2,c2);
 
     std::vector<std::pair<dReal,int> > vp;
-    for(int i=0; i<trajectory.dimension; i++) {
+    for(int i=0; i<int(a.size()); i++) {
         vp.push_back(std::pair<dReal,int>(std::abs(a[i]),i));
     }
     std::sort(vp.begin(),vp.end());
     slopesvector.resize(0);
-    for(int i=0; i<trajectory.dimension; i++) {
+    for(int i=0; i<int(a.size()); i++) {
         ap = (a[vp[i].second]-a2[vp[i].second])/delta;
         bp = (b[vp[i].second]-b2[vp[i].second])/delta;
         cp = (c[vp[i].second]-c2[vp[i].second])/delta;
@@ -406,11 +406,18 @@ void QuadraticConstraints::FindSingularSwitchPoints() {
 
     for(int i=1; i<ndiscrsteps-1; i++) {
         InterpolateDynamics(discrsvect[i],a,b,c);
-        for(int j=0; j<trajectory.dimension; j++) {
+        dReal minsd = mvcbobrow[i];
+        bool found = false;
+        for(int j=0; j< int(a.size()); j++) {
             if(a[j]*aprev[j]<0) {
-                AddSwitchPoint(i,SP_SINGULAR);
-                continue;
+                if(c[j]/b[j]<0) {
+                    found = true;
+                    minsd = std::min(minsd,sqrt(-c[j]/b[j]));
+                }
             }
+        }
+        if(found) {
+            AddSwitchPoint(i,SP_SINGULAR,minsd);
         }
         aprev = a;
     }
@@ -866,6 +873,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             sdlist.push_back(sdcur);
             sddlist.push_back(0);
             returntype = INT_BOTTOM;
+            std::cout << "Problem happens at:" << scur << " " << sdcur << "\n";
             break;
         }
         else if(IsAboveProfilesList(scur,sdcur,constraints.resprofileslist)) {
@@ -1270,7 +1278,7 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
 
     constraints.Preprocess(trajectory,tunings);
     if(VectorMin(constraints.mvcbobrow) <= TINY) {
-        //std::cout << "MVCBobrow hit 0\n";
+        //std::cout << "[TOPP] MVCBobrow hit 0\n";
         return 0;
     }
     Profile resprofile;
@@ -1437,7 +1445,7 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
 
     constraints.Preprocess(trajectory,tunings);
     if(VectorMin(constraints.mvcbobrow) <= TINY) {
-        //std::cout << "MVCBobrow hit 0\n";
+        std::cout << "[TOPP] MVCBobrow hit 0\n";
         return 0;
     }
 
@@ -1448,19 +1456,19 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
     // Compute the limiting curves
     int resclc = ComputeLimitingCurves(constraints);
     if(resclc == CLC_SWITCH || resclc == CLC_BOTTOM) {
+        std::cout << "[TOPP] resclc == CLC_SWITCH or CLC_BOTTOM\n";
         return 0;
     }
+
     // Determine the lowest profile at t=0
     dReal bound;
-    if(FindLowestProfile(smallincrement,tmpprofile,tres,constraints.resprofileslist)) {
+    if(FindLowestProfile(smallincrement,tmpprofile,tres,constraints.resprofileslist))
         bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[0]);
-    }
-    // just to make sure the profile is below mvccombined
-    else{
+    else // just to make sure the profile is below mvccombined
         bound = constraints.mvccombined[0];
-    }
 
     if(sdbegmin>bound) {
+        std::cout << "[TOPP] sdbegmin is above the combined MVC\n";
         return 0;
     }
 
@@ -1471,16 +1479,18 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
     // Compute sdendmax by integrating forward from (0,sdbegmax)
     int resintfw = IntegrateForward(constraints,0,sdbegmax,constraints.tunings.integrationtimestep,tmpprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
     constraints.resprofileslist.push_back(tmpprofile);
-    if(resintfw == INT_BOTTOM || resintfw == INT_MVC)
+    if(resintfw == INT_BOTTOM) {
+        std::cout << "[TOPP] Forward integration hit sd=0\n";
         return 0;
-    else if (resintfw == INT_END && tmpprofile.Eval(tmpprofile.duration)<= constraints.mvccombined[constraints.mvccombined.size()-1]) {
+    } else if(resintfw == INT_MVC) {
+        std::cout << "[TOPP] Forward integration met the Zlajpah condition\n";
+        return 0;
+    } else if (resintfw == INT_END && tmpprofile.Eval(tmpprofile.duration) <= constraints.mvccombined[constraints.mvccombined.size() - 1])
         sdendmax = tmpprofile.Evald(tmpprofile.duration);
-    }
     else if (resintfw == INT_PROFILE) {
         // Look for the lowest profile at the end
-        if(FindLowestProfile(trajectory.duration-smallincrement,tmpprofile,tres,constraints.resprofileslist) && tmpprofile.Evald(tres) <= constraints.mvccombined[constraints.mvccombined.size()-1]) {
+        if(FindLowestProfile(trajectory.duration-smallincrement,tmpprofile,tres,constraints.resprofileslist) && tmpprofile.Evald(tres) <= constraints.mvccombined[constraints.mvccombined.size()-1])
             sdendmax = tmpprofile.Evald(tres);
-        }
         else {
             // No profile reaches the end, consider the MVC instead
             sdendmax = constraints.mvccombined[constraints.mvccombined.size()-1];
