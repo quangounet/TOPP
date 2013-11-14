@@ -866,7 +866,6 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             sdlist.push_back(sdcur);
             sddlist.push_back(0);
             returntype = INT_BOTTOM;
-            std::cout << "shit happens here at:" << scur << " " << sdcur << "\n";
             break;
         }
         else if(IsAboveProfilesList(scur,sdcur,constraints.resprofileslist)) {
@@ -1309,7 +1308,7 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
             constraints.resprofileslist.push_back(resprofile);
         }
         if(ret==INT_BOTTOM) {
-            message = "FW reached 0\n";
+            message = "FW reached 0";
             integrateprofilesstatus = false;
             continue;
         }
@@ -1320,7 +1319,7 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
             constraints.resprofileslist.push_back(resprofile);
         }
         if(ret==INT_BOTTOM) {
-            message = "BW reached 0\n";
+            message = "BW reached 0";
             integrateprofilesstatus = false;
             continue;
         }
@@ -1410,7 +1409,7 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
 
 
     if(!integrateprofilesstatus) {
-        std::cout << message << "\n";
+        std::cout << "[TOPP::ComputeProfiles] " << message << "\n";
         return 0;
     }
 
@@ -1432,13 +1431,13 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
 
 int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbegmin, dReal sdbegmax, dReal& sdendmin, dReal& sdendmax){
     if (trajectory.duration <= 0) {
-        std::cout << "[TOPP] Warning: trajectory duration is <= 0\n";
+        std::cout << "[TOPP::VIP] Warning: trajectory duration is <= 0\n";
         return 0;
     }
 
     constraints.Preprocess(trajectory,tunings);
     if(VectorMin(constraints.mvcbobrow) <= TINY) {
-        std::cout << "[TOPP] MVCBobrow hit 0\n";
+        std::cout << "[TOPP::VIP] MVCBobrow hit 0\n";
         return 0;
     }
 
@@ -1449,7 +1448,7 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
     // Compute the limiting curves
     int resclc = ComputeLimitingCurves(constraints);
     if(resclc == CLC_SWITCH || resclc == CLC_BOTTOM) {
-        std::cout << "[TOPP] resclc == CLC_SWITCH or CLC_BOTTOM\n";
+        std::cout << "[TOPP::VIP] resclc == CLC_SWITCH or CLC_BOTTOM\n";
         return 0;
     }
 
@@ -1461,7 +1460,7 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
         bound = constraints.mvccombined[0];
 
     if(sdbegmin>bound) {
-        std::cout << "[TOPP] sdbegmin is above the combined MVC\n";
+        std::cout << "[TOPP::VIP] sdbegmin is above the combined MVC\n";
         return 0;
     }
 
@@ -1473,10 +1472,10 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
     int resintfw = IntegrateForward(constraints,0,sdbegmax,constraints.tunings.integrationtimestep,tmpprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
     constraints.resprofileslist.push_back(tmpprofile);
     if(resintfw == INT_BOTTOM) {
-        std::cout << "[TOPP] Forward integration hit sd=0\n";
+        std::cout << "[TOPP::VIP] Forward integration hit sd=0\n";
         return 0;
     } else if(resintfw == INT_MVC) {
-        std::cout << "[TOPP] Forward integration met the Zlajpah condition\n";
+        std::cout << "[TOPP::VIP] Forward integration met the Zlajpah condition\n";
         return 0;
     } else if (resintfw == INT_END && tmpprofile.Eval(tmpprofile.duration) <= constraints.mvccombined[constraints.mvccombined.size() - 1])
         sdendmax = tmpprofile.Evald(tmpprofile.duration);

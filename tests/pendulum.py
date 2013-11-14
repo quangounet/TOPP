@@ -25,6 +25,8 @@ import unittest
 from pylab import array, ones, ion
 from openravepy import Environment
 
+VERBOSE = False  # set to True if -v is a command-line argument
+
 vmax = [0, 0]
 discrtimestep = 0.001
 integrationtimestep = discrtimestep
@@ -78,11 +80,6 @@ append_traj(traversable_trajs, """1.000000
 
 append_traj(traversable_trajs, """1.000000
 2
--0.496005602127 -0.496005602078 -7.64552243845 5.49594098906
--0.879406406487 -0.879406406399 4.27317393732 -2.51436112444""", tau_11_7)
-
-append_traj(traversable_trajs, """1.000000
-2
 -0.0539850762113 -0.0539850762059 0.131202643008 -0.0710088455766
 -0.300968741813 -0.300968741783 0.480216768411 -0.231499819896""", tau_11_7)
 
@@ -111,6 +108,12 @@ append_traj(impossible_trajs, """1.000000
 2
 -0.0539850762113 -0.0539850762059 -0.609921814791 -0.446413715041
 -0.300968741813 -0.300968741783 -0.511789732519 0.583618460003""", tau_11_7)
+
+append_traj(impossible_trajs, """1.000000
+2
+-0.496005602127 -0.496005602078 -7.64552243845 5.49594098906
+-0.879406406487 -0.879406406399 4.27317393732 -2.51436112444""", tau_11_7,
+            sd_min=0., sd_max=1.)
 
 
 class TorquePendulumExec(unittest.TestCase):
@@ -227,21 +230,24 @@ class TorquePendulumExec(unittest.TestCase):
     def test_traversable(self):
         for i, trajuple in enumerate(traversable_trajs):
             self.run_topp(*trajuple)
-            print "\n\n-----------------------------------------------------"
-            print "Traversable test results"
-            self.print_info()
+            if VERBOSE:
+                print "\n\n---------------------------------------------------"
+                print "Traversable test results"
+                self.print_info()
             self.assertEqual(self.ret, 1)
             self.assertNotEqual(self.ret_vip, 0)
 
     def test_impossible(self):
         for i, trajuple in enumerate(impossible_trajs):
             self.run_topp(*trajuple)
-            print "\n\n-----------------------------------------------------"
-            print "Impossible test results"
-            self.print_info()
+            if VERBOSE:
+                print "\n\n---------------------------------------------------"
+                print "Impossible test results"
+                self.print_info()
             self.assertNotEqual(self.ret, 1)
             self.assertEqual(self.ret_vip, 0)
 
 
 if __name__ == '__main__':
+    DEBUG = '-v' in sys.argv
     unittest.main()

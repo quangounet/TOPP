@@ -85,7 +85,7 @@ trajectorystring = """1.000000
 -0.879406406487 -0.879406406399 4.27317393732 -2.51436112444"""
 
 sdbeg_min = 0.
-sdbeg_max = 1e-4
+sdbeg_max = 1.
 
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
