@@ -173,29 +173,21 @@ void Constraints::FindSwitchPoints() {
     FindSingularSwitchPoints();
     FindTangentSwitchPoints();
     FindDiscontinuousSwitchPoints();
+    TrimSwitchPoints();
 }
 
 
 void Constraints::AddSwitchPoint(int i, int switchpointtype, dReal sd){
-    int iadd = i+1;
-    if(mvcbobrow[i-1]<std::min(mvcbobrow[i],mvcbobrow[i+1])) {
-        iadd = i-1;
-    }
-    else{
-        if(mvcbobrow[i]<mvcbobrow[i+1]) {
-            iadd = i;
-        }
-    }
-    std::list<SwitchPoint>::iterator it = switchpointslist.begin();
-    dReal s = discrsvect[iadd];
+    dReal s = discrsvect[i];
     // If no sd is specified, then take the value of the mvc
     // (The case when sd is specified corresponds to a singular switchpoint in some cases)
     if(sd<0) {
-        sd = mvcbobrow[iadd];
+        sd = mvcbobrow[i];
     }
     if(sd > MAXSD) {
         return;
     }
+    std::list<SwitchPoint>::iterator it = switchpointslist.begin();
     while(it!=switchpointslist.end()) {
         if(s == it->s) {
             return;
@@ -244,6 +236,47 @@ void Constraints::FindTangentSwitchPoints(){
 
 void Constraints::FindDiscontinuousSwitchPoints() {
 
+}
+
+
+void Constraints::TrimSwitchPoints() {
+    dReal radius = trajectory.duration/100.;
+    std::list<SwitchPoint>::iterator it = switchpointslist.begin();
+    while(it!=switchpointslist.end()) {
+        dReal s = it->s;
+        dReal sd = it->sd;
+        dReal stype = it->switchpointtype;
+        it++;
+        if(it==switchpointslist.end()) {
+            return;
+        }
+        dReal snext = it->s;
+        dReal sdnext = it->sd;
+        dReal stypenext = it->switchpointtype;
+        if(snext-s<radius) {
+            // the first is singular, the second is non-singular, remove the second
+            if(stype == SP_SINGULAR && stypenext != SP_SINGULAR) {
+                it = switchpointslist.erase(it);
+                it--;
+            }
+            // the first is non-singular, the second is singular, remove the first
+            else if(stype != SP_SINGULAR && stypenext == SP_SINGULAR) {
+                it--;
+                it = switchpointslist.erase(it);
+            }
+            // same type, remove the highest
+            else{
+                if(sd < sdnext) {
+                    it =  switchpointslist.erase(it);
+                    it--;
+                }
+                else{
+                    it--;
+                    it = switchpointslist.erase(it);
+                }
+            }
+        }
+    }
 }
 
 

@@ -202,6 +202,7 @@ public:
     void FindSwitchPoints();
     void FindTangentSwitchPoints();
     void FindDiscontinuousSwitchPoints();
+    void TrimSwitchPoints();
 
     // Compute the slope of the profiles near a dynamic singularity
     virtual void ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector){
