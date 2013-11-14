@@ -29,7 +29,7 @@ from Trajectory import NoTrajectoryFound
 ################### Public interface ######################
 
 class Tunings(object):
-    def __init__(self, dt, mvc_dt=None, integ_dt=None, switchpoint_steps=5,
+    def __init__(self, dt, mvc_dt=None, integ_dt=None, switchpoint_steps=10,
                  reparam_dt=None):
         self.mvc_tstep = mvc_dt if mvc_dt else dt
         self.integ_tstep = integ_dt if integ_dt else dt
@@ -224,6 +224,8 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=0):
 
 def PlotAlphaBeta(topp_inst, prec=20):
     smin, smax, sdmin, sdmax = axis()
+    print "smin, smax =", smin, smax
+    print "sdmin, sdmax =", sdmin, sdmax
     s_coord = linspace(smin, smax, prec)
     sd_coord = linspace(sdmin, sdmax, prec)
     ds0 = s_coord[1] - s_coord[0]
