@@ -234,6 +234,8 @@ def PlotAlphaBeta(topp_inst, prec=20):
     yscl = dsd0 / ds0
     for s in s_coord:
         for sd in sd_coord:
+            if sd==0:
+                sd += 1e-2
             ds = ds0 / 2
             a, b = nalpha(s, sd), nbeta(s, sd)
             na, nb = 1. / sqrt(1. + a ** 2), 1. / sqrt(1. + b ** 2)

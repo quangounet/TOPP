@@ -72,7 +72,6 @@ trajectorystring = """1.000000
 -0.630425778805 0.0894067072732 0.0852189728776 0.290595287026"""
 
 
-
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
@@ -115,11 +114,10 @@ switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
 def replot():
     clf()
     TOPPpy.PlotProfiles(profileslist,switchpointslist,1)
-    axis([0, traj0.duration, 0, 100])
 
 replot()
-#TOPPpy.PlotAlphaBeta(x, axis())
-
+axis([0, traj0.duration, 0, 100])
+TOPPpy.PlotAlphaBeta(x, axis())
 
 
 ##################### Plotting the trajectories #####################

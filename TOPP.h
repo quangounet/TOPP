@@ -40,7 +40,7 @@ typedef double dReal;
 #define TINY 1e-10
 #define TINY2 1e-5
 #define INF 1.0e15
-#define MAXSD 100
+#define MAXSD 200
 
 #include "Trajectory.h"
 
@@ -202,6 +202,7 @@ public:
     void FindSwitchPoints();
     void FindTangentSwitchPoints();
     void FindDiscontinuousSwitchPoints();
+    void TrimSwitchPoints();
 
     // Compute the slope of the profiles near a dynamic singularity
     virtual void ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector){

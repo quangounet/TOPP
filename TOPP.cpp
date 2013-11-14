@@ -173,29 +173,21 @@ void Constraints::FindSwitchPoints() {
     FindSingularSwitchPoints();
     FindTangentSwitchPoints();
     FindDiscontinuousSwitchPoints();
+    TrimSwitchPoints();
 }
 
 
 void Constraints::AddSwitchPoint(int i, int switchpointtype, dReal sd){
-    int iadd = i+1;
-    if(mvcbobrow[i-1]<std::min(mvcbobrow[i],mvcbobrow[i+1])) {
-        iadd = i-1;
-    }
-    else{
-        if(mvcbobrow[i]<mvcbobrow[i+1]) {
-            iadd = i;
-        }
-    }
-    std::list<SwitchPoint>::iterator it = switchpointslist.begin();
-    dReal s = discrsvect[iadd];
+    dReal s = discrsvect[i];
     // If no sd is specified, then take the value of the mvc
     // (The case when sd is specified corresponds to a singular switchpoint in some cases)
     if(sd<0) {
-        sd = mvcbobrow[iadd];
+        sd = mvcbobrow[i];
     }
     if(sd > MAXSD) {
         return;
     }
+    std::list<SwitchPoint>::iterator it = switchpointslist.begin();
     while(it!=switchpointslist.end()) {
         if(s == it->s) {
             return;
@@ -244,6 +236,47 @@ void Constraints::FindTangentSwitchPoints(){
 
 void Constraints::FindDiscontinuousSwitchPoints() {
 
+}
+
+
+void Constraints::TrimSwitchPoints() {
+    dReal radius = trajectory.duration/100.;
+    std::list<SwitchPoint>::iterator it = switchpointslist.begin();
+    while(it!=switchpointslist.end()) {
+        dReal s = it->s;
+        dReal sd = it->sd;
+        dReal stype = it->switchpointtype;
+        it++;
+        if(it==switchpointslist.end()) {
+            return;
+        }
+        dReal snext = it->s;
+        dReal sdnext = it->sd;
+        dReal stypenext = it->switchpointtype;
+        if(snext-s<radius) {
+            // the first is singular, the second is non-singular, remove the second
+            if(stype == SP_SINGULAR && stypenext != SP_SINGULAR) {
+                it = switchpointslist.erase(it);
+                it--;
+            }
+            // the first is non-singular, the second is singular, remove the first
+            else if(stype != SP_SINGULAR && stypenext == SP_SINGULAR) {
+                it--;
+                it = switchpointslist.erase(it);
+            }
+            // same type, remove the highest
+            else{
+                if(sd < sdnext) {
+                    it =  switchpointslist.erase(it);
+                    it--;
+                }
+                else{
+                    it--;
+                    it = switchpointslist.erase(it);
+                }
+            }
+        }
+    }
 }
 
 
@@ -315,12 +348,12 @@ void QuadraticConstraints::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std
     InterpolateDynamics(s2,a2,b2,c2);
 
     std::vector<std::pair<dReal,int> > vp;
-    for(int i=0; i<trajectory.dimension; i++) {
+    for(int i=0; i<int(a.size()); i++) {
         vp.push_back(std::pair<dReal,int>(std::abs(a[i]),i));
     }
     std::sort(vp.begin(),vp.end());
     slopesvector.resize(0);
-    for(int i=0; i<trajectory.dimension; i++) {
+    for(int i=0; i<int(a.size()); i++) {
         ap = (a[vp[i].second]-a2[vp[i].second])/delta;
         bp = (b[vp[i].second]-b2[vp[i].second])/delta;
         cp = (c[vp[i].second]-c2[vp[i].second])/delta;
@@ -406,11 +439,18 @@ void QuadraticConstraints::FindSingularSwitchPoints() {
 
     for(int i=1; i<ndiscrsteps-1; i++) {
         InterpolateDynamics(discrsvect[i],a,b,c);
-        for(int j=0; j<trajectory.dimension; j++) {
+        dReal minsd = mvcbobrow[i];
+        bool found = false;
+        for(int j=0; j< int(a.size()); j++) {
             if(a[j]*aprev[j]<0) {
-                AddSwitchPoint(i,SP_SINGULAR);
-                continue;
+                if(c[j]/b[j]<0) {
+                    found = true;
+                    minsd = std::min(minsd,sqrt(-c[j]/b[j]));
+                }
             }
+        }
+        if(found) {
+            AddSwitchPoint(i,SP_SINGULAR,minsd);
         }
         aprev = a;
     }
