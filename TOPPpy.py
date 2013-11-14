@@ -244,7 +244,7 @@ def PlotAlphaBeta(topp_inst, prec=20):
             plot([s, s + na * ds], [sd, sd + na * a * ds], 'b', alpha=.3)
             plot([s, s + nb * ds], [sd, sd + nb * b * ds], 'r', alpha=.3)
             if a > b:
-                plot([s, s], [sd, sd], 'ko', alpha=.3)
+                plot([s, s], [sd, sd], 'ko', alpha=.3, markersize=3)
     axis([smin, smax, sdmin, sdmax])
 
 

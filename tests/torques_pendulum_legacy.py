@@ -117,7 +117,7 @@ def replot():
 
 replot()
 axis([0, traj0.duration, 0, 100])
-TOPPpy.PlotAlphaBeta(x, axis())
+TOPPpy.PlotAlphaBeta(x)
 
 
 ##################### Plotting the trajectories #####################
