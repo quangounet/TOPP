@@ -74,11 +74,6 @@ trajectorystring = """0.534643
 -0.496005602127 -0.491268736192 -0.705298166892
 -0.879406406486 -0.871008053258 0.701512327246"""
 
-trajectorystring = """1.000000
-2
--0.0950348403547 0.0346142777958 -9.82659842058 6.74542632955
--0.165204811682 -0.546977881311 1.62609934207 -0.913916649073"""
-
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
@@ -99,7 +94,7 @@ t1 = time.time()
 x = TOPPbindings.TOPPInstance("TorqueLimits",constraintstring,trajectorystring,tuningsstring)
 t2 = time.time()
 #ret = x.RunComputeProfiles(0,0)
-ret = x.RunVIP(0,7.63)
+ret = x.RunVIP(0,1e-4)
 print ret
 t3 = time.time()
 
@@ -118,8 +113,8 @@ x.WriteSwitchPointsList()
 profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
 switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
 TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
-axis([0, 1, 0, 100])
-#usage: TOPPpy.PlotAlphaBeta(x, axis())
+#axis([0, 1, 0, 100])
+TOPPpy.PlotAlphaBeta(x)
 
 
 

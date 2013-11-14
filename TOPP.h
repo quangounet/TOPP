@@ -40,7 +40,7 @@ typedef double dReal;
 #define TINY 1e-10
 #define TINY2 1e-5
 #define INF 1.0e15
-#define MAXSD 100
+#define MAXSD 200
 
 #include "Trajectory.h"
 
