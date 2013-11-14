@@ -249,5 +249,5 @@ class TorquePendulumExec(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    DEBUG = '-v' in sys.argv
+    VERBOSE = '-v' in sys.argv
     unittest.main()
