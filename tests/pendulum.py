@@ -22,14 +22,14 @@ import TOPPpy
 import TOPPopenravepy
 import time
 import unittest
-from pylab import array, ones, ion, axis
+from pylab import array, ones, ion
 from openravepy import Environment
 
 vmax = [0, 0]
 discrtimestep = 0.001
 integrationtimestep = discrtimestep
 reparamtimestep = 0  # auto
-passswitchpointnsteps = 5
+passswitchpointnsteps = 10
 robotfile = "../robots/twodof.robot.xml"
 dtplot = 0.01
 
@@ -38,7 +38,7 @@ constraints_type = "TorqueLimits"
 
 
 def append_traj(traj_list, traj_str, tauref, sd_min=0., sd_max=1e-4):
-    traj_list.append((traj_str, sd_min, sd_max, +tauref, -tauref))
+    traj_list.append((traj_str, sd_min, sd_max, -tauref, +tauref))
 
 tau_8_4 = array([8.000, 4.000])
 tau_11_7 = array([11.000, 7.000])
@@ -112,9 +112,6 @@ append_traj(impossible_trajs, """1.000000
 -0.0539850762113 -0.0539850762059 -0.609921814791 -0.446413715041
 -0.300968741813 -0.300968741783 -0.511789732519 0.583618460003""", tau_11_7)
 
-#
-# Test cases
-#
 
 class TorquePendulumExec(unittest.TestCase):
     def setUp(self):
@@ -147,13 +144,13 @@ class TorquePendulumExec(unittest.TestCase):
         self.ret_vip = None
 
     def run_topp(self, traj_str, sd_min, sd_max, tau_min, tau_max):
-        print traj_str
         from TOPPopenravepy import ComputeTorquesConstraintsLegacy
         from TOPPbindings import TOPPInstance
+        self.cur_traj_str = traj_str
         self.cur_tau_min = tau_min
         self.cur_tau_max = tau_max
         self.traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(traj_str)
-        self.t0 = time.time()
+        self._t0 = time.time()
         self.constraintstring = ' '.join([str(v) for v in tau_min]) + "\n"
         self.constraintstring += ' '.join([str(v) for v in tau_max]) + "\n"
         self.constraintstring += ' '.join([str(v) for v in vmax])
@@ -162,41 +159,53 @@ class TorquePendulumExec(unittest.TestCase):
                                                                  tau_min,
                                                                  tau_max,
                                                                  discrtimestep)
-        self.t1 = time.time()
+        self._t1 = time.time()
         self.topp = TOPPInstance(self.constraints_type,
                                  self.constraintstring,
                                  traj_str,
                                  self.tuningsstring)
-        self.t2 = time.time()
+        self._t2 = time.time()
         self.ret = self.topp.RunComputeProfiles(0, 0)
-        self.t3 = time.time()
+        self._t3 = time.time()
         if self.ret == 1:
             self.topp.ReparameterizeTrajectory()
-            print "---- Time duration =", self.topp.resduration
-        else:
-            print "---- Impossible from (0,0)"
-        self.t4 = time.time()
+        self._t4 = time.time()
 
-        # run VIP as well
         self.topp = TOPPInstance(self.constraints_type,
                                  self.constraintstring,
                                  traj_str,
                                  self.tuningsstring)
+        self._t5 = time.time()
         self.ret_vip = self.topp.RunVIP(sd_min, sd_max)
+        self._t6 = time.time()
+        self.sd_beg_min = sd_min
+        self.sd_beg_max = sd_max
         self.sd_end_min = self.topp.sdendmin
         self.sd_end_max = self.topp.sdendmax
-        print "---- Ret_vip =", self.ret_vip,
-        print "and sd:", (self.sd_end_min, self.sd_end_max)
 
-    def print_comp_times(self):
-        print "Python preprocessing: ", (self.t1 - self.t0)
-        print "Building TOPP Instance: ", (self.t2 - self.t1)
-        print "Compute profiles: ", (self.t3 - self.t2)
-        print "Reparameterize trajectory: ", (self.t4 - self.t3)
-        print "Total: ", (self.t4 - self.t0)
+    def print_info(self):
+        print "Torque limits:"
+        print "- min:", self.cur_tau_min
+        print "- max:", self.cur_tau_max
+        print "Trajectory string:"
+        print self.cur_traj_str
+
+        print "\nComputation times:"
+        print "- Python preprocessing:      %.2f s" % (self._t1 - self._t0)
+        print "- Building TOPP Instance:    %.2f s" % (self._t2 - self._t1)
+        print "- Compute profiles:          %.2f s" % (self._t3 - self._t2)
+        print "- Reparameterize trajectory: %.2f s" % (self._t4 - self._t3)
+        print "- Building TOPP Instance:    %.2f s" % (self._t5 - self._t4)
+        print "- AV propagation:            %.2f s" % (self._t6 - self._t5)
+        print "Total: %.2f s" % (self._t6 - self._t0)
+
+        print "\nResult:"
         if self.ret == 1:
-            print "Trajectory duration (estimate): ", self.topp.resduration
-            print "Trajectory duration: ", self.traj1.duration
+            print "- Old traj. duration: ", self.traj0.duration
+            print "- New traj. duration (estimate): ", self.topp.resduration
+        print "- AVP return code:", self.ret_vip
+        print "- AVP sd_beg:", (self.sd_beg_min, self.sd_beg_max)
+        print "- AVP sd_end:", (self.sd_end_min, self.sd_end_max)
 
     def plot_result(self):
         from TOPPpy import ProfilesFromString, SwitchPointsFromString
@@ -217,15 +226,19 @@ class TorquePendulumExec(unittest.TestCase):
 
     def test_traversable(self):
         for i, trajuple in enumerate(traversable_trajs):
-            print "\n\n\nTest traversable"
             self.run_topp(*trajuple)
+            print "\n\n-----------------------------------------------------"
+            print "Traversable test results"
+            self.print_info()
             self.assertEqual(self.ret, 1)
             self.assertNotEqual(self.ret_vip, 0)
 
     def test_impossible(self):
         for i, trajuple in enumerate(impossible_trajs):
-            print "\n\n\nTest impossible"
             self.run_topp(*trajuple)
+            print "\n\n-----------------------------------------------------"
+            print "Impossible test results"
+            self.print_info()
             self.assertNotEqual(self.ret, 1)
             self.assertEqual(self.ret_vip, 0)
 

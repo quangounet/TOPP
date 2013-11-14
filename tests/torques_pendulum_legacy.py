@@ -79,6 +79,14 @@ trajectorystring = """1.000000
 -0.0950348403547 0.0346142777958 -9.82659842058 6.74542632955
 -0.165204811682 -0.546977881311 1.62609934207 -0.913916649073"""
 
+trajectorystring = """1.000000
+2
+-0.496005602127 -0.496005602078 -7.64552243845 5.49594098906
+-0.879406406487 -0.879406406399 4.27317393732 -2.51436112444"""
+
+sdbeg_min = 0.
+sdbeg_max = 1e-4
+
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
@@ -99,7 +107,7 @@ t1 = time.time()
 x = TOPPbindings.TOPPInstance("TorqueLimits",constraintstring,trajectorystring,tuningsstring)
 t2 = time.time()
 #ret = x.RunComputeProfiles(0,0)
-ret = x.RunVIP(0,7.63)
+ret = x.RunVIP(sdbeg_min, sdbeg_max)
 print ret
 t3 = time.time()
 
