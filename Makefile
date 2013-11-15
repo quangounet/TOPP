@@ -6,9 +6,10 @@ OBJECTS=$(SOURCE:.cpp=.o)
 DEBUG_OBJECTS=$(SOURCE:.cpp=.gdb.o)
 TARGET=TOPPbindings.so
 LIB=-lboost_python -lopenrave0.9-core
-INCLUDE=$(shell python-config --includes)
-CC=g++ -std=c++0x -O2 -Wall -fPIC -I/usr/local/include/openrave-0.9/
-CCG=g++ -g -std=c++0x -Wall -fPIC 
+INCLUDE=$(shell python-config --includes) $(shell openrave-config --cflags-only-I)
+CFLAGS=-Wall -fPIC -std=c++0x
+CC=g++ $(CFLAGS) $(INCLUDE) -O2
+CCG=g++ $(CFLAGS) $(INCLUDE) -g
 
 TESTS=$(wildcard tests/*.py)
 PYTHON=python
@@ -27,16 +28,16 @@ help:
 
 
 %.o: %.cpp $(HEADERS)
-	$(CC) $(INCLUDE) -c $< 
+	$(CC) -c $< 
 
 release: $(OBJECTS)
-	$(CC) $(INCLUDE) $(OBJECTS) -shared $(LIB) -o $(TARGET)
+	$(CC) $(OBJECTS) -shared $(LIB) -o $(TARGET)
 
 %.gdb.o: %.cpp $(HEADERS)
-	$(CCG) $(INCLUDE) -c $< -o $@
+	$(CCG) -c $< -o $@
 
 debug: $(DEBUG_OBJECTS)
-	$(CCG) $(INCLUDE) $(DEBUG_OBJECTS) -shared $(LIB) -o $(TARGET)
+	$(CCG) $(DEBUG_OBJECTS) -shared $(LIB) -o $(TARGET)
 
 clean:
 	rm -f $(OBJECTS) $(DEBUG_OBJECTS) *~
