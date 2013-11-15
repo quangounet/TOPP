@@ -3,6 +3,7 @@
 
 namespace TOPP {
 
+typedef double dReal;
 
 class Constraints;  // defined in TOPP.h
 

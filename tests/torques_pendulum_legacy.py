@@ -75,11 +75,12 @@ trajectorystring = """1.000000
 -0.420982931773 -0.111291845962 1.77275676137 -1.33551682399
 -0.630425778805 0.0894067072732 0.0852189728776 0.290595287026"""
 
+# TODO: pentes dans le mauvais sens autour des points singuliers
 trajectorystring = """1.000000
 2
 -0.0539850762113 -0.0539850762059 0.131202643008 -0.0710088455766
 -0.300968741813 -0.300968741783 0.480216768411 -0.231499819896"""
-sdbeg_min, sdbeg_max = 0,0
+sdbeg_min, sdbeg_max = 0, 0
 
 
 #------------------------------------------#
@@ -159,11 +160,11 @@ if rrt.found_solution():
 
 
 print "\n--------------"
-print "Python preprocessing: ", t1-t0
-print "Building TOPP Instance: ", t2-t1
-print "Compute profiles: ", t3-t2
-print "Reparameterize trajectory: ", t4-t3
-print "Total: ", t4-t0
+print "Python preprocessing: ", t1 - t0
+print "Building TOPP Instance: ", t2 - t1
+print "Compute profiles: ", t3 - t2
+print "Reparameterize trajectory: ", t4 - t3
+print "Total: ", t4 - t0
 if(ret == 1):
     print "Trajectory duration (estimate): ", x.resduration
 

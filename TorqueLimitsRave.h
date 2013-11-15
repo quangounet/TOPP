@@ -16,10 +16,10 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+#include <openrave-core.h>
 
 #include "TOPP.h"
 #include "TorqueLimits.h"
-#include <openrave-core.h>
 
 namespace TOPP {
 

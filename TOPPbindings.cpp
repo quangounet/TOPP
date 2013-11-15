@@ -26,9 +26,8 @@
 #include <boost/python/module.hpp>
 #include <boost/python/def.hpp>
 
-#include <openrave-core.h>
-#define _MSC_VER
-#include "/home/cuong/git/openrave/python/bindings/openravepy_int.h"
+#include "openrave-core.h"
+#include "python/bindings/openravepy_int.h"
 
 using namespace boost::python;
 using namespace openravepy;
@@ -41,7 +40,7 @@ public:
                  constraintsstring, std::string trajectorystring,
                  std::string tuningsstring, object o) {
         ptrajectory = new TOPP::Trajectory(trajectorystring);
-        RobotBasePtr probot = GetRobot(object o);
+        RobotBasePtr probot = GetRobot(o);
         tunings = Tunings(tuningsstring);
         if (problemtype.compare("KinematicLimits")==0)
             pconstraints = new KinematicLimits(constraintsstring);
@@ -61,22 +60,22 @@ public:
     std::string restrajectorystring;
     std::string resprofilesliststring;
     std::string switchpointsliststring;
-    dReal resduration;
-    dReal sdendmin,sdendmax;
+    TOPP::dReal resduration;
+    TOPP::dReal sdendmin,sdendmax;
 
 
-    dReal GetAlpha(dReal s, dReal sd) {
-        std::pair<dReal, dReal> sdd_lim = pconstraints->SddLimits(s, sd);
+    TOPP::dReal GetAlpha(TOPP::dReal s, TOPP::dReal sd) {
+        std::pair<TOPP::dReal, TOPP::dReal> sdd_lim = pconstraints->SddLimits(s, sd);
         return sdd_lim.first;
     }
 
 
-    dReal GetBeta(dReal s, dReal sd) {
-        std::pair<dReal, dReal> sdd_lim = pconstraints->SddLimits(s, sd);
+    TOPP::dReal GetBeta(TOPP::dReal s, TOPP::dReal sd) {
+        std::pair<TOPP::dReal, TOPP::dReal> sdd_lim = pconstraints->SddLimits(s, sd);
         return sdd_lim.second;
     }
 
-    int RunComputeProfiles(dReal sdbeg, dReal sdend){
+    int RunComputeProfiles(TOPP::dReal sdbeg, TOPP::dReal sdend){
         int res = ComputeProfiles(*pconstraints,*ptrajectory,tunings,sdbeg,sdend);
         resduration = pconstraints->resduration;
         return res;
@@ -89,7 +88,7 @@ public:
     }
 
 
-    int RunVIP(dReal sdbegmin, dReal sdbegmax){
+    int RunVIP(TOPP::dReal sdbegmin, TOPP::dReal sdbegmax){
         int ret = VIP(*pconstraints, *ptrajectory, tunings, sdbegmin, sdbegmax,
                       sdendmin, sdendmax);
         if(ret == 0) {
