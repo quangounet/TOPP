@@ -307,3 +307,84 @@ def string2p(s):
     p2 = [l[2 * (ndof + 1) + 1:3 * (ndof + 1)]]
     p3 = [l[3 * (ndof + 1) + 1:4 * (ndof + 1)]]
     return [p0, p1, p2, p3]
+
+
+############################### (s, sd)-RRT ###################################
+
+class PhaseRRT(object):
+    class Node(object):
+        def __init__(self, s, sd, parent=None):
+            self.s = s
+            self.sd = sd
+            self.parent = parent
+
+    def __init__(self, topp_inst, traj, sd_beg_min, sd_beg_max, ds):
+        self.topp_inst = topp_inst
+        self.traj = traj
+        self.ds = ds
+        sd_start = linspace(sd_beg_min, sd_beg_max, 42)
+        self.nodes = [self.Node(0., sd) for sd in sd_start]
+        self.end_node = None
+
+    def found_solution(self):
+        return self.end_node is not None
+
+    def plot_tree(self):
+        cur_axis = pylab.axis()
+        for node in self.nodes:
+            s, sd = node.s, node.sd
+            plot([s], [sd], 'bo')
+            if node.parent:
+                ps, psd = node.parent.s, node.parent.sd
+                plot([ps, s], [psd, sd], 'g-', linewidth=1)
+        pylab.axis(cur_axis)
+
+    def plot_path(self, node):
+        if node.parent:
+            s, sd, ps, psd = node.s, node.sd, node.parent.s, node.parent.sd
+            plot([ps, s], [psd, sd], 'r-', linewidth=3)
+            return self.plot_path(node.parent)
+
+    def plot_solution(self):
+        cur_axis = pylab.axis()
+        if self.end_node:
+            self.plot_path(self.end_node)
+        pylab.axis(cur_axis)
+
+    def steer(self, node, target):
+        """Returns True iff the steering reached the target."""
+        interp_step = (target.sd - node.sd) / (target.s - node.s)
+        interp_sd = lambda s: (s - node.s) * interp_step + node.sd
+        for s in arange(node.s, target.s, self.ds):
+            sd = interp_sd(s)
+            alpha = self.topp_inst.GetAlpha(s, sd)
+            beta = self.topp_inst.GetBeta(s, sd)
+            # stepping condition is: alpha / sd <= sdd <= beta / sd
+            if sd <= 0 or not (alpha <= interp_step * sd <= beta):
+                return False
+        return True
+
+    def extend(self, target, k=10):
+        """Returns True iff the extension reached the target."""
+        from random import sample
+        candidates = [node for node in self.nodes if node.s < target.s]
+        if len(candidates) > k:
+            candidates = sample(candidates, k)
+        for candidate in candidates:
+            if self.steer(candidate, target):
+                self.nodes.append(self.Node(target.s, target.sd, candidate))
+                return True
+        return False
+
+    def run(self, time_budget=600):
+        """Runs until the time budget (default: 10 min) is exhausted."""
+        smax, sd_max = self.traj.duration, 10.
+        start_time = time.time()
+        while time.time() - start_time < time_budget:
+            s = pylab.random() * self.traj.duration
+            sd = pylab.random() * sd_max
+            self.extend(self.Node(s, sd))
+            if sd < sd_max / 10:  # happens 1/10 times
+                if self.extend(self.Node(smax, sd)):
+                    self.end_node = self.nodes[-1]
+                    break
