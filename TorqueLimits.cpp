@@ -18,7 +18,6 @@
 
 #include "TorqueLimits.h"
 
-
 namespace TOPP {
 
 TorqueLimits::TorqueLimits(const std::string& constraintsstring){

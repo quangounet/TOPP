@@ -57,25 +57,34 @@ tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep
 ############################ Trajectory ############################
 #------------------------------------------#
 
-# TODO: integration autour du point singulier de gauche
-sdbeg_min, sdbeg_max = 0.000000, 5.143234
-trajectorystring = """0.727992
-2
--0.0539850761315 0.744141496569 -1.85622830904
--0.300968741716 0.668022030388 -2.0090717382"""
-
-# TODO: alpha au-dessus de beta sous la MVC
-sdbeg_min, sdbeg_max = 0.000000, 8.808698
+# TODO: allure mechante !
 trajectorystring = """1.000000
 2
--0.420982931773 -0.111291845962 1.77275676137 -1.33551682399
--0.630425778805 0.0894067072732 0.0852189728776 0.290595287026"""
+-0.0950348403623 -0.0410497641469 -4.82725068944 1.82174264036
+-0.165204811614 0.135763930185 0.663416639512 -0.633975758083"""
+
+# TODO: calcul supra long et resultat chelou
+trajectorystring = """1.000000
+2
+0.0 3.63455628188 -16.353755721 9.57760678553
+0.0 0.0 0.0 0.0"""
+
+trajectorystring = """0.534643
+2
+-0.496005602127 -0.491268736192 -0.705298166892
+-0.879406406486 -0.871008053258 0.701512327246"""
+
+trajectorystring = """1.000000
+2
+-0.0950348403547 0.0346142777958 -9.82659842058 6.74542632955
+-0.165204811682 -0.546977881311 1.62609934207 -0.913916649073"""
 
 trajectorystring = """1.000000
 2
 -0.0539850762113 -0.0539850762059 0.131202643008 -0.0710088455766
 -0.300968741813 -0.300968741783 0.480216768411 -0.231499819896"""
 sdbeg_min, sdbeg_max = 0,0
+
 
 
 #------------------------------------------#
@@ -89,13 +98,13 @@ taumin = array([-11,-7])
 taumax = array([11,7])
 t0 = time.time()
 constraintstring = string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax]) + "\n" + string.join([str(a) for a in vmax])
-constraintstring += TOPPopenravepy.ComputeTorquesConstraintsLegacy(robot,traj0,taumin,taumax,discrtimestep)
+constraintstring += "\n" + robotfile
 #------------------------------------------#
 
 
 ############################ Run TOPP ############################
 t1 = time.time()
-x = TOPPbindings.TOPPInstance("TorqueLimits",constraintstring,trajectorystring,tuningsstring)
+x = TOPPbindings.TOPPInstance("TorqueLimitsRave",constraintstring,trajectorystring,tuningsstring)
 t2 = time.time()
 #ret = x.RunComputeProfiles(0,0)
 ret = x.RunVIP(sdbeg_min, sdbeg_max)
@@ -116,14 +125,10 @@ x.WriteProfilesList()
 x.WriteSwitchPointsList()
 profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
 switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
-
-def replot():
-    clf()
-    TOPPpy.PlotProfiles(profileslist,switchpointslist,1)
-
-replot()
-axis([0, traj0.duration, 0, 100])
+TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
+#axis([0, 1, 0, 100])
 TOPPpy.PlotAlphaBeta(x)
+
 
 
 ##################### Plotting the trajectories #####################
@@ -143,6 +148,5 @@ print "Reparameterize trajectory: ", t4-t3
 print "Total: ", t4-t0
 if(ret == 1):
     print "Trajectory duration (estimate): ", x.resduration
-
 
 raw_input()

@@ -19,6 +19,7 @@
 #include "TOPP.h"
 #include "KinematicLimits.h"
 #include "TorqueLimits.h"
+#include "TorqueLimitsRave.h"
 
 
 #include <boost/python.hpp>
@@ -32,14 +33,16 @@ public:
     TOPPInstance(std::string problemtype, std::string
                  constraintsstring, std::string trajectorystring,
                  std::string tuningsstring) {
+        ptrajectory = new Trajectory(trajectorystring);
+        tunings = Tunings(tuningsstring);
         if (problemtype.compare("KinematicLimits")==0)
             pconstraints = new KinematicLimits(constraintsstring);
         else if (problemtype.compare("TorqueLimits")==0)
             pconstraints = new TorqueLimits(constraintsstring);
         else if (problemtype.compare("QuadraticConstraints")==0)
             pconstraints = new QuadraticConstraints(constraintsstring);
-        ptrajectory = new Trajectory(trajectorystring);
-        tunings = Tunings(tuningsstring);
+        else if (problemtype.compare("TorqueLimitsRave")==0)
+            pconstraints = new TorqueLimitsRave(constraintsstring,ptrajectory,tunings);
     }
 
     Constraints* pconstraints;
