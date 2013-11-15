@@ -26,14 +26,22 @@
 #include <boost/python/module.hpp>
 #include <boost/python/def.hpp>
 
+#include <openrave-core.h>
+#define _MSC_VER
+#include "/home/cuong/git/openrave/python/bindings/openravepy_int.h"
+
+using namespace boost::python;
+using namespace openravepy;
 using namespace TOPP;
+
 
 class TOPPInstance {
 public:
     TOPPInstance(std::string problemtype, std::string
                  constraintsstring, std::string trajectorystring,
-                 std::string tuningsstring) {
-        ptrajectory = new Trajectory(trajectorystring);
+                 std::string tuningsstring, object o) {
+        ptrajectory = new TOPP::Trajectory(trajectorystring);
+        RobotBasePtr probot = GetRobot(object o);
         tunings = Tunings(tuningsstring);
         if (problemtype.compare("KinematicLimits")==0)
             pconstraints = new KinematicLimits(constraintsstring);
@@ -46,8 +54,8 @@ public:
     }
 
     Constraints* pconstraints;
-    Trajectory* ptrajectory;
-    Trajectory restrajectory;
+    TOPP::Trajectory* ptrajectory;
+    TOPP::Trajectory restrajectory;
 
     Tunings tunings;
     std::string restrajectorystring;
@@ -131,7 +139,7 @@ public:
 BOOST_PYTHON_MODULE(TOPPbindings) {
     using namespace boost::python;
     class_<TOPPInstance>("TOPPInstance",
-                         init<std::string,std::string,std::string,std::string>())
+                         init<std::string,std::string,std::string,std::string,object>())
     .def_readonly("restrajectorystring", &TOPPInstance::restrajectorystring)
     .def_readonly("resprofilesliststring", &TOPPInstance::resprofilesliststring)
     .def_readonly("switchpointsliststring", &TOPPInstance::switchpointsliststring)
