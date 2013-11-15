@@ -35,17 +35,17 @@
 #include <cstdlib>
 #include <cassert>
 
+#include "Trajectory.h"
+
+
+namespace TOPP {
+
 typedef double dReal;
 
 #define TINY 1e-10
 #define TINY2 1e-5
 #define INF 1.0e15
 #define MAXSD 200
-
-#include "Trajectory.h"
-
-
-namespace TOPP {
 
 
 const int BUFFSIZE = 300000;

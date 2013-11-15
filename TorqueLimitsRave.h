@@ -16,16 +16,18 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+#include <openrave-core.h>
 
 #include "TOPP.h"
 #include "TorqueLimits.h"
-#include <openrave-core.h>
+#include "python/bindings/openravepy_int.h"
+
 
 namespace TOPP {
 
 class TorqueLimitsRave : public TorqueLimits {
 public:
-    TorqueLimitsRave(const std::string& constraintsstring, Trajectory* ptraj, const Tunings& tunings);
+    TorqueLimitsRave(const std::string& constraintsstring, Trajectory* ptraj, const Tunings& tunings, RobotBasePtr probot);
 
 };
 }

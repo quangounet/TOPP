@@ -24,7 +24,7 @@ using namespace OpenRAVE;
 
 namespace TOPP {
 
-TorqueLimitsRave::TorqueLimitsRave(const std::string& constraintsstring, Trajectory* ptraj, const Tunings& tunings){
+TorqueLimitsRave::TorqueLimitsRave(const std::string& constraintsstring, Trajectory* ptraj, const Tunings& tunings, RobotBasePtr probot){
     int buffsize = BUFFSIZE;  // TODO: remove this dirty string interface!
     std::vector<dReal> tmpvect;
     char buff[buffsize];
@@ -38,36 +38,22 @@ TorqueLimitsRave::TorqueLimitsRave(const std::string& constraintsstring, Traject
     hasvelocitylimits = VectorMax(vmax) > TINY;
     maxrep = 1;
 
-    // Load the robot
-    iss.getline(buff,buffsize);
-    std::string robotfile = std::string(buff);
-    RaveInitialize(true); // start openrave core
-
-    EnvironmentBasePtr penv = RaveCreateEnvironment(); // create the main environment
-
-    {
-        // lock the environment to prevent changes
-        EnvironmentMutex::scoped_lock lock(penv->GetMutex());
-        RobotBasePtr probot = penv->ReadRobotXMLFile(robotfile);
-        penv->Add(probot);
-
-        // Define the avect, bvect, cvect
-        int ndiscrsteps = int((ptraj->duration+1e-10)/tunings.discrtimestep)+1;
-        std::vector<dReal> q(ptraj->dimension), qd(ptraj->dimension), qdd(ptraj->dimension), torquesimple;
-        boost::array< std::vector< dReal >, 3 > torquecomponents;
-        for(int i = 0; i<ndiscrsteps; i++) {
-            dReal s = i*tunings.discrtimestep;
-            ptraj->Eval(s,q);
-            ptraj->Evald(s,qd);
-            ptraj->Evaldd(s,qdd);
-            probot->SetDOFValues(q,CLA_Nothing);
-            probot->SetDOFVelocities(qd,CLA_Nothing);
-            probot->ComputeInverseDynamics(torquecomponents,qdd);
-            probot->ComputeInverseDynamics(torquesimple,qd);
-            avect.push_back(VectorAdd(VectorAdd(torquesimple,torquecomponents[1],1,-1),torquecomponents[2],1,-1));
-            bvect.push_back(VectorAdd(torquecomponents[0],torquecomponents[1]));
-            cvect.push_back(torquecomponents[2]);
-        }
+    // Define the avect, bvect, cvect
+    int ndiscrsteps = int((ptraj->duration+1e-10)/tunings.discrtimestep)+1;
+    std::vector<dReal> q(ptraj->dimension), qd(ptraj->dimension), qdd(ptraj->dimension), torquesimple;
+    boost::array< std::vector< dReal >, 3 > torquecomponents;
+    for(int i = 0; i<ndiscrsteps; i++) {
+        dReal s = i*tunings.discrtimestep;
+        ptraj->Eval(s,q);
+        ptraj->Evald(s,qd);
+        ptraj->Evaldd(s,qdd);
+        probot->SetDOFValues(q,CLA_Nothing);
+        probot->SetDOFVelocities(qd,CLA_Nothing);
+        probot->ComputeInverseDynamics(torquecomponents,qdd);
+        probot->ComputeInverseDynamics(torquesimple,qd);
+        avect.push_back(VectorAdd(VectorAdd(torquesimple,torquecomponents[1],1,-1),torquecomponents[2],1,-1));
+        bvect.push_back(VectorAdd(torquecomponents[0],torquecomponents[1]));
+        cvect.push_back(torquecomponents[2]);
     }
 }
 

@@ -27,7 +27,7 @@
 #include <boost/python/def.hpp>
 
 #include <openrave-core.h>
-#include "/home/cuong/git/openrave/python/bindings/openravepy_int.h"
+#include "python/bindings/openravepy_int.h"
 
 using namespace boost::python;
 using namespace openravepy;
@@ -49,7 +49,7 @@ public:
         else if (problemtype.compare("QuadraticConstraints")==0)
             pconstraints = new QuadraticConstraints(constraintsstring);
         else if (problemtype.compare("TorqueLimitsRave")==0)
-            pconstraints = new TorqueLimitsRave(constraintsstring,ptrajectory,tunings);
+            pconstraints = new TorqueLimitsRave(constraintsstring,ptrajectory,tunings,probot);
     }
 
     Constraints* pconstraints;
@@ -60,22 +60,22 @@ public:
     std::string restrajectorystring;
     std::string resprofilesliststring;
     std::string switchpointsliststring;
-    dReal resduration;
-    dReal sdendmin,sdendmax;
+    TOPP::dReal resduration;
+    TOPP::dReal sdendmin,sdendmax;
 
 
-    dReal GetAlpha(dReal s, dReal sd) {
-        std::pair<dReal, dReal> sdd_lim = pconstraints->SddLimits(s, sd);
+    TOPP::dReal GetAlpha(TOPP::dReal s, TOPP::dReal sd) {
+        std::pair<TOPP::dReal, TOPP::dReal> sdd_lim = pconstraints->SddLimits(s, sd);
         return sdd_lim.first;
     }
 
 
-    dReal GetBeta(dReal s, dReal sd) {
-        std::pair<dReal, dReal> sdd_lim = pconstraints->SddLimits(s, sd);
+    TOPP::dReal GetBeta(TOPP::dReal s, TOPP::dReal sd) {
+        std::pair<TOPP::dReal, TOPP::dReal> sdd_lim = pconstraints->SddLimits(s, sd);
         return sdd_lim.second;
     }
 
-    int RunComputeProfiles(dReal sdbeg, dReal sdend){
+    int RunComputeProfiles(TOPP::dReal sdbeg, TOPP::dReal sdend){
         int res = ComputeProfiles(*pconstraints,*ptrajectory,tunings,sdbeg,sdend);
         resduration = pconstraints->resduration;
         return res;
@@ -88,7 +88,7 @@ public:
     }
 
 
-    int RunVIP(dReal sdbegmin, dReal sdbegmax){
+    int RunVIP(TOPP::dReal sdbegmin, TOPP::dReal sdbegmax){
         int ret = VIP(*pconstraints, *ptrajectory, tunings, sdbegmin, sdbegmax,
                       sdendmin, sdendmax);
         if(ret == 0) {
