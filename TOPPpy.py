@@ -17,7 +17,9 @@
 
 
 from pylab import array, double, gca, plot, figure, linspace
-from pylab import clf, hold, axis, title, sqrt
+from pylab import arange, clf, hold, axis, title, sqrt
+import pylab
+import time
 
 import TOPPbindings
 import TOPPopenravepy
@@ -223,6 +225,8 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=0):
 
 def PlotAlphaBeta(topp_inst, prec=20):
     smin, smax, sdmin, sdmax = axis()
+    if sdmin <= 0.:
+        sdmin = 1e-2
     print "smin, smax =", smin, smax
     print "sdmin, sdmax =", sdmin, sdmax
     s_coord = linspace(smin, smax, prec)
@@ -234,8 +238,6 @@ def PlotAlphaBeta(topp_inst, prec=20):
     yscl = dsd0 / ds0
     for s in s_coord:
         for sd in sd_coord:
-            if sd==0:
-                sd += 1e-2
             ds = ds0 / 2
             a, b = nalpha(s, sd), nbeta(s, sd)
             na, nb = 1. / sqrt(1. + a ** 2), 1. / sqrt(1. + b ** 2)
