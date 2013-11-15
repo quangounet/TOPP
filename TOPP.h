@@ -295,6 +295,7 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
 // Find the smallest and largest element of a vector
 dReal VectorMin(const std::vector<dReal>& v);
 dReal VectorMax(const std::vector<dReal>& v);
+std::vector<dReal> VectorAdd(const std::vector<dReal>& a, const std::vector<dReal>& b, dReal coefa=1, dReal coefb=1);
 
 // Read a vector of dReal from a space-separated string
 void VectorFromString(const std::string& s,std::vector<dReal>&resvect);

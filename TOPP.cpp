@@ -1610,6 +1610,17 @@ dReal VectorMax(const std::vector<dReal>&v){
     return res;
 }
 
+std::vector<dReal> VectorAdd(const std::vector<dReal>& a, const std::vector<dReal>& b, dReal coefa, dReal coefb){
+    std::vector<dReal> res;
+    std::vector<dReal>::const_iterator ita = a.begin();
+    std::vector<dReal>::const_iterator itb = b.begin();
+    while(ita != a.end()) {
+        res.push_back(*ita*coefa+*itb*coefb);
+        ita++;
+        itb++;
+    }
+    return res;
+}
 
 bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal& sol, dReal lowerbound, dReal upperbound) {
     dReal delta = a1*a1- 4*a0*a2;

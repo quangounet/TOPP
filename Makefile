@@ -5,10 +5,10 @@ HEADERS=$(wildcard *.h)
 OBJECTS=$(SOURCE:.cpp=.o)
 DEBUG_OBJECTS=$(SOURCE:.cpp=.gdb.o)
 TARGET=TOPPbindings.so
-LIB=-lboost_python
+LIB=-lboost_python -lopenrave0.9-core
 INCLUDE=$(shell python-config --includes)
-CC=g++ -std=c++0x -O2 -Wall -fPIC
-CCG=g++ -g -std=c++0x -Wall -fPIC
+CC=g++ -std=c++0x -O2 -Wall -fPIC -I/usr/local/include/openrave-0.9/
+CCG=g++ -g -std=c++0x -Wall -fPIC 
 
 TESTS=$(wildcard tests/*.py)
 PYTHON=python
