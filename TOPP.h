@@ -91,6 +91,7 @@ public:
     }
     dReal s, sd;
     int switchpointtype;
+    std::vector<dReal> slopesvector;
 };
 
 

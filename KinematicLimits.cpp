@@ -86,17 +86,12 @@ void KinematicLimits::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vec
     InterpolateDynamics(s,qd,qdd);
     InterpolateDynamics(s2,qd2,qdd2);
 
-    std::vector<std::pair<dReal,int> > vp;
-    for(int i=0; i<trajectory.dimension; i++) {
-        vp.push_back(std::pair<dReal,int>(std::abs(qd[i]),i));
-    }
-    std::sort(vp.begin(),vp.end());
     slopesvector.resize(0);
     for(int i=0; i<trajectory.dimension; i++) {
-        qdp = (qd2[vp[i].second]-qd[vp[i].second])/delta;
-        qddp = (qdd2[vp[i].second]-qdd[vp[i].second])/delta;
-        slope = (-qddp*sd*sd)/((2*qdd[vp[i].second]+qdp)*sd);
-        //std::cout << vp[i].second << " " << slope << "***\n";
+        qdp = (qd2[i]-qd[i])/delta;
+        qddp = (qdd2[i]-qdd[i])/delta;
+        slope = (-qddp*sd*sd)/((2*qdd[i]+qdp)*sd);
+        //std::cout << i << " " << slope << "***\n";
         slopesvector.push_back(slope);
     }
 }

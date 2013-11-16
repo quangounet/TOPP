@@ -197,7 +197,12 @@ void Constraints::AddSwitchPoint(int i, int switchpointtype, dReal sd){
         }
         it++;
     }
-    switchpointslist.insert(it,SwitchPoint(s,sd,switchpointtype));
+    SwitchPoint sw(s,sd,switchpointtype);
+    if(switchpointtype == SP_SINGULAR) {
+        sw.slopesvector = std::vector<dReal>();
+        ComputeSlopeDynamicSingularity(s,sd,sw.slopesvector);
+    }
+    switchpointslist.insert(it,sw);
 }
 
 
@@ -264,8 +269,8 @@ void Constraints::TrimSwitchPoints() {
                 it--;
                 it = switchpointslist.erase(it);
             }
-            // same type, remove the highest
-            else{
+            // both are non singular, remove the highest
+            else if (stype != SP_SINGULAR) {
                 if(sd < sdnext) {
                     it =  switchpointslist.erase(it);
                     it--;
@@ -274,6 +279,28 @@ void Constraints::TrimSwitchPoints() {
                     it--;
                     it = switchpointslist.erase(it);
                 }
+            }
+            // both are singular, remove the highest and merge slopesvector
+            else{
+                //std::cout << "Trim singular " << s << "\n";
+                if(sd < sdnext) {
+                    std::vector<dReal> slopesvector = it->slopesvector;
+                    it =  switchpointslist.erase(it);
+                    it--;
+                    for(int j=0; j<int(slopesvector.size()); j++) {
+                        it->slopesvector.push_back(slopesvector[j]);
+                    }
+                }
+                else{
+                    std::vector<dReal> slopesvector = it->slopesvector;
+                    it--;
+                    it = switchpointslist.erase(it);
+                    for(int j=0; j<int(slopesvector.size()); j++) {
+                        it->slopesvector.push_back(slopesvector[j]);
+                    }
+
+                }
+
             }
         }
     }
@@ -347,17 +374,12 @@ void QuadraticConstraints::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std
     InterpolateDynamics(s,a,b,c);
     InterpolateDynamics(s2,a2,b2,c2);
 
-    std::vector<std::pair<dReal,int> > vp;
-    for(int i=0; i<int(a.size()); i++) {
-        vp.push_back(std::pair<dReal,int>(std::abs(a[i]),i));
-    }
-    std::sort(vp.begin(),vp.end());
     slopesvector.resize(0);
     for(int i=0; i<int(a.size()); i++) {
-        ap = (a[vp[i].second]-a2[vp[i].second])/delta;
-        bp = (b[vp[i].second]-b2[vp[i].second])/delta;
-        cp = (c[vp[i].second]-c2[vp[i].second])/delta;
-        slope = (-bp*sd*sd-cp)/((2*b[vp[i].second]+ap)*sd);
+        ap = (a2[i]-a[i])/delta;
+        bp = (b2[i]-b[i])/delta;
+        cp = (c2[i]-c[i])/delta;
+        slope = (-bp*sd*sd-cp)/((2*b[i]+ap)*sd);
         slopesvector.push_back(slope);
     }
 }
@@ -644,17 +666,15 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
     // Singular switchpoints
     else{
         dReal sstep = constraints.tunings.passswitchpointnsteps*constraints.tunings.integrationtimestep;
-        std::vector<dReal> slopesvector;
         dReal bestslope = 0;
         dReal bestscore = INF;
-        constraints.ComputeSlopeDynamicSingularity(s,sd,slopesvector);
         sforward = s + sstep;
         sbackward = s - sstep;
         if(sforward>constraints.trajectory.duration || sbackward<0) {
             return false;
         }
-        for(int i = 0; i<int(slopesvector.size()); i++) {
-            dReal slope = slopesvector[i];
+        for(int i = 0; i<int(switchpoint.slopesvector.size()); i++) {
+            dReal slope = switchpoint.slopesvector[i];
             sdforward = sd + sstep*slope;
             sdbackward = sd - sstep*slope;
             dReal alphabackward = constraints.SddLimits(sbackward,sdbackward).first/sd;
@@ -663,7 +683,7 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
             dReal bob2 = constraints.SdLimitBobrow(sforward)-sdforward;
             dReal slopediff1 = std::abs(alphabackward-slope);
             dReal slopediff2 = std::abs(betaforward-slope);
-            //std::cout << s << " " << bob1 << " " << bob2  << " " << slopediff1 << " " << slopediff2 << "\n";
+            //std::cout << s << " " << sd << " ** " << slope << " ** " << bob1 << " " << bob2  << " " << slopediff1 << " " << slopediff2 << "\n";
             if(bob1>=0 && bob2>=0) {
                 dReal score = slopediff1+slopediff2;
                 if(score<bestscore) {
