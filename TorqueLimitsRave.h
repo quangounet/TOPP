@@ -20,7 +20,7 @@
 
 #include "TOPP.h"
 #include "TorqueLimits.h"
-#include "python/bindings/openravepy_int.h"
+#include "openrave/python/bindings/openravepy_int.h"
 
 
 namespace TOPP {

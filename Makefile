@@ -5,7 +5,7 @@ HEADERS=$(wildcard *.h)
 OBJECTS=$(SOURCE:.cpp=.o)
 DEBUG_OBJECTS=$(SOURCE:.cpp=.gdb.o)
 TARGET=TOPPbindings.so
-LIB=-lboost_python -lopenrave0.9-core -Lbuild/python/bindings/
+LIB=-lboost_python -lopenrave0.9-core 
 INCLUDE=$(shell python-config --includes) $(shell openrave-config --cflags-only-I)
 CFLAGS=-Wall -fPIC -std=c++0x
 CC=g++ $(CFLAGS) $(INCLUDE) -O2
@@ -31,7 +31,7 @@ help:
 	$(CC) -c $< 
 
 release: $(OBJECTS)
-	$(CC) $(OBJECTS) -shared $(LIB) -o $(TARGET)
+	$(CC) $(OBJECTS) openrave/build/python/bindings/openravepy_int.so -shared $(LIB) -o $(TARGET)
 
 %.gdb.o: %.cpp $(HEADERS)
 	$(CCG) -c $< -o $@

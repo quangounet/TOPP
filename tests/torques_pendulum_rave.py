@@ -104,7 +104,7 @@ constraintstring += "\n" + robotfile
 
 ############################ Run TOPP ############################
 t1 = time.time()
-x = TOPPbindings.TOPPInstance("TorqueLimitsRave",constraintstring,trajectorystring,tuningsstring)
+x = TOPPbindings.TOPPInstance("TorqueLimitsRave",constraintstring,trajectorystring,tuningsstring,robot)
 t2 = time.time()
 #ret = x.RunComputeProfiles(0,0)
 ret = x.RunVIP(sdbeg_min, sdbeg_max)

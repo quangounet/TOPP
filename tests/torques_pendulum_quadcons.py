@@ -28,15 +28,15 @@ from numpy import *
 from openravepy import *
 
 
-
 ion()
 
 ########################### Robot ################################
 env = Environment() # create openrave environment
 #------------------------------------------#
-robotfile = "../robots/arm.robot.xml"
+robotfile = "../robots/twodof.robot.xml"
 env.Load(robotfile)
 robot=env.GetRobots()[0]
+robot.SetTransform(array([[0,0,1,0],[0,1,0,0],[-1,0,0,0.3],[0,0,0,1]]))
 #------------------------------------------#
 grav=[0,0,-9.8]
 n=robot.GetDOF()
@@ -47,49 +47,52 @@ robot.SetDOFVelocityLimits(100*vel_lim)
 
 
 ############################ Tunings ############################
-discrtimestep = 0.01
-integrationtimestep = 0.01
-reparamtimestep = 0.01
-passswitchpointnsteps = 5
+discrtimestep = 0.001
+integrationtimestep = discrtimestep
+reparamtimestep = 0 #auto
+passswitchpointnsteps = 10
 tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
 
 
 ############################ Trajectory ############################
 #------------------------------------------#
-q0=[0,0,0,0]
-q1=[ 2.32883,  1.61082,  0.97706,  1.94169]
-v=1
-qd0=[v,v,v,v]
-qd1=[v,v,v,v]
-T = 1.5
-trajectorystring = "%f\n%d"%(T,4)
-for i in range(4):
-    a,b,c,d = TOPPpy.Interpolate3rdDegree(q0[i],q1[i],qd0[i],qd1[i],T)
-    trajectorystring += "\n%f %f %f %f"%(d,c,b,a)
+trajectorystring="""1.000000
+2
+-0.0539850762113 -0.0539850762059 0.131202643008 -0.0710088455766
+-0.300968741813 -0.300968741783 0.480216768411 -0.231499819896"""
+sdbeg_min = 0.
+sdbeg_max = 1e-4
+
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 
 ############################ Constraints ############################
 #------------------------------------------#
-taumin = array([-6,-15,-5,-4])
-taumax = array([6,15,5,4])
-vmax = [3,3,3,3]
+vmax = array([0,0])
+taumin = array([-11,-7])
+taumax = array([11,7])
 t0 = time.time()
-constraintstring = string.join([str(v) for v in vmax])
+constraintstring = string.join([str(a) for a in vmax])
 constraintstring += TOPPopenravepy.ComputeTorquesConstraints(robot,traj0,taumin,taumax,discrtimestep)
 #------------------------------------------#
 
 
 ############################ Run TOPP ############################
 t1 = time.time()
-x = TOPPbindings.TOPPInstance("QuadraticConstraints",constraintstring,trajectorystring,tuningsstring);
+x = TOPPbindings.TOPPInstance("QuadraticConstraints",constraintstring,trajectorystring,tuningsstring,False)
 t2 = time.time()
-ret = x.RunComputeProfiles(0,0)
+#ret = x.RunComputeProfiles(0,0)
+ret = x.RunVIP(sdbeg_min, sdbeg_max)
+print ret
 t3 = time.time()
 
-if(ret == 1):
-    x.ReparameterizeTrajectory()
+#print x.resduration
+print "sdendmin =", x.sdendmin
+print "sdendmax =", x.sdendmax
+
+# if(ret == 1):
+#     x.ReparameterizeTrajectory()
 
 t4 = time.time()
 
@@ -99,24 +102,28 @@ x.WriteSwitchPointsList()
 profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
 switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
 TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
+#axis([0, 1, 0, 100])
+TOPPpy.PlotAlphaBeta(x)
+
 
 
 ##################### Plotting the trajectories #####################
-if(ret == 1):
-    x.WriteResultTrajectory()
-    traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
-    dtplot = 0.01
-    TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax)
-    TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)
+# if(ret == 1):
+#     x.WriteResultTrajectory()
+#     traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
+#     dtplot = 0.01
+#     TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax)
+#     TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)
 
 
-print "\n--------------"
-print "Python preprocessing: ", t1-t0
-print "Building TOPP Instance: ", t2-t1
-print "Compute profiles: ", t3-t2
-print "Reparameterize trajectory: ", t4-t3
-print "Total: ", t4-t0
-print "Trajectory duration (estimate): ", x.resduration
-print "Trajectory duration: ", traj1.duration
+# print "\n--------------"
+# print "Python preprocessing: ", t1-t0
+# print "Building TOPP Instance: ", t2-t1
+# print "Compute profiles: ", t3-t2
+# print "Reparameterize trajectory: ", t4-t3
+# print "Total: ", t4-t0
+# if(ret == 1):
+#     print "Trajectory duration (estimate): ", x.resduration
+#     print "Trajectory duration: ", traj1.duration
 
 raw_input()

@@ -27,7 +27,8 @@
 #include <boost/python/def.hpp>
 
 #include <openrave-core.h>
-#include "python/bindings/openravepy_int.h"
+#include "openrave/python/bindings/openravepy_int.h"
+
 
 using namespace boost::python;
 using namespace openravepy;
@@ -41,6 +42,7 @@ public:
                  std::string tuningsstring, object o) {
         ptrajectory = new TOPP::Trajectory(trajectorystring);
         RobotBasePtr probot = GetRobot(o);
+
         tunings = Tunings(tuningsstring);
         if (problemtype.compare("KinematicLimits")==0)
             pconstraints = new KinematicLimits(constraintsstring);

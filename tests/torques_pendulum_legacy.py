@@ -106,7 +106,7 @@ constraintstring += ComputeTorquesConstraintsLegacy(robot, traj0, taumin,
 ############################ Run TOPP ############################
 t1 = time.time()
 x = TOPPbindings.TOPPInstance("TorqueLimits", constraintstring,
-                              trajectorystring, tuningsstring)
+                              trajectorystring, tuningsstring, False)
 t2 = time.time()
 #ret = x.RunComputeProfiles(0,0)
 ret = x.RunVIP(sdbegmin, sdbegmax)
@@ -170,4 +170,4 @@ if(ret == 1):
 
 
 
-#raw_input()
+raw_input()
