@@ -155,7 +155,7 @@ class TorquePendulumExec(unittest.TestCase):
         self.topp0 = TOPPInstance("QuadraticConstraints",
                                  self.constraintstring0,
                                  traj_str,
-                                 self.tuningsstring)
+                                 self.tuningsstring,False)
         self.ret0 = self.topp0.RunComputeProfiles(0, 0)
 
 
@@ -172,7 +172,7 @@ class TorquePendulumExec(unittest.TestCase):
         self.topp = TOPPInstance("TorqueLimits",
                                  self.constraintstring,
                                  traj_str,
-                                 self.tuningsstring)
+                                 self.tuningsstring,False)
         self._t2 = time.time()
         self.ret = self.topp.RunComputeProfiles(0, 0)
         self._t3 = time.time()
@@ -184,7 +184,7 @@ class TorquePendulumExec(unittest.TestCase):
         self.topp1 = TOPPInstance("TorqueLimits",
                                  self.constraintstring,
                                  traj_str,
-                                 self.tuningsstring)
+                                 self.tuningsstring,False)
         self._t5 = time.time()
         self.ret_vip = self.topp1.RunVIP(sd_min, sd_max)
         self._t6 = time.time()
