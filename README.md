@@ -13,31 +13,31 @@ Requirements
 Installation
 ------------
 
-I) OpenRAVE stuffs
-Assume that your openrave folder is /home/cuong/git/openrave/
-
-1) In the TOPP folder, create a link to the openrave folder
-ln -s /home/cuong/git/openrave .
-
-2) In .bashrc add the following line
-export LD_LIBRARY_PATH=/home/cuong/git/openrave/build/python/bindings:$LD_LIBRARY_PATH
-
-3) In /home/cuong/git/openrave/python/bindings/openravepy_int.h, comment out the line
-#define PY_ARRAY_UNIQUE_SYMBOL PyArrayHandle
-
-4) Patch file /home/cuong/git/openrave/python/bindings/bindings.h (ask Stephane)
-
-
-
-
 From the top folder:
   
-    make
+    make release
 
-For TOPP with Kinematic Limits:
+will compile TOPPbindings.so in the current folder.
+
+*OpenRAVE integration:* let OPENRAVE_DIR denote your OpenRAVE source folder,
+for instance:
+    
+    export OPENRAVE_DIR=~/openrave
+    git clone https://github.com/rdiankov/openrave.git OPENRAVE_DIR
+
+Install OpenRAVE (`Linux instructions here
+<http://openrave.org/docs/latest_stable/coreapihtml/installation_linux.html>`_). Supposing you kept the default installation path (i.e. /usr/local/), make a symbolic link
+
+    /usr/local/include/openrave-0.9/openrave/python -> OPENRAVE_DIR/python
+
+You will also need to patch file
+/home/cuong/git/openrave/python/bindings/bindings.h (ask Stephane) to support
+compilation with C++11 (-std=c++0x).
+
+Testing
+-------
+
+From TOPP's top directory:
   
-    python test_kinematic.py
-
-For TOPP with Torque Limits:
-
-    python test_torques.py
+    python test_kinematic.py  # test with kinematic constraints
+    python test_torques.py    # test with torque limits
