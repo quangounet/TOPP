@@ -78,32 +78,33 @@ trajectorystring = """1.000000
 -0.0950348403547 0.0346142777958 -9.82659842058 6.74542632955
 -0.165204811682 -0.546977881311 1.62609934207 -0.913916649073"""
 
+sdbeg_min, sdbeg_max = 0.000000, 0.000100
 trajectorystring = """1.000000
 2
--0.0539850762113 -0.0539850762059 0.131202643008 -0.0710088455766
--0.300968741813 -0.300968741783 0.480216768411 -0.231499819896"""
-sdbeg_min, sdbeg_max = 0,0
-
+0.0 0.0 -3.73274775866 2.75027767479
+0.0 0.0 -0.185735672452 0.108317885998"""
 
 
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
-
 ############################ Constraints ############################
-#------------------------------------------#
-vmax = array([0,0])
-taumin = array([-11,-7])
-taumax = array([11,7])
+vmax = array([0, 0])
+taumin = array([-11, -7])
+taumax = array([11, 7])
 t0 = time.time()
-constraintstring = string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax]) + "\n" + string.join([str(a) for a in vmax])
-constraintstring += "\n" + robotfile
+constraintstring = ' '.join([str(x) for x in taumin])
+constraintstring += "\n" + ' '.join([str(a) for a in taumax])
+constraintstring += "\n" + ' '.join([str(a) for a in vmax])
+#constraintstring += "\n" + robotfile  # this lines looks useless (Stéphane)
+print constraintstring
 #------------------------------------------#
 
 
 ############################ Run TOPP ############################
 t1 = time.time()
-x = TOPPbindings.TOPPInstance("TorqueLimitsRave",constraintstring,trajectorystring,tuningsstring,robot)
+x = TOPPbindings.TOPPInstance("TorqueLimitsRave", constraintstring,
+                              trajectorystring, tuningsstring, robot)
 t2 = time.time()
 #ret = x.RunComputeProfiles(0,0)
 ret = x.RunVIP(sdbeg_min, sdbeg_max)
@@ -114,7 +115,7 @@ t3 = time.time()
 print "sdendmin =", x.sdendmin
 print "sdendmax =", x.sdendmax
 
-# if(ret == 1):
+# if ret == 1:
 #     x.ReparameterizeTrajectory()
 
 t4 = time.time()
@@ -124,28 +125,41 @@ x.WriteProfilesList()
 x.WriteSwitchPointsList()
 profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
 switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
-TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
-#axis([0, 1, 0, 100])
-TOPPpy.PlotAlphaBeta(x)
 
+
+def replot(prec=None):
+    cur_axis = axis()
+    clf()
+    TOPPpy.PlotProfiles(profileslist, switchpointslist, 1)
+    axis(cur_axis)
+
+axis([0, traj0.duration, 0, 100])
+replot()
+#TOPPpy.PlotAlphaBeta(x)
+
+# validate with RRT in the (s, sd) plane, in case no solution was found
+if x.sdendmin < 0 and raw_input("Check with RRT? [y/N] ") == 'y':
+    rrt = TOPPpy.TryRRT(x, traj0, sdbeg_min, sdbeg_max, discrtimestep, time_budget=60)
+    if rrt.found_solution():
+        rrt.plot_solution()
 
 
 ##################### Plotting the trajectories #####################
 # if(ret == 1):
 #     x.WriteResultTrajectory()
-#     traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
+#     traj1 = PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
 #     dtplot = 0.01
 #     TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax)
 #     TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)
 
 
 print "\n--------------"
-print "Python preprocessing: ", t1-t0
-print "Building TOPP Instance: ", t2-t1
-print "Compute profiles: ", t3-t2
-print "Reparameterize trajectory: ", t4-t3
-print "Total: ", t4-t0
-if(ret == 1):
+print "Python preprocessing: ", t1 - t0
+print "Building TOPP Instance: ", t2 - t1
+print "Compute profiles: ", t3 - t2
+print "Reparameterize trajectory: ", t4 - t3
+print "Total: ", t4 - t0
+if ret == 1:
     print "Trajectory duration (estimate): ", x.resduration
 
 raw_input()
