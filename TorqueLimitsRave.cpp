@@ -42,18 +42,21 @@ TorqueLimitsRave::TorqueLimitsRave(const std::string& constraintsstring, Traject
     int ndiscrsteps = int((ptraj->duration+1e-10)/tunings.discrtimestep)+1;
     std::vector<dReal> q(ptraj->dimension), qd(ptraj->dimension), qdd(ptraj->dimension), torquesimple;
     boost::array< std::vector< dReal >, 3 > torquecomponents;
-    for(int i = 0; i<ndiscrsteps; i++) {
-        dReal s = i*tunings.discrtimestep;
-        ptraj->Eval(s,q);
-        ptraj->Evald(s,qd);
-        ptraj->Evaldd(s,qdd);
-        probot->SetDOFValues(q,CLA_Nothing);
-        probot->SetDOFVelocities(qd,CLA_Nothing);
-        probot->ComputeInverseDynamics(torquecomponents,qdd);
-        probot->ComputeInverseDynamics(torquesimple,qd);
-        avect.push_back(VectorAdd(VectorAdd(torquesimple,torquecomponents[1],1,-1),torquecomponents[2],1,-1));
-        bvect.push_back(VectorAdd(torquecomponents[0],torquecomponents[1]));
-        cvect.push_back(torquecomponents[2]);
+    {
+        EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex()); // lock environment
+        for(int i = 0; i<ndiscrsteps; i++) {
+            dReal s = i*tunings.discrtimestep;
+            ptraj->Eval(s,q);
+            ptraj->Evald(s,qd);
+            ptraj->Evaldd(s,qdd);
+            probot->SetDOFValues(q,CLA_Nothing);
+            probot->SetDOFVelocities(qd,CLA_Nothing);
+            probot->ComputeInverseDynamics(torquesimple,qd);
+            probot->ComputeInverseDynamics(torquecomponents,qdd);
+            avect.push_back(VectorAdd(VectorAdd(torquesimple,torquecomponents[1],1,-1),torquecomponents[2],1,-1));
+            bvect.push_back(VectorAdd(torquecomponents[0],torquecomponents[1]));
+            cvect.push_back(torquecomponents[2]);
+        }
     }
 }
 

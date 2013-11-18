@@ -20,6 +20,7 @@
 #include "KinematicLimits.h"
 #include "TorqueLimits.h"
 #include "TorqueLimitsRave.h"
+#include "ZMPTorqueLimits.h"
 
 
 #include <boost/python.hpp>
@@ -52,6 +53,8 @@ public:
             pconstraints = new QuadraticConstraints(constraintsstring);
         else if (problemtype.compare("TorqueLimitsRave")==0)
             pconstraints = new TorqueLimitsRave(constraintsstring,ptrajectory,tunings,probot);
+        else if (problemtype.compare("ZMPTorqueLimits")==0)
+            pconstraints = new ZMPTorqueLimits(constraintsstring,ptrajectory,tunings,probot);
     }
 
     Constraints* pconstraints;
