@@ -66,7 +66,7 @@ class RaveTorqueInstance(object):
                                                 str(self.traj),
                                                 str(self.tunings), self.robot)
 
-    def parametrize_path(self):
+    def GetTrajectory(self):
         return_code = self.solver.RunComputeProfiles(0, 0)
         if return_code != 1:
             raise NoTrajectoryFound
@@ -79,7 +79,7 @@ class RaveTorqueInstance(object):
         traj_str = self.solver.restrajectorystring
         return PiecewisePolynomialTrajectory.FromString(traj_str)
 
-    def propagate_velocity_interval(self, sd_min, sd_max):
+    def GetAVP(self, sd_min, sd_max):
         return_code = self.solver.RunVIP(sd_min, sd_max)
         print "propagate_velocity_interval: ret code is", return_code
         if return_code == 0:
