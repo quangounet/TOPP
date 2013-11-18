@@ -21,7 +21,7 @@ sys.path.append('..')
 import TOPPbindings
 import TOPPpy
 import time
-from pylab import ion, array, ones, axis, clf, ylim
+from pylab import ion, array, ones, axis, clf
 from openravepy import Environment
 
 ion()
@@ -56,34 +56,11 @@ tuningsstring = "%f %f %f %d" % (discrtimestep, integrationtimestep,
 
 ############################ Trajectory ############################
 
-# TODO: allure mechante !
+sdbeg_min, sdbeg_max = 0.0, 0.0001
 trajectorystring = """1.000000
 2
--0.0950348403623 -0.0410497641469 -4.82725068944 1.82174264036
--0.165204811614 0.135763930185 0.663416639512 -0.633975758083"""
-
-# TODO: calcul supra long et resultat chelou
-trajectorystring = """1.000000
-2
-0.0 3.63455628188 -16.353755721 9.57760678553
-0.0 0.0 0.0 0.0"""
-
-trajectorystring = """0.534643
-2
--0.496005602127 -0.491268736192 -0.705298166892
--0.879406406486 -0.871008053258 0.701512327246"""
-
-trajectorystring = """1.000000
-2
--0.0950348403547 0.0346142777958 -9.82659842058 6.74542632955
--0.165204811682 -0.546977881311 1.62609934207 -0.913916649073"""
-
-sdbeg_min, sdbeg_max = 0.000000, 0.000100
-trajectorystring = """1.000000
-2
-0.0 0.0 -3.73274775866 2.75027767479
-0.0 0.0 -0.185735672452 0.108317885998"""
-
+0.0 -0.316841821141 -0.517973306853 0.413832196233
+0.0 -1.83079350169 1.68090295997 -0.480535237087"""
 
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
@@ -97,7 +74,6 @@ constraintstring = ' '.join([str(x) for x in taumin])
 constraintstring += "\n" + ' '.join([str(a) for a in taumax])
 constraintstring += "\n" + ' '.join([str(a) for a in vmax])
 #constraintstring += "\n" + robotfile  # this lines looks useless (Stéphane)
-print constraintstring
 #------------------------------------------#
 
 
@@ -139,7 +115,7 @@ replot()
 
 # validate with RRT in the (s, sd) plane, in case no solution was found
 if x.sdendmin < 0 and raw_input("Check with RRT? [y/N] ") == 'y':
-    rrt = TOPPpy.TryRRT(x, traj0, sdbeg_min, sdbeg_max, discrtimestep, time_budget=60)
+    rrt = TOPPpy.TryRRT(x, traj0, sdbeg_min, sdbeg_max, discrtimestep)
     if rrt.found_solution():
         rrt.plot_solution()
 

@@ -35,6 +35,7 @@ passswitchpointnsteps = 10
 robotfile = "../robots/twodof.robot.xml"
 dtplot = 0.01
 
+
 def append_traj(traj_list, traj_str, tauref, sd_min=0., sd_max=1e-4):
     traj_list.append((traj_str, sd_min, sd_max, -tauref, +tauref))
 
@@ -110,6 +111,16 @@ append_traj(impossible_trajs, """1.000000
 -0.496005602127 -0.496005602078 -7.64552243845 5.49594098906
 -0.879406406487 -0.879406406399 4.27317393732 -2.51436112444""", tau_11_7)
 
+append_traj(impossible_trajs, """1.000000
+2
+0.0 3.63455628188 -16.353755721 9.57760678553
+0.0 0.0 0.0 0.0""", tau_11_7)
+
+append_traj(impossible_trajs, """1.000000
+2
+-0.0950348403623 -0.0410497641469 -4.82725068944 1.82174264036
+-0.165204811614 0.135763930185 0.663416639512 -0.633975758083""", tau_11_7)
+
 
 class TorquePendulumExec(unittest.TestCase):
     def setUp(self):
@@ -141,38 +152,34 @@ class TorquePendulumExec(unittest.TestCase):
         self.ret_vip = None
 
     def run_topp(self, traj_str, sd_min, sd_max, tau_min, tau_max):
-        from TOPPopenravepy import ComputeTorquesConstraintsLegacy,ComputeTorquesConstraints
+        from TOPPopenravepy import ComputeTorquesConstraintsLegacy
+        from TOPPopenravepy import ComputeTorquesConstraints
         from TOPPbindings import TOPPInstance
         self.cur_traj_str = traj_str
         self.cur_tau_min = tau_min
         self.cur_tau_max = tau_max
         self.traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(traj_str)
         self._t0 = time.time()
-        
+
         # QuadraticConstraints (topp0)
         self.constraintstring0 = ' '.join([str(v) for v in vmax])
-        self.constraintstring0 += TOPPopenravepy.ComputeTorquesConstraints(self.robot,self.traj0,tau_min,tau_max,discrtimestep)
-        self.topp0 = TOPPInstance("QuadraticConstraints",
-                                 self.constraintstring0,
-                                 traj_str,
-                                 self.tuningsstring,False)
+        self.constraintstring0 += ComputeTorquesConstraints(
+            self.robot, self.traj0, tau_min, tau_max, discrtimestep)
+        self.topp0 = TOPPInstance(
+            "QuadraticConstraints", self.constraintstring0, traj_str,
+            self.tuningsstring, False)
         self.ret0 = self.topp0.RunComputeProfiles(0, 0)
-
 
         # TorqueLimits (topp)
         self.constraintstring = ' '.join([str(v) for v in tau_min]) + "\n"
         self.constraintstring += ' '.join([str(v) for v in tau_max]) + "\n"
         self.constraintstring += ' '.join([str(v) for v in vmax])
-        self.constraintstring += ComputeTorquesConstraintsLegacy(self.robot,
-                                                                 self.traj0,
-                                                                 tau_min,
-                                                                 tau_max,
-                                                                 discrtimestep)
+        self.constraintstring += ComputeTorquesConstraintsLegacy(
+            self.robot, self.traj0, tau_min, tau_max, discrtimestep)
         self._t1 = time.time()
-        self.topp = TOPPInstance("TorqueLimits",
-                                 self.constraintstring,
-                                 traj_str,
-                                 self.tuningsstring,False)
+        self.topp = TOPPInstance(
+            "TorqueLimits", self.constraintstring, traj_str,
+            self.tuningsstring, False)
         self._t2 = time.time()
         self.ret = self.topp.RunComputeProfiles(0, 0)
         self._t3 = time.time()
@@ -181,10 +188,9 @@ class TorquePendulumExec(unittest.TestCase):
         self._t4 = time.time()
 
         # TorqueLimits AVP (topp1)
-        self.topp1 = TOPPInstance("TorqueLimits",
-                                 self.constraintstring,
-                                 traj_str,
-                                 self.tuningsstring,False)
+        self.topp1 = TOPPInstance(
+            "TorqueLimits", self.constraintstring, traj_str,
+            self.tuningsstring, False)
         self._t5 = time.time()
         self.ret_vip = self.topp1.RunVIP(sd_min, sd_max)
         self._t6 = time.time()
@@ -242,7 +248,8 @@ class TorquePendulumExec(unittest.TestCase):
                 print "Traversable test results"
                 self.print_info()
             self.assertEqual(self.ret, 1)
-            self.assertTrue(abs(self.topp0.resduration-self.topp.resduration)<1e-2)
+            res_diff = self.topp0.resduration - self.topp.resduration
+            self.assertTrue(abs(res_diff) < 1e-2)
             self.assertNotEqual(self.ret_vip, 0)
 
     def test_impossible(self):
