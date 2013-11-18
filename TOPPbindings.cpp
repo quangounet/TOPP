@@ -80,6 +80,7 @@ public:
         return sdd_lim.second;
     }
 
+
     int RunComputeProfiles(TOPP::dReal sdbeg, TOPP::dReal sdend){
         int res = ComputeProfiles(*pconstraints,*ptrajectory,tunings,sdbeg,sdend);
         resduration = pconstraints->resduration;

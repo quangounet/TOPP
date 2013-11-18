@@ -1,7 +1,8 @@
 TOPP
 ====
 
-This is TOPP, the Time-Optimal Path Parameterization library by Quang-Cuong Pham (cuong.pham@normalesup.org)
+This is TOPP, the Time-Optimal Path Parameterization library by Quang-Cuong
+Pham (cuong.pham@normalesup.org)
 
 Requirements 
 ------------
@@ -25,10 +26,18 @@ for instance:
     export OPENRAVE_DIR=~/openrave
     git clone https://github.com/rdiankov/openrave.git OPENRAVE_DIR
 
-Install OpenRAVE (`Linux instructions here
-<http://openrave.org/docs/latest_stable/coreapihtml/installation_linux.html>`_). Supposing you kept the default installation path (i.e. /usr/local/), make a symbolic link
+Install OpenRAVE (Linux instructions here:
+http://openrave.org/docs/latest_stable/coreapihtml/installation_linux.html).
+Supposing you kept the default installation path (i.e. /usr/local/), make
+a symbolic link
 
     /usr/local/include/openrave-0.9/openrave/python -> OPENRAVE_DIR/python
+
+Add the Python bindings folder to your library path by exporting it to
+LD_LIBRARY_PATH (you can put the following line in your .bashrc or .zshrc for
+persistence):
+
+    export LD_LIBRARY_PATH=$(openrave-config --python-dir)/openravepy/_openravepy_:$LD_LIBRARY_PATH
 
 You will also need to patch file
 /home/cuong/git/openrave/python/bindings/bindings.h (ask Stephane) to support
