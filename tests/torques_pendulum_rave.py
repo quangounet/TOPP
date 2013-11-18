@@ -20,42 +20,41 @@ sys.path.append('..')
 
 import TOPPbindings
 import TOPPpy
-import TOPPopenravepy
 import time
-import string
-from pylab import *
-from numpy import *
-from openravepy import *
-
+from pylab import ion, array, ones, axis, clf, ylim
+from openravepy import Environment
 
 ion()
 
 ########################### Robot ################################
-env = Environment() # create openrave environment
+env = Environment()  # create openrave environment
 #------------------------------------------#
 robotfile = "../robots/twodof.robot.xml"
 env.Load(robotfile)
-robot=env.GetRobots()[0]
-robot.SetTransform(array([[0,0,1,0],[0,1,0,0],[-1,0,0,0.3],[0,0,0,1]]))
+robot = env.GetRobots()[0]
+robot.SetTransform(array([[0, 0, 1, 0],
+                          [0, 1, 0, 0],
+                          [-1, 0, 0, 0.3],
+                          [0, 0, 0, 1]]))
 #------------------------------------------#
-grav=[0,0,-9.8]
-n=robot.GetDOF()
-dof_lim=robot.GetDOFLimits()
-vel_lim=robot.GetDOFVelocityLimits()
-robot.SetDOFLimits(-10*ones(n),10*ones(n))
-robot.SetDOFVelocityLimits(100*vel_lim)
+grav = [0, 0, -9.8]
+n = robot.GetDOF()
+dof_lim = robot.GetDOFLimits()
+vel_lim = robot.GetDOFVelocityLimits()
+robot.SetDOFLimits(-10 * ones(n), 10 * ones(n))
+robot.SetDOFVelocityLimits(100 * vel_lim)
 
 
 ############################ Tunings ############################
 discrtimestep = 0.001
 integrationtimestep = discrtimestep
-reparamtimestep = 0 #auto
+reparamtimestep = 0  # auto
 passswitchpointnsteps = 10
-tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
+tuningsstring = "%f %f %f %d" % (discrtimestep, integrationtimestep,
+                                 reparamtimestep, passswitchpointnsteps)
 
 
 ############################ Trajectory ############################
-#------------------------------------------#
 
 # TODO: allure mechante !
 trajectorystring = """1.000000

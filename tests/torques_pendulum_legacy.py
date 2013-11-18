@@ -139,15 +139,12 @@ axis([0, traj0.duration, 0, 100])
 replot()
 #TOPPpy.PlotAlphaBeta(x)
 
-
-#############################################################
-# Tentative: RRT in the (s, sd) plane
-
-rrt = TOPPpy.PhaseRRT(x, traj0, sdbegmin, sdbegmax, discrtimestep)
-rrt.run()
-if rrt.found_solution():
-    rrt.plot_solution()
-    ylim(0, 10)
+# validate with RRT in the (s, sd) plane, in case no solution was found
+if x.sdendmin < 0:
+    rrt = TOPPpy.TryRRT(x, traj0, sdbegmin, sdbegmax, discrtimestep)
+    if rrt.found_solution():
+        rrt.plot_solution()
+        ylim(0, 10)
 
 
 ##################### Plotting the trajectories #####################
@@ -167,7 +164,5 @@ print "Reparameterize trajectory: ", t4 - t3
 print "Total: ", t4 - t0
 if(ret == 1):
     print "Trajectory duration (estimate): ", x.resduration
-
-
 
 raw_input()

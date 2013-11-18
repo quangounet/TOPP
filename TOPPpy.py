@@ -22,7 +22,6 @@ import pylab
 import time
 
 import TOPPbindings
-import TOPPopenravepy
 
 from Trajectory import PiecewisePolynomialTrajectory
 from Trajectory import NoTrajectoryFound
@@ -54,25 +53,18 @@ class RaveTorqueInstance(object):
         print "trajectorystring = \"\"\"" + str(traj) + "\"\"\""
 
         buffsize = 200000
-        args = rave_robot, traj, tau_min, tau_max, tunings.mvc_tstep
         constring = vect2str(tau_min) + "\n"
         constring += vect2str(tau_max) + "\n"
         constring += vect2str([0, 0])  # vmax
-        constring += TOPPopenravepy.ComputeTorquesConstraintsLegacy(*args)
-
-        if False:
-            print "cstring:", len(constring)
-            print constring[:1000]
-            print tau_min
-            print tau_max
 
         assert len(constring) < buffsize, \
             "%d is bigger than buffer size" % len(constring)
         assert len(str(self.traj)) < buffsize
         assert len(str(self.tunings)) < buffsize
 
-        self.solver = TOPPbindings.TOPPInstance(
-            "TorqueLimits", constring, str(self.traj), str(self.tunings))
+        self.solver = TOPPbindings.TOPPInstance("TorqueLimitsRave", constring,
+                                                str(self.traj),
+                                                str(self.tunings), self.robot)
 
     def parametrize_path(self):
         return_code = self.solver.RunComputeProfiles(0, 0)
@@ -313,7 +305,7 @@ def string2p(s):
 
 ############################### (s, sd)-RRT ###################################
 
-class PhaseRRT(object):
+class __PhaseRRT(object):
     class Node(object):
         def __init__(self, s, sd, parent=None):
             self.s = s
@@ -378,8 +370,8 @@ class PhaseRRT(object):
                 return True
         return False
 
-    def run(self, time_budget=600):
-        """Runs until the time budget (default: 10 min) is exhausted."""
+    def run(self, time_budget=300):
+        """Runs until the time budget (default: 5 min) is exhausted."""
         smax, sd_max = self.traj.duration, 10.
         start_time = time.time()
         while time.time() - start_time < time_budget:
@@ -390,3 +382,10 @@ class PhaseRRT(object):
                 if self.extend(self.Node(smax, sd)):
                     self.end_node = self.nodes[-1]
                     break
+
+
+def TryRRT(topp_inst, traj, sd_beg_min, sd_beg_max, ds=1e-3, time_budget=300):
+    print "Running RRT in (s, sd) for %d min..." % (time_budget / 60)
+    rrt = __PhaseRRT(topp_inst, traj, sd_beg_min, sd_beg_max, ds)
+    rrt.run(time_budget)
+    return rrt
