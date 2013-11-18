@@ -2,17 +2,19 @@ SHELL=/bin/bash
 
 SOURCE=$(wildcard *.cpp)
 HEADERS=$(wildcard *.h)
-OBJECTS=$(SOURCE:.cpp=.o)
+RELEASE_OBJECTS=$(SOURCE:.cpp=.o)
 DEBUG_OBJECTS=$(SOURCE:.cpp=.gdb.o)
 TARGET=TOPPbindings.so
-LIB=-lboost_python -lopenrave0.9-core 
-INCLUDE=$(shell python-config --includes) $(shell openrave-config --cflags-only-I)
-CFLAGS=-Wall -fPIC -std=c++0x
-CC=g++ $(CFLAGS) $(INCLUDE) -O2
-CCG=g++ $(CFLAGS) $(INCLUDE) -g
 
-TESTS=$(wildcard tests/*.py)
-PYTHON=python
+# Compilation
+INC_PATH=$(shell python-config --includes) $(shell openrave-config --cflags-only-I)
+CFLAGS=-Wall -fPIC -std=c++0x
+CC=g++ $(CFLAGS) -O2
+CCG=g++ $(CFLAGS) -g
+
+# Linking
+SO_LIBS=$(shell openrave-config --python-dir)/openravepy/_openravepy_/openravepy_int.so
+LIBS=-lboost_python -lopenrave0.9-core $(SO_LIBS)
 
 
 help:
@@ -28,27 +30,24 @@ help:
 
 
 %.o: %.cpp $(HEADERS)
-	$(CC) -c $< 
-
-release: $(OBJECTS)
-	$(CC) $(OBJECTS) openrave/build/python/bindings/openravepy_int.so -shared $(LIB) -o $(TARGET)
+	$(CC) $(INC_PATH) -c $< 
 
 %.gdb.o: %.cpp $(HEADERS)
-	$(CCG) -c $< -o $@
+	$(CCG) $(INC_PATH) -c $< -o $@
+
+release: $(RELEASE_OBJECTS)
+	$(CC) $(RELEASE_OBJECTS) $(LIBS) -shared -o $(TARGET)
 
 debug: $(DEBUG_OBJECTS)
-	$(CCG) $(DEBUG_OBJECTS) -shared $(LIB) -o $(TARGET)
+	$(CCG) $(DEBUG_OBJECTS) $(LIBS) -shared -o $(TARGET)
 
 clean:
-	rm -f $(OBJECTS) $(DEBUG_OBJECTS) *~
+	rm -f $(RELEASE_OBJECTS) $(DEBUG_OBJECTS) *~
 
 distclean: clean
 	rm -f $(TARGET)
 
 rebuild: distclean release
-
-tests:
-	@for f in $(TESTS); do $(PYTHON) $$f; done
 
 
 .PHONY: release debug clean distclean rebuild tests
