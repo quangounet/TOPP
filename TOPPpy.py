@@ -50,7 +50,7 @@ class RaveTorqueInstance(object):
         self.tunings = tunings
         self.traj = traj
 
-        print "trajectorystring = \"\"\"" + str(traj) + "\"\"\""
+        print "trajectorystring = \"\"\"" + str(traj) + "\"\"\"\n"
 
         buffsize = 200000
         constring = vect2str(tau_min) + "\n"
@@ -81,7 +81,6 @@ class RaveTorqueInstance(object):
 
     def GetAVP(self, sd_min, sd_max):
         return_code = self.solver.RunVIP(sd_min, sd_max)
-        print "propagate_velocity_interval: ret code is", return_code
         if return_code == 0:
             raise NoTrajectoryFound
         sd_end_min = self.solver.sdendmin
@@ -183,7 +182,7 @@ def ComputeKinematicConstraints(traj, amax, discrtimestep):
 
 ######################## Plots ############################
 
-def PlotProfiles(profileslist0, switchpointslist=[], figstart=0):
+def PlotProfiles(profileslist0, switchpointslist=[], figstart=1):
     profileslist = list(profileslist0)
     figure(figstart)
     clf()
@@ -219,8 +218,6 @@ def PlotAlphaBeta(topp_inst, prec=20):
     smin, smax, sdmin, sdmax = axis()
     if sdmin <= 0.:
         sdmin = 1e-2
-    print "smin, smax =", smin, smax
-    print "sdmin, sdmax =", sdmin, sdmax
     s_coord = linspace(smin, smax, prec)
     sd_coord = linspace(sdmin, sdmax, prec)
     ds0 = s_coord[1] - s_coord[0]
