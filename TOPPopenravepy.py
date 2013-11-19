@@ -83,6 +83,27 @@ def PlotTorques(robot,traj0,traj1,dt=0.001,taumin=[],taumax=[],figstart=0):
     title('Joint torques')
 
 
+def PlotZMP(robot,traj0,traj1,zmplimits,dt=0.01,figstart=0):
+    figure(figstart)
+    clf()
+    hold('on')
+    xmin, xmax, ymin, ymax = zmplimits
+    tvect0,xzmp0,yzmp0 = ComputeZMP(traj0,robot,dt)
+    tvect1,xzmp1,yzmp1 = ComputeZMP(traj1,robot,dt)
+    plot(tvect0,xzmp0,'r--',linewidth=2)
+    plot(tvect0,yzmp0,'g--',linewidth=2)
+    plot(tvect1,xzmp1,'r',linewidth=2)
+    plot(tvect1,yzmp1,'g',linewidth=2)
+    Tmax = max(traj0.duration,traj1.duration)
+    plot([0,Tmax],[xmin,xmin],'r-.')
+    plot([0,Tmax],[xmax,xmax],'r-.')
+    plot([0,Tmax],[ymin,ymin],'g-.')
+    plot([0,Tmax],[ymax,ymax],'g-.')
+    axis([0,Tmax,1.2*min(xmin,ymin),1.2*max(xmax,ymax)]) 
+    title('ZMP')
+
+
+
 def ComputeTorques(traj,robot,dt):
     tvect = arange(0,traj.duration+dt,dt)
     tauvect = []
@@ -96,4 +117,44 @@ def ComputeTorques(traj,robot,dt):
             tau = robot.ComputeInverseDynamics(qdd,None,returncomponents=False)
             tauvect.append(tau)
     return tvect,array(tauvect)
+
+
+def ComputeZMP(traj,robot,dt):
+    tvect = arange(0,traj.duration+dt,dt)
+    n = len(robot.GetLinks())
+    xzmp = []
+    yzmp = []
+    g = robot.GetEnv().GetPhysicsEngine().GetGravity()
+    for t in tvect:
+        with robot:
+            q = traj.Eval(t)
+            qd = traj.Evald(t)
+            qdd = traj.Evaldd(t)
+            robot.SetDOFValues(q)
+            robot.SetDOFVelocities(qd)
+            com_pos=array([k.GetGlobalCOM() for k in robot.GetLinks()])
+            vel=robot.GetLinkVelocities()
+            acc=robot.GetLinkAccelerations(qdd)
+            for i in range(n):
+                vel[i,0:3]=vel[i,0:3]
+                acc[i,0:3]=acc[i,0:3]
+            transforms=[k.GetTransform()[0:3,0:3] for k in robot.GetLinks()]
+            masses=[k.GetMass() for k in robot.GetLinks()]
+            localCOM=[k.GetLocalCOM() for k in robot.GetLinks()]
+        tau0 = array([0.,0.,0.])
+        f02 = sum(masses)*g[2]
+        for i in range(n):
+            # Compute the inertia matrix in the global frame
+            R=transforms[i]
+            ri=dot(R,localCOM[i])
+            omegai=vel[i,3:6]
+            omegadi=acc[i,3:6]
+            com_vel=vel[i,0:3]+cross(omegai,ri)
+            ci = com_pos[i]
+            cidd=acc[i,0:3]+cross(omegai,cross(omegai,ri))+cross(omegadi,ri)
+            tau0 += masses[i]*cross(ci,g-cidd)
+            f02 -= masses[i]*cidd[2]
+        xzmp.append(-tau0[1]/f02)
+        yzmp.append(tau0[0]/f02)
+    return tvect,xzmp,yzmp
 

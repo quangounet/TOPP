@@ -1608,37 +1608,47 @@ void VectorFromString(const std::string& s,std::vector<dReal>&resvect){
 
 
 dReal VectorMin(const std::vector<dReal>&v){
-    std::vector<dReal>::const_iterator it = v.begin();
     dReal res = INF;
-    while(it!=v.end()) {
-        res = std::min(res,*it);
-        it++;
+    for(int i=0; i<int(v.size()); i++) {
+        res = std::min(res,v[i]);
     }
     return res;
 }
 
 
 dReal VectorMax(const std::vector<dReal>&v){
-    std::vector<dReal>::const_iterator it = v.begin();
-    dReal res = -INF;
-    while(it!=v.end()) {
-        res = std::max(res,*it);
-        it++;
+    dReal res = INF;
+    for(int i=0; i<int(v.size()); i++) {
+        res = std::max(res,v[i]);
     }
     return res;
 }
 
-std::vector<dReal> VectorAdd(const std::vector<dReal>& a, const std::vector<dReal>& b, dReal coefa, dReal coefb){
-    std::vector<dReal> res;
-    std::vector<dReal>::const_iterator ita = a.begin();
-    std::vector<dReal>::const_iterator itb = b.begin();
-    while(ita != a.end()) {
-        res.push_back(*ita*coefa+*itb*coefb);
-        ita++;
-        itb++;
+
+void VectorAdd(const std::vector<dReal>&a, const std::vector<dReal>&b,  std::vector<dReal>&res, dReal coefa, dReal coefb){
+    assert(a.size() == b.size());
+    assert(a.size() == res.size());
+    for(int i=0; i<int(a.size()); i++) {
+        res[i] = coefa*a[i]+coefb*b[i];
     }
-    return res;
 }
+
+void VectorMultScalar(const std::vector<dReal>&a, std::vector<dReal>&res, dReal scalar){
+    assert(a.size() == res.size());
+    for(int i=0; i<int(a.size()); i++) {
+        res[i] = scalar*a[i];
+    }
+}
+
+
+dReal VectorNorm(const std::vector<dReal>&v){
+    dReal norm = 0;
+    for(int i=0; i<int(v.size()); i++) {
+        norm += v[i]*v[i];
+    }
+    return sqrt(norm);
+}
+
 
 bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal& sol, dReal lowerbound, dReal upperbound) {
     dReal delta = a1*a1- 4*a0*a2;
