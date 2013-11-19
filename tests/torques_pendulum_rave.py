@@ -82,7 +82,6 @@ t0 = time.time()
 constraintstring = ' '.join([str(x) for x in taumin])
 constraintstring += "\n" + ' '.join([str(a) for a in taumax])
 constraintstring += "\n" + ' '.join([str(a) for a in vmax])
-#constraintstring += "\n" + robotfile  # this lines looks useless (Stéphane)
 #------------------------------------------#
 
 
