@@ -321,6 +321,7 @@ class __PhaseRRT(object):
         self.topp_inst = topp_inst
         self.traj = traj
         self.ds = ds
+        self.sd_beg_max = sd_beg_max
         sd_start = linspace(sd_beg_min, sd_beg_max, 42)
         self.nodes = [self.Node(0., sd) for sd in sd_start]
         self.end_node = None
@@ -372,21 +373,26 @@ class __PhaseRRT(object):
         for candidate in candidates:
             if self.steer(candidate, target):
                 self.nodes.append(self.Node(target.s, target.sd, candidate))
+                if target.sd > 0.75 * self.sd_max:
+                    self.sd_max *= 1.25
                 return True
         return False
 
     def run(self, time_budget=300):
         """Runs until the time budget (default: 5 min) is exhausted."""
-        smax, sd_max = self.traj.duration, 10.
+        smax = self.traj.duration
+        self.sd_max = self.sd_beg_max
         start_time = time.time()
         while time.time() - start_time < time_budget:
             s = pylab.random() * self.traj.duration
-            sd = pylab.random() * sd_max
+            sd = pylab.random() * self.sd_max
             self.extend(self.Node(s, sd))
-            if sd < sd_max / 10:  # happens 1/10 times
-                if self.extend(self.Node(smax, sd)):
+            if sd < self.sd_max / 10:  # happens 1/10 times
+                sd_end = pylab.random() * self.sd_max
+                if self.extend(self.Node(smax, sd_end)):
                     self.end_node = self.nodes[-1]
                     break
+        print "RRT run time: %.1f min" % ((time.time() - start_time) / 60.)
 
 
 def TryRRT(topp_inst, traj, sd_beg_min, sd_beg_max, ds=1e-3, time_budget=300):
