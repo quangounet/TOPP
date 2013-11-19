@@ -46,7 +46,7 @@ robot.SetDOFVelocityLimits(100 * vel_lim)
 
 
 ############################ Tunings ############################
-discrtimestep = 0.001
+discrtimestep = 0.0001
 integrationtimestep = discrtimestep
 reparamtimestep = 0  # auto
 passswitchpointnsteps = 10
@@ -56,11 +56,34 @@ tuningsstring = "%f %f %f %d" % (discrtimestep, integrationtimestep,
 
 ############################ Trajectory ############################
 
+# backward integration does not start:
 sdbeg_min, sdbeg_max = 0.0, 0.0001
 trajectorystring = """1.000000
 2
 0.0 -0.316841821141 -0.517973306853 0.413832196233
 0.0 -1.83079350169 1.68090295997 -0.480535237087"""
+
+# no solution for discrtimestep=1e-3, solutions when =1e-4
+sdbeg_min, sdbeg_max = 0.0, 0.0001
+trajectorystring = """1.000000
+2
+0.0 0.0 -1.04335890092 0.547353298841
+0.0 0.0 -2.24856384056 1.36915743417"""
+
+
+# Trajectory generated at: 1384765130.68
+sdbeg_min, sdbeg_max = 0.0, 0.0001
+trajectorystring = """1.000000
+2
+0.0 -0.135411053583 -1.49553456713 1.1704782132
+0.0 0.0252588367341 -1.56111625404 1.11018287227"""
+
+# Trajectory generated at: 1384765212.48
+sdbeg_min, sdbeg_max = 0.0, 0.0001
+trajectorystring = """1.000000
+2
+0.0 0.11404993657 -1.48551067721 0.946727118784
+0.0 -0.0761626662488 -1.3863371087 0.893176382278"""
 
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
