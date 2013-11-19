@@ -50,7 +50,7 @@ class RaveTorqueInstance(object):
         self.tunings = tunings
         self.traj = traj
 
-        print "trajectorystring = \"\"\"" + str(traj) + "\"\"\""
+        print "trajectorystring = \"\"\"" + str(traj) + "\"\"\"\n"
 
         buffsize = 200000
         constring = vect2str(tau_min) + "\n"
@@ -66,7 +66,7 @@ class RaveTorqueInstance(object):
                                                 str(self.traj),
                                                 str(self.tunings), self.robot)
 
-    def parametrize_path(self):
+    def GetTrajectory(self):
         return_code = self.solver.RunComputeProfiles(0, 0)
         if return_code != 1:
             raise NoTrajectoryFound
@@ -79,9 +79,8 @@ class RaveTorqueInstance(object):
         traj_str = self.solver.restrajectorystring
         return PiecewisePolynomialTrajectory.FromString(traj_str)
 
-    def propagate_velocity_interval(self, sd_min, sd_max):
+    def GetAVP(self, sd_min, sd_max):
         return_code = self.solver.RunVIP(sd_min, sd_max)
-        print "propagate_velocity_interval: ret code is", return_code
         if return_code == 0:
             raise NoTrajectoryFound
         sd_end_min = self.solver.sdendmin
@@ -183,7 +182,7 @@ def ComputeKinematicConstraints(traj, amax, discrtimestep):
 
 ######################## Plots ############################
 
-def PlotProfiles(profileslist0, switchpointslist=[], figstart=0):
+def PlotProfiles(profileslist0, switchpointslist=[], figstart=1):
     profileslist = list(profileslist0)
     figure(figstart)
     clf()
@@ -215,12 +214,18 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=0):
     return s_max, sd_max  # return this for PlotPhase (yurk!)
 
 
-def PlotAlphaBeta(topp_inst, prec=20):
+def PlotComputedProfiles(topp_bind, figstart=1):
+    topp_bind.WriteProfilesList()
+    topp_bind.WriteSwitchPointsList()
+    profileslist = ProfilesFromString(topp_bind.resprofilesliststring)
+    switchpointslist = SwitchPointsFromString(topp_bind.switchpointsliststring)
+    PlotProfiles(profileslist, switchpointslist, figstart)
+
+
+def PlotAlphaBeta(topp_inst, prec=30):
     smin, smax, sdmin, sdmax = axis()
     if sdmin <= 0.:
         sdmin = 1e-2
-    print "smin, smax =", smin, smax
-    print "sdmin, sdmax =", sdmin, sdmax
     s_coord = linspace(smin, smax, prec)
     sd_coord = linspace(sdmin, sdmax, prec)
     ds0 = s_coord[1] - s_coord[0]
@@ -313,12 +318,15 @@ class __PhaseRRT(object):
             self.parent = parent
 
     def __init__(self, topp_inst, traj, sd_beg_min, sd_beg_max, ds):
+        sd_start = linspace(sd_beg_min, sd_beg_max, 42)
         self.topp_inst = topp_inst
         self.traj = traj
         self.ds = ds
-        sd_start = linspace(sd_beg_min, sd_beg_max, 42)
+        self.sd_beg_max = sd_beg_max
         self.nodes = [self.Node(0., sd) for sd in sd_start]
         self.end_node = None
+        self.max_reached_s = 0.
+        self.max_reached_sd = self.sd_beg_max
 
     def found_solution(self):
         return self.end_node is not None
@@ -359,33 +367,46 @@ class __PhaseRRT(object):
         return True
 
     def extend(self, target, k=10):
-        """Returns True iff the extension reached the target."""
         from random import sample
         candidates = [node for node in self.nodes if node.s < target.s]
         if len(candidates) > k:
             candidates = sample(candidates, k)
         for candidate in candidates:
-            if self.steer(candidate, target):
-                self.nodes.append(self.Node(target.s, target.sd, candidate))
-                return True
-        return False
+            if not self.steer(candidate, target):
+                continue
+            new_node = self.Node(target.s, target.sd, candidate)
+            self.nodes.append(new_node)
+            if target.s >= self.traj.duration:
+                self.end_node = new_node
+            if target.s > self.max_reached_s:
+                self.max_reached_s = target.s
+            if target.sd > 0.75 * self.max_reached_sd:
+                self.max_reached_sd *= 1.25
 
-    def run(self, time_budget=300):
-        """Runs until the time budget (default: 5 min) is exhausted."""
-        smax, sd_max = self.traj.duration, 10.
+    def run(self, max_nodes, time_budget):
+        """Runs until the time budget is exhausted."""
+        smax = self.traj.duration
+        svar = smax / 10.
         start_time = time.time()
-        while time.time() - start_time < time_budget:
-            s = pylab.random() * self.traj.duration
-            sd = pylab.random() * sd_max
+        while not self.found_solution():
+            if len(self.nodes) > max_nodes \
+               or time.time() - start_time > time_budget:
+                break
+            if pylab.random() < 0.1:
+                s = pylab.random() * self.traj.duration
+            else:
+                s = pylab.normal(.5 * (smax + self.max_reached_s), svar)
+                s = max(0., min(smax, s))
+            sd = pylab.random() * self.max_reached_sd
             self.extend(self.Node(s, sd))
-            if sd < sd_max / 10:  # happens 1/10 times
-                if self.extend(self.Node(smax, sd)):
-                    self.end_node = self.nodes[-1]
-                    break
+            if sd < self.max_reached_sd / 10:  # happens 1/10 times
+                sd_end = pylab.random() * self.max_reached_sd
+                self.extend(self.Node(smax, sd_end))
+        print "RRT run time: %d s" % int(time.time() - start_time)
 
 
-def TryRRT(topp_inst, traj, sd_beg_min, sd_beg_max, ds=1e-3, time_budget=300):
-    print "Running RRT in (s, sd) for %d min..." % (time_budget / 60)
+def TryRRT(topp_inst, traj, sd_beg_min, sd_beg_max, ds=1e-3, max_nodes=500,
+           time_budget=360):
     rrt = __PhaseRRT(topp_inst, traj, sd_beg_min, sd_beg_max, ds)
-    rrt.run(time_budget)
+    rrt.run(max_nodes, time_budget)
     return rrt

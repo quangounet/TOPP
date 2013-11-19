@@ -50,4 +50,4 @@ distclean: clean
 rebuild: distclean release
 
 
-.PHONY: release debug clean distclean rebuild tests
+.PHONY: release debug clean distclean rebuild
