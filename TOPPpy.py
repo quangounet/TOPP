@@ -214,7 +214,15 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=1):
     return s_max, sd_max  # return this for PlotPhase (yurk!)
 
 
-def PlotAlphaBeta(topp_inst, prec=20):
+def PlotComputedProfiles(topp_bind, figstart=1):
+    topp_bind.WriteProfilesList()
+    topp_bind.WriteSwitchPointsList()
+    profileslist = ProfilesFromString(topp_bind.resprofilesliststring)
+    switchpointslist = SwitchPointsFromString(topp_bind.switchpointsliststring)
+    PlotProfiles(profileslist, switchpointslist, figstart)
+
+
+def PlotAlphaBeta(topp_inst, prec=30):
     smin, smax, sdmin, sdmax = axis()
     if sdmin <= 0.:
         sdmin = 1e-2
