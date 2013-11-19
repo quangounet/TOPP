@@ -1534,18 +1534,16 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
     if(resintfw == INT_BOTTOM) {
         std::cout << "[TOPP::VIP] Forward integration hit sd=0\n";
         return 0;
-    } else if(resintfw == INT_MVC) {
-        std::cout << "[TOPP::VIP] Forward integration met the Zlajpah condition\n";
-        return 0;
-    } else if (resintfw == INT_END && tmpprofile.Eval(tmpprofile.duration) <= constraints.mvccombined[constraints.mvccombined.size() - 1])
+    }
+    else if (resintfw == INT_END && tmpprofile.Eval(tmpprofile.duration) <= constraints.mvccombined[constraints.mvccombined.size() - 1])
         sdendmax = tmpprofile.Evald(tmpprofile.duration);
-    else if (resintfw == INT_PROFILE) {
+    else if (resintfw == INT_MVC || resintfw == INT_PROFILE) {
         // Look for the lowest profile at the end
         if(FindLowestProfile(trajectory.duration-smallincrement,tmpprofile,tres,constraints.resprofileslist) && tmpprofile.Evald(tres) <= constraints.mvccombined[constraints.mvccombined.size()-1])
             sdendmax = tmpprofile.Evald(tres);
         else {
             // No profile reaches the end, consider the MVC instead
-            sdendmax = constraints.mvccombined[constraints.mvccombined.size()-1];
+            sdendmax = constraints.mvccombined[constraints.mvccombined.size()-1]-smallincrement;
             int count = 0;
             int resintbw;
             dReal dtint = constraints.tunings.integrationtimestep;
