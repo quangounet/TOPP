@@ -70,7 +70,7 @@ trajectorystring = """1.000000
 0.0 -0.316841821141 -0.517973306853 0.413832196233
 0.0 -1.83079350169 1.68090295997 -0.480535237087"""
 
-sdbeg_min, sdbeg_max = 0.0 , 4.11542810233
+sdbeg_min, sdbeg_max = 0.0, 4.11542810233
 trajectorystring = """1.000000
 2
 -0.0950348403575 0.00709188111616 -0.735957024034 0.46461228402
@@ -135,8 +135,10 @@ replot()
 #TOPPpy.PlotAlphaBeta(x)
 
 # validate with RRT in the (s, sd) plane, in case no solution was found
-if x.sdendmin < 0 and raw_input("Check with RRT? [y/N] ") == 'y':
-    rrt = TOPPpy.TryRRT(x, traj0, sdbeg_min, sdbeg_max, discrtimestep)
+msg = "No solution found. Check with RRT? [y/N] "
+if x.sdendmin < 0 and raw_input(msg) == 'y':
+    rrt = TOPPpy.TryRRT(x, traj0, sdbeg_min, sdbeg_max, discrtimestep, max_nodes=200)
+    rrt.plot_tree()
     if rrt.found_solution():
         rrt.plot_solution()
 
