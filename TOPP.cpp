@@ -1624,7 +1624,7 @@ dReal VectorMin(const std::vector<dReal>&v){
 
 
 dReal VectorMax(const std::vector<dReal>&v){
-    dReal res = INF;
+    dReal res = -INF;
     for(int i=0; i<int(v.size()); i++) {
         res = std::max(res,v[i]);
     }
