@@ -1095,10 +1095,17 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
         else{
             slist.push_back(scur);
             sdlist.push_back(sdcur);
-            std ::pair<dReal,dReal> sddlimits = constraints.SddLimits(scur,sdcur);
+            // std::cout << "\n" << scur << "," << sdcur << "\n";
+            // std::vector<dReal> q(4), qd(4), qdd(4);
+            // constraints.trajectory.Eval(scur,q);
+            // constraints.trajectory.Evald(scur,qd);
+            // constraints.trajectory.Evaldd(scur,qdd);
+            // PrintVector(q);
+            // PrintVector(qd);
+            // PrintVector(qdd);
+            std::pair<dReal,dReal> sddlimits = constraints.SddLimits(scur,sdcur);
             dReal beta = sddlimits.second;
             sddlist.push_back(beta);
-            //std::cout << scur << "," << sdcur << "," << beta << "\n";
             dReal snext = scur + dt * sdcur + 0.5*dtsq*beta;
             dReal sdnext = sdcur + dt * beta;
             scur = snext;
@@ -1624,6 +1631,14 @@ dReal VectorMax(const std::vector<dReal>&v){
     return res;
 }
 
+
+void PrintVector(const std::vector<dReal>& v){
+    std::cout << "[";
+    for(int i=0; i<int(v.size()); i++) {
+        std::cout<< v[i] << ", ";
+    }
+    std::cout << "]\n";
+}
 
 void VectorAdd(const std::vector<dReal>&a, const std::vector<dReal>&b,  std::vector<dReal>&res, dReal coefa, dReal coefb){
     assert(a.size() == b.size());

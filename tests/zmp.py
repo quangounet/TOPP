@@ -46,9 +46,9 @@ robot.SetDOFVelocityLimits(100*vel_lim)
 
 
 ############################ Tunings ############################
-discrtimestep = 0.01
-integrationtimestep = 0.01
-reparamtimestep = 0.01
+discrtimestep = 1e-3
+integrationtimestep = discrtimestep
+reparamtimestep = discrtimestep
 passswitchpointnsteps = 5
 tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
 
@@ -68,18 +68,21 @@ for i in range(4):
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
-
+tvect,xzmp,yzmp = TOPPopenravepy.ComputeZMP(traj0,robot,0.01)
 
 ############################ Constraints ############################
 #------------------------------------------#
-taumin = array([0,0,0,0])
-taumax = array([0,0,0,0])
-xmax = 1
-xmin = -1
-ymax = 1
-ymin = -1
+taumin = array([-6,-15,-5,-4])
+taumax = array([6,15,5,4])
+#taumin = array([0,0,0,0])
+#taumax = array([0,0,0,0])
+zmplim = 0.05
+xmax = zmplim
+xmin = -zmplim
+ymax = zmplim
+ymin = -zmplim
 zmplimits = [xmin,xmax,ymin,ymax]
-vmax = [5,5,5,5]
+vmax = [2,2,2,2]
 t0 = time.time()
 constraintstring = string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax]) + "\n" +  string.join([str(a) for a in zmplimits]) + "\n" + string.join([str(a) for a in vmax])
 #------------------------------------------#
@@ -110,9 +113,9 @@ TOPPpy.PlotProfiles(profileslist,switchpointslist,5)
 if(ret == 1):
     x.WriteResultTrajectory()
     traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
-    dtplot = 0.01
+    dtplot = discrtimestep
     TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax)
-    #TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)
+    TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)
     TOPPopenravepy.PlotZMP(robot,traj0,traj1,zmplimits,dtplot,4)
 
 

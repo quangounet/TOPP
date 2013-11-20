@@ -299,7 +299,7 @@ dReal VectorMax(const std::vector<dReal>& v);
 void VectorAdd(const std::vector<dReal>&a, const std::vector<dReal>&b,  std::vector<dReal>& res, dReal coefa=1, dReal coefb=1);
 void VectorMultScalar(const std::vector<dReal>&a, std::vector<dReal>& res, dReal scalar);
 dReal VectorNorm(const std::vector<dReal>&v);
-
+void PrintVector(const std::vector<dReal>& v);
 
 // Read a vector of dReal from a space-separated string
 void VectorFromString(const std::string& s,std::vector<dReal>&resvect);

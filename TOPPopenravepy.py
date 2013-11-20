@@ -119,42 +119,47 @@ def ComputeTorques(traj,robot,dt):
     return tvect,array(tauvect)
 
 
+def ComputeZMPConfig(robot,q,qd,qdd):
+    n = len(robot.GetLinks())
+    g = robot.GetEnv().GetPhysicsEngine().GetGravity()
+    with robot:
+        robot.SetDOFValues(q)
+        robot.SetDOFVelocities(qd)
+        com_pos=array([k.GetGlobalCOM() for k in robot.GetLinks()])
+        vel=robot.GetLinkVelocities()
+        acc=robot.GetLinkAccelerations(qdd)
+        for i in range(n):
+            vel[i,0:3]=vel[i,0:3]
+            acc[i,0:3]=acc[i,0:3]
+        transforms=[k.GetTransform()[0:3,0:3] for k in robot.GetLinks()]
+        masses=[k.GetMass() for k in robot.GetLinks()]
+        localCOM=[k.GetLocalCOM() for k in robot.GetLinks()]
+    tau0 = array([0.,0.,0.])
+    f02 = sum(masses)*g[2]
+    for i in range(n):
+        # Compute the inertia matrix in the global frame
+        R=transforms[i]
+        ri=dot(R,localCOM[i])
+        omegai=vel[i,3:6]
+        omegadi=acc[i,3:6]
+        com_vel=vel[i,0:3]+cross(omegai,ri)
+        ci = com_pos[i]
+        cidd=acc[i,0:3]+cross(omegai,cross(omegai,ri))+cross(omegadi,ri)
+        tau0 += masses[i]*cross(ci,g-cidd)
+        f02 -= masses[i]*cidd[2]
+    return -tau0[1]/f02,tau0[0]/f02
+
+
 def ComputeZMP(traj,robot,dt):
     tvect = arange(0,traj.duration+dt,dt)
-    n = len(robot.GetLinks())
     xzmp = []
     yzmp = []
-    g = robot.GetEnv().GetPhysicsEngine().GetGravity()
     for t in tvect:
-        with robot:
-            q = traj.Eval(t)
-            qd = traj.Evald(t)
-            qdd = traj.Evaldd(t)
-            robot.SetDOFValues(q)
-            robot.SetDOFVelocities(qd)
-            com_pos=array([k.GetGlobalCOM() for k in robot.GetLinks()])
-            vel=robot.GetLinkVelocities()
-            acc=robot.GetLinkAccelerations(qdd)
-            for i in range(n):
-                vel[i,0:3]=vel[i,0:3]
-                acc[i,0:3]=acc[i,0:3]
-            transforms=[k.GetTransform()[0:3,0:3] for k in robot.GetLinks()]
-            masses=[k.GetMass() for k in robot.GetLinks()]
-            localCOM=[k.GetLocalCOM() for k in robot.GetLinks()]
-        tau0 = array([0.,0.,0.])
-        f02 = sum(masses)*g[2]
-        for i in range(n):
-            # Compute the inertia matrix in the global frame
-            R=transforms[i]
-            ri=dot(R,localCOM[i])
-            omegai=vel[i,3:6]
-            omegadi=acc[i,3:6]
-            com_vel=vel[i,0:3]+cross(omegai,ri)
-            ci = com_pos[i]
-            cidd=acc[i,0:3]+cross(omegai,cross(omegai,ri))+cross(omegadi,ri)
-            tau0 += masses[i]*cross(ci,g-cidd)
-            f02 -= masses[i]*cidd[2]
-        xzmp.append(-tau0[1]/f02)
-        yzmp.append(tau0[0]/f02)
+        q = traj.Eval(t)
+        qd = traj.Evald(t)
+        qdd = traj.Evaldd(t)
+        x,y = ComputeZMPConfig(robot,q,qd,qdd)
+        xzmp.append(x)
+        yzmp.append(y)
     return tvect,xzmp,yzmp
 

@@ -73,13 +73,7 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
     probot->CalculateJacobian(0,linksvector[0]->GetGlobalCOM(),jacobian);
 
     dReal delta = TINY2;
-    Vector ci, ciVg, ci_qXqdd, ciVci_qXqdd, qdXci_qqXqd, ciVqdXci_qqXqd, Atau, Btau, Ctau, Ah, Bh, Ch;
-    dReal a_xmax=0, b_xmax=0, c_xmax=0;
-    dReal a_xmin=0, b_xmin=0, c_xmin=0;
-    dReal a_ymax=0, b_ymax=0, c_ymax=0;
-    dReal a_ymin=0, b_ymin=0, c_ymin=0;
-
-    std::cout << "\n\n\n\n";
+    Vector ci, ciVg, q1, ciVq1, q2, ciVq2, q3, ciVq3;
 
     int ndiscrsteps = int((ptraj->duration+1e-10)/tunings.discrtimestep)+1;
 
@@ -88,11 +82,10 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
         ptraj->Eval(s,q);
         ptraj->Evald(s,qd);
         ptraj->Evaldd(s,qdd);
-        //std::cout << COM(q) << "\n";
-        ZMP(q,qd,qdd);
+        //std::cout << ZMP(q,qd,qdd) << "\n";
     }
 
-    std::cout << "\n\n\n\n";
+    std::cout << "\n\n";
 
     {
         EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex());
@@ -127,8 +120,8 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
                 dReal norm_qd = VectorNorm(qd);
                 VectorAdd(q,qd,qplusdeltaqd,1,delta/norm_qd);
 
-                dReal tau0 = 0, tau1 = 0, h2 = 0;
-
+                Vector tau,h;
+                Vector Atau, Btau, Ctau, Cisum, Ah, Bh, Ch;
                 for(int i=0; i < int(nlinks); i++) {
                     // Set DOFValues to q and extract jacobian
                     probot->SetDOFValues(q,CLA_Nothing);
@@ -141,66 +134,60 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
                     //Calculate the derivative of the jacobian
                     MatrixAdd(jacobiandelta,jacobian,jacobiandiff,norm_qd/delta,-norm_qd/delta);
                     // Compute the components
-                    ci_qXqdd = MatrixMultVector(jacobian,qdd);
-                    ciVci_qXqdd = ci.cross(ci_qXqdd);
-                    qdXci_qqXqd = MatrixMultVector(jacobiandiff,qd);
-                    ciVqdXci_qqXqd = ci.cross(qdXci_qqXqd);
-                    ciVg = ci.cross(g);
-
+                    q1 = MatrixMultVector(jacobian,qd);
+                    q2 = MatrixMultVector(jacobian,qdd);
+                    q3 = MatrixMultVector(jacobiandiff,qd);
+                    ciVq1 = ci.cross(q1);
+                    ciVq2 = ci.cross(q2);
+                    ciVq3 = ci.cross(q3);
+                    // h =  mass[i]*(Ah*sdd + Bh*sd^2 + Ch)
+                    Ah += mass[i]*(-q1);
+                    Bh += mass[i]*(-q2-q3);
                     // tau = mass[i]*(Atau*sdd + Btau*sd^2 + Ctau)
-                    Atau = -ciVci_qXqdd;
-                    Btau = -ciVci_qXqdd - ciVqdXci_qqXqd;
-                    Ctau = ciVg;
-                    // h = Ah*sdd + Bh*sd^2 + Ch
-                    Ah = -ci_qXqdd;
-                    Bh = -ci_qXqdd - qdXci_qqXqd;
-                    Ch = g;
-
-
-                    // // Testing
-                    // dReal sdotsq = 1;
-                    // tau0 += mass[i]*(-sdotsq*ciVci_qXqdd[0]-sdotsq*ciVqdXci_qqXqd[0]+ciVg[0]);
-                    // tau1 += mass[i]*(-sdotsq*ciVci_qXqdd[1]-sdotsq*ciVqdXci_qqXqd[1]+ciVg[1]);
-                    // h2 += mass[i]*(-sdotsq*ci_qXqdd[2]-sdotsq*qdXci_qqXqd[2]+g[2]);
-
-                    // x_zmp <= x_max
-                    a_xmax += mass[i] * (Atau[1]+xmax*Ah[2]);
-                    b_xmax += mass[i] * (Btau[1]+xmax*Bh[2]);
-                    c_xmax += mass[i] * (Ctau[1]+xmax*Ch[2]);
-
-                    // x_zmp >= x_min
-                    a_xmin += mass[i] * (-Atau[1]-xmin*Ah[2]);
-                    b_xmin += mass[i] * (-Btau[1]-xmin*Bh[2]);
-                    c_xmin += mass[i] * (-Ctau[1]-xmin*Ch[2]);
-
-                    // y_zmp <= y_max
-                    a_ymax += mass[i] * (-Atau[0]+ymax*Ah[2]);
-                    b_ymax += mass[i] * (-Btau[0]+ymax*Bh[2]);
-                    c_ymax += mass[i] * (-Ctau[0]+ymax*Ch[2]);
-
-                    // y_zmp <= y_min
-                    a_ymin += mass[i] * (Atau[0]-ymin*Ah[2]);
-                    b_ymin += mass[i] * (Btau[0]-ymin*Bh[2]);
-                    c_ymin += mass[i] * (Ctau[0]-ymin*Ch[2]);
+                    Atau += mass[i]*(-ciVq1);
+                    Btau += mass[i]*(-ciVq2-ciVq3);
+                    Cisum += mass[i]*ci;
                 }
+                dReal Ch2 = totalmass*g[2];
+                Ctau = Cisum.cross(g);
+                //std::cout << -(Btau[1]+Ctau[1])/(Bh[2]+Ch2) << " " << (Btau[0]+Ctau[0])/(Bh[2]+Ch2) <<"\n";
+                // x_zmp <= x_max
+                dReal a_xmax = (Atau[1]+xmax*Ah[2]);
+                dReal b_xmax = (Btau[1]+xmax*Bh[2]);
+                dReal c_xmax = (Ctau[1]+xmax*Ch2);
+                // x_zmp >= x_min
+                dReal a_xmin = (-Atau[1]-xmin*Ah[2]);
+                dReal b_xmin = (-Btau[1]-xmin*Bh[2]);
+                dReal c_xmin = (-Ctau[1]-xmin*Ch2);
+                // y_zmp <= y_max
+                dReal a_ymax = (-Atau[0]+ymax*Ah[2]);
+                dReal b_ymax = (-Btau[0]+ymax*Bh[2]);
+                dReal c_ymax = (-Ctau[0]+ymax*Ch2);
+                // y_zmp >= y_min
+                dReal a_ymin = (Atau[0]-ymin*Ah[2]);
+                dReal b_ymin = (Btau[0]-ymin*Bh[2]);
+                dReal c_ymin = (Ctau[0]-ymin*Ch2);
 
                 a.push_back(a_xmax);
-                a.push_back(a_xmin);
-                a.push_back(a_ymax);
-                a.push_back(a_ymin);
                 b.push_back(b_xmax);
-                b.push_back(b_xmin);
-                b.push_back(b_ymax);
-                b.push_back(b_ymin);
                 c.push_back(c_xmax);
-                c.push_back(c_xmin);
-                c.push_back(c_ymax);
-                c.push_back(c_ymin);
 
+                a.push_back(a_xmin);
+                b.push_back(b_xmin);
+                c.push_back(c_xmin);
+
+                a.push_back(a_ymax);
+                b.push_back(b_ymax);
+                c.push_back(c_ymax);
+
+                a.push_back(a_ymin);
+                b.push_back(b_ymin);
+                c.push_back(c_ymin);
             }
             avect.push_back(a);
             bvect.push_back(b);
             cvect.push_back(c);
+
         }
     }
 
@@ -253,7 +240,7 @@ Vector ZMPTorqueLimits::ZMP(std::vector<dReal>& q, std::vector<dReal>& qd, std::
     tau0[0] = -tau0[1];
     tau0[1] = temp;
     tau0[2] = 0;
-    std::cout << 1/f02 * tau0 << "\n";
+    //std::cout << 1/f02 * tau0 << "\n";
     return 1/f02 * tau0;
 }
 
