@@ -46,7 +46,7 @@ robot.SetDOFVelocityLimits(100*vel_lim)
 
 
 ############################ Tunings ############################
-discrtimestep = 1e-3
+discrtimestep = 1e-2
 integrationtimestep = discrtimestep
 reparamtimestep = discrtimestep
 passswitchpointnsteps = 5
@@ -55,25 +55,24 @@ tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep
 
 ############################ Trajectory ############################
 #------------------------------------------#
-q0=[0,0,0,0]
-q1=[ 2.32883,  1.61082,  0.97706,  1.94169]
+q0=[0,0,0]
+q1=[ 1.61082,  0.97706,  1.94169]
 v=1
-qd0=[v,v,v,v]
-qd1=[v,v,v,v]
+qd0=[v,v,v]
+qd1=[v,v,v]
 T = 1.5
-trajectorystring = "%f\n%d"%(T,4)
-for i in range(4):
+trajectorystring = "%f\n%d"%(T,3)
+for i in range(3):
     a,b,c,d = TOPPpy.Interpolate3rdDegree(q0[i],q1[i],qd0[i],qd1[i],T)
     trajectorystring += "\n%f %f %f %f"%(d,c,b,a)
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
-tvect,xzmp,yzmp = TOPPopenravepy.ComputeZMP(traj0,robot,0.01)
 
 ############################ Constraints ############################
 #------------------------------------------#
-taumin = array([-6,-15,-5,-4])
-taumax = array([6,15,5,4])
+taumin = array([-15,-5,-4])
+taumax = array([15,5,4])
 #taumin = array([0,0,0,0])
 #taumax = array([0,0,0,0])
 zmplim = 0.05
@@ -82,10 +81,16 @@ xmin = -zmplim
 ymax = zmplim
 ymin = -zmplim
 zmplimits = [xmin,xmax,ymin,ymax]
-vmax = [2,2,2,2]
+vmax = [2,2,2]
 t0 = time.time()
-constraintstring = string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax]) + "\n" +  string.join([str(a) for a in zmplimits]) + "\n" + string.join([str(a) for a in vmax])
+activedofs = [0,1,1,1]
+activelinks = [1,1,1,1,0]
+constraintstring = string.join([str(x) for x in activedofs]) + "\n" + string.join([str(x) for x in activelinks]) + "\n" + string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax]) + "\n" +  string.join([str(a) for a in zmplimits]) + "\n" + string.join([str(a) for a in vmax])
 #------------------------------------------#
+
+robot.activedofs = activedofs
+robot.activelinks = activelinks
+tvect,xzmp,yzmp = TOPPopenravepy.ComputeZMP(traj0,robot,0.01)
 
 
 ############################ Run TOPP ############################

@@ -26,9 +26,13 @@ namespace TOPP {
 
 ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajectory* ptraj, const Tunings& tunings, RobotBasePtr probot0){
     int buffsize = BUFFSIZE;  // TODO: remove this dirty string interface!
-    std::vector<dReal> tmpvect;
+    std::vector<dReal> tmpvect, activedofs, activelinks;
     char buff[buffsize];
     std::istringstream iss(constraintsstring);
+    iss.getline(buff,buffsize);
+    VectorFromString(std::string(buff),activedofs);
+    iss.getline(buff,buffsize);
+    VectorFromString(std::string(buff),activelinks);
     iss.getline(buff,buffsize);
     VectorFromString(std::string(buff),taumin);
     iss.getline(buff,buffsize);
@@ -42,32 +46,54 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
 
     probot = probot0;
 
+    //Check soundness
+    assert(int(activedofs.size()) == probot->GetDOF());
+    assert(activelinks.size() == probot->GetLinks().size());
+    assert(zmplimits.size() == 4);
+
+    // DOFs
+    for(int i=0; i<int(activedofs.size()); i++) {
+        if(activedofs[i]>TINY) {
+            dofsvector.push_back(i);
+        }
+    }
+    ndof = int(dofsvector.size());
+    assert(ndof == ptraj->dimension);
+
+    // Links
+    for(int i=0; i<int(activelinks.size()); i++) {
+        if(activelinks[i]>TINY) {
+            linksvector.push_back(probot->GetLinks()[i]);
+        }
+    }
+    nlink = int(linksvector.size());
+    for(int i=0; i < nlink; i++) {
+        mass.push_back(linksvector[i]->GetMass());
+        totalmass += mass[i];
+    }
+
+    // ZMP limits
     dReal xmin = zmplimits[0];
     dReal xmax = zmplimits[1];
     dReal ymin = zmplimits[2];
     dReal ymax = zmplimits[3];
 
-    // General
-    linksvector = probot->GetLinks();
-    nlinks = int(linksvector.size());
 
-    for(int i=0; i < int(nlinks); i++) {
-        mass.push_back(linksvector[i]->GetMass());
-        totalmass += mass[i];
-    }
-    int ndof = ptraj->dimension;
-    assert(ndof == probot->GetDOF());
     Vector g = probot->GetEnv()->GetPhysicsEngine()->GetGravity();
-    std::vector<dReal> q(ndof), qd(ndof), qdd(ndof);
+    std::vector<dReal> q(ndof), qd(ndof), qdd(ndof), qfilled, qdfilled, qddfilled;
+    probot->GetDOFValues(qfilled);
+    probot->GetDOFVelocities(qdfilled);
+    qddfilled.resize(probot->GetDOF());
 
     // Torque intermediate variables
     std::vector<dReal> a,b,c, torquesimple;
     boost::array<std::vector<dReal>,3> torquecomponents;
+    std::vector<dReal> torquesimpletrimmed(ndof), torquecomponents0trimmed(ndof), torquecomponents1trimmed(ndof), torquecomponents2trimmed(ndof);
 
     // ZMP intermediate variables
     std::vector<std::pair<Vector,Vector> > linkaccelerations;
-    std::vector<dReal> qplusdeltaqd(ndof);
-    boost::multi_array< dReal, 2 > jacobian, jacobiandelta, jacobiandiff(boost::extents[3][ndof]);
+    std::vector<dReal> qplusdeltaqdfilled(qfilled.size());
+    boost::multi_array< dReal, 2 > jacobian, jacobiandelta, jacobiandiff(boost::extents[3][probot->GetDOF()]);
 
     // Initialize jacobian diff
     probot->CalculateJacobian(0,linksvector[0]->GetGlobalCOM(),jacobian);
@@ -77,15 +103,16 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
 
     int ndiscrsteps = int((ptraj->duration+1e-10)/tunings.discrtimestep)+1;
 
-    for(int t = 0; t<ndiscrsteps; t++) {
-        dReal s = t*tunings.discrtimestep;
-        ptraj->Eval(s,q);
-        ptraj->Evald(s,qd);
-        ptraj->Evaldd(s,qdd);
-        //std::cout << ZMP(q,qd,qdd) << "\n";
-    }
-
-    std::cout << "\n\n";
+    // for(int t = 0; t<ndiscrsteps; t++) {
+    //     dReal s = t*tunings.discrtimestep;
+    //     ptraj->Eval(s,q);
+    //     ptraj->Evald(s,qd);
+    //     ptraj->Evaldd(s,qdd);
+    //     Fill(q,qfilled);
+    //     Fill(qd,qdfilled);
+    //     Fill(qdd,qddfilled);
+    //     std::cout << ZMP(qfilled,qdfilled,qddfilled) << "\n";
+    // }
 
     {
         EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex());
@@ -94,42 +121,49 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
             ptraj->Eval(s,q);
             ptraj->Evald(s,qd);
             ptraj->Evaldd(s,qdd);
-            probot->SetDOFValues(q,CLA_Nothing);
-            probot->SetDOFVelocities(qd,CLA_Nothing);
+            Fill(q,qfilled);
+            Fill(qd,qdfilled);
+            Fill(qdd,qddfilled);
+            probot->SetDOFValues(qfilled,CLA_Nothing);
+            probot->SetDOFVelocities(qdfilled,CLA_Nothing);
             a.resize(0);
             b.resize(0);
             c.resize(0);
 
             // Torque limits
-            probot->ComputeInverseDynamics(torquesimple,qd);
-            probot->ComputeInverseDynamics(torquecomponents,qdd);
+            probot->ComputeInverseDynamics(torquesimple,qdfilled);
+            probot->ComputeInverseDynamics(torquecomponents,qddfilled);
+            Trim(torquesimple,torquesimpletrimmed);
+            Trim(torquecomponents[0],torquecomponents0trimmed);
+            Trim(torquecomponents[1],torquecomponents1trimmed);
+            Trim(torquecomponents[2],torquecomponents2trimmed);
             for(int j=0; j<ndof; j++) {
                 // Add inequalities only when taumax != 0
                 if(std::abs(taumax[j])>TINY2) {
-                    a.push_back(torquesimple[j] - torquecomponents[1][j] - torquecomponents[2][j]);
+                    a.push_back(torquesimpletrimmed[j] - torquecomponents1trimmed[j] - torquecomponents2trimmed[j]);
                     a.push_back(-a.back());
-                    b.push_back(torquecomponents[0][j] + torquecomponents[1][j]);
+                    b.push_back(torquecomponents0trimmed[j] + torquecomponents1trimmed[j]);
                     b.push_back(-b.back());
-                    c.push_back(torquecomponents[2][j] - taumax[j]);
-                    c.push_back(-torquecomponents[2][j] + taumin[j]);
+                    c.push_back(torquecomponents2trimmed[j] - taumax[j]);
+                    c.push_back(-torquecomponents2trimmed[j] + taumin[j]);
                 }
             }
 
             // ZMP limits (only processed when xmax>xmin)
             if(xmax-xmin>=TINY2) {
                 dReal norm_qd = VectorNorm(qd);
-                VectorAdd(q,qd,qplusdeltaqd,1,delta/norm_qd);
+                VectorAdd(qfilled,qdfilled,qplusdeltaqdfilled,1,delta/norm_qd);
 
                 Vector tau,h;
                 Vector Atau, Btau, Ctau, Cisum, Ah, Bh, Ch;
-                for(int i=0; i < int(nlinks); i++) {
+                for(int i=0; i < int(nlink); i++) {
                     // Set DOFValues to q and extract jacobian
-                    probot->SetDOFValues(q,CLA_Nothing);
+                    probot->SetDOFValues(qfilled,CLA_Nothing);
                     ci = linksvector[i]->GetGlobalCOM();
                     probot->CalculateJacobian(i,ci,jacobian);
 
-                    // Set DOFValues to qplusdeltaqd and extract jacobian
-                    probot->SetDOFValues(qplusdeltaqd,CLA_Nothing);
+                    // Set DOFValues to qplusdeltaqdfilled and extract jacobian
+                    probot->SetDOFValues(qplusdeltaqdfilled,CLA_Nothing);
                     probot->CalculateJacobian(i,linksvector[i]->GetGlobalCOM(),jacobiandelta);
                     //Calculate the derivative of the jacobian
                     MatrixAdd(jacobiandelta,jacobian,jacobiandiff,norm_qd/delta,-norm_qd/delta);
@@ -196,12 +230,12 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
 }
 
 
-Vector ZMPTorqueLimits::COM(std::vector<dReal>& q){
+Vector ZMPTorqueLimits::COM(std::vector<dReal>& qfilled){
     Vector com;
     {
         EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex());
-        probot->SetDOFValues(q,CLA_Nothing);
-        for(int i=0; i < int(nlinks); i++) {
+        probot->SetDOFValues(qfilled,CLA_Nothing);
+        for(int i=0; i < int(nlink); i++) {
             com += linksvector[i]->GetMass() * linksvector[i]->GetGlobalCOM();
         }
     }
@@ -209,7 +243,7 @@ Vector ZMPTorqueLimits::COM(std::vector<dReal>& q){
 }
 
 
-Vector ZMPTorqueLimits::ZMP(std::vector<dReal>& q, std::vector<dReal>& qd, std::vector<dReal>& qdd, bool withangularmomentum){
+Vector ZMPTorqueLimits::ZMP(std::vector<dReal>& qfilled, std::vector<dReal>& qdfilled, std::vector<dReal>& qddfilled, bool withangularmomentum){
     Vector tau0;
     Vector g = probot->GetEnv()->GetPhysicsEngine()->GetGravity();
     dReal f02 = totalmass * g[2];
@@ -219,11 +253,11 @@ Vector ZMPTorqueLimits::ZMP(std::vector<dReal>& q, std::vector<dReal>& qd, std::
     Transform T;
     {
         EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex());
-        probot->SetDOFValues(q,CLA_Nothing);
-        probot->SetDOFVelocities(qd,CLA_Nothing);
+        probot->SetDOFValues(qfilled,CLA_Nothing);
+        probot->SetDOFVelocities(qdfilled,CLA_Nothing);
         probot->GetLinkVelocities(linkvelocities);
-        probot->GetLinkAccelerations(qdd,linkaccelerations);
-        for(int i=0; i < int(nlinks); i++) {
+        probot->GetLinkAccelerations(qddfilled,linkaccelerations);
+        for(int i=0; i < int(nlink); i++) {
             ri = linksvector[i]->GetTransform().rotate(linksvector[i]->GetLocalCOM());
             ci = linksvector[i]->GetGlobalCOM();
             linvel = linkvelocities[i].first;
@@ -245,14 +279,27 @@ Vector ZMPTorqueLimits::ZMP(std::vector<dReal>& q, std::vector<dReal>& qd, std::
 }
 
 
-Vector MatrixMultVector(const boost::multi_array<dReal,2>& M, const std::vector<dReal>& v){
+void ZMPTorqueLimits::Fill(const std::vector<dReal>&q, std::vector<dReal>&qfilled){
+    for(int i=0; i<ndof; i++) {
+        qfilled[dofsvector[i]]=q[i];
+    }
+}
+
+void ZMPTorqueLimits::Trim(const std::vector<dReal>&q, std::vector<dReal>&qtrimmed){
+    for(int i=0; i<ndof; i++) {
+        qtrimmed[i]=q[dofsvector[i]];
+    }
+}
+
+
+
+Vector ZMPTorqueLimits::MatrixMultVector(const boost::multi_array<dReal,2>& M, const std::vector<dReal>& v){
     Vector res;
     assert(M.shape()[0] == 3);
-    assert(M.shape()[1] == v.size());
     for(int i=0; i<3; i++) {
         res[i] = 0;
         for(int j=0; j<int(v.size()); j++) {
-            res[i] += M[i][j]*v[j];
+            res[i] += M[i][dofsvector[j]]*v[j];
         }
     }
     return res;

@@ -46,19 +46,23 @@ public:
 
     RobotBasePtr probot;
     int ndof;
-    int nlinks;
+    int nlink;
     dReal totalmass;
     std::vector<dReal> taumin, taumax; // Torque limits
     std::vector<dReal> zmplimits; // xmin,xmax,ymin,ymax
 
-    std::vector<KinBody::LinkPtr> linksvector;
+    std::vector<KinBody::LinkPtr> linksvector; // Vector of pointers to active links
+    std::vector<int> dofsvector; // Vector of indices of active dofs
     std::vector<dReal> mass;
 
-    Vector COM(std::vector<dReal>& q);
-    Vector ZMP(std::vector<dReal>& q, std::vector<dReal>& qd, std::vector<dReal>& qdd, bool withangularmomentum=false);
+    Vector COM(std::vector<dReal>& qfilled);
+    Vector ZMP(std::vector<dReal>& qfilled, std::vector<dReal>& qdfilled, std::vector<dReal>& qddfilled, bool withangularmomentum=false);
+    void Fill(const std::vector<dReal>&q, std::vector<dReal>&qfilled);
+    void Trim(const std::vector<dReal>&q, std::vector<dReal>&qtrimmed);
+    // Multiply a matrix and a vector taking into account activedofs
+    Vector MatrixMultVector(const boost::multi_array<dReal,2>& M, const std::vector<dReal>& v);
 };
 
-Vector MatrixMultVector(const boost::multi_array<dReal,2>& M, const std::vector<dReal>& v);
 
 void MatrixAdd(const boost::multi_array<dReal,2>& A, const boost::multi_array<dReal,2>& B, boost::multi_array<dReal,2>& C, dReal coefA=1, dReal coefB=1);
 

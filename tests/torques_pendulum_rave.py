@@ -46,7 +46,7 @@ robot.SetDOFVelocityLimits(100 * vel_lim)
 
 
 ############################ Tunings ############################
-discrtimestep = 0.0001
+discrtimestep = 5e-3
 integrationtimestep = discrtimestep
 reparamtimestep = 0  # auto
 passswitchpointnsteps = 10
@@ -85,6 +85,14 @@ trajectorystring = """1.000000
 #0.0 -0.0902570804637 -0.811688277595 0.600976616276"""
 
 #------------------------------------------#
+
+discrtimestep = 1e-4
+sdbeg_min, sdbeg_max = 0., 1e-4
+trajectorystring = """1.000000
+2
+1.02380743853 -0.621211430375 6.66133814775e-16 -4.4408920985e-16
+-0.294007923442 -0.228798693785 1.66533453694e-16 0.0"""
+
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 ############################ Constraints ############################
