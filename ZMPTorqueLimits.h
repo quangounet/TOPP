@@ -46,12 +46,12 @@ public:
 
     RobotBasePtr probot;
     int ndof;
-    int nlink;
+    int nlink0;
     dReal totalmass;
     std::vector<dReal> taumin, taumax; // Torque limits
     std::vector<dReal> zmplimits; // xmin,xmax,ymin,ymax
-
-    std::vector<KinBody::LinkPtr> linksvector; // Vector of pointers to active links
+    std::vector<dReal> activelinks;
+    std::vector<KinBody::LinkPtr> linksvector; // Vector of pointers to the links
     std::vector<int> dofsvector; // Vector of indices of active dofs
     std::vector<dReal> mass;
 

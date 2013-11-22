@@ -26,13 +26,13 @@ namespace TOPP {
 
 ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajectory* ptraj, const Tunings& tunings, RobotBasePtr probot0){
     int buffsize = BUFFSIZE;  // TODO: remove this dirty string interface!
-    std::vector<dReal> tmpvect, activedofs, activelinks;
+    std::vector<dReal> tmpvect, activedofs, activelinks0;
     char buff[buffsize];
     std::istringstream iss(constraintsstring);
     iss.getline(buff,buffsize);
     VectorFromString(std::string(buff),activedofs);
     iss.getline(buff,buffsize);
-    VectorFromString(std::string(buff),activelinks);
+    VectorFromString(std::string(buff),activelinks0);
     iss.getline(buff,buffsize);
     VectorFromString(std::string(buff),taumin);
     iss.getline(buff,buffsize);
@@ -45,6 +45,7 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
     maxrep = 1;
 
     probot = probot0;
+    activelinks = activelinks0;
 
     //Check soundness
     assert(int(activedofs.size()) == probot->GetDOF());
@@ -61,13 +62,9 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
     assert(ndof == ptraj->dimension);
 
     // Links
-    for(int i=0; i<int(activelinks.size()); i++) {
-        if(activelinks[i]>TINY) {
-            linksvector.push_back(probot->GetLinks()[i]);
-        }
-    }
-    nlink = int(linksvector.size());
-    for(int i=0; i < nlink; i++) {
+    nlink0 = int(activelinks.size());
+    linksvector = probot->GetLinks();
+    for(int i=0; i < nlink0; i++) {
         mass.push_back(linksvector[i]->GetMass());
         totalmass += mass[i];
     }
@@ -96,7 +93,7 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
     boost::multi_array< dReal, 2 > jacobian, jacobiandelta, jacobiandiff(boost::extents[3][probot->GetDOF()]);
 
     // Initialize jacobian diff
-    probot->CalculateJacobian(0,linksvector[0]->GetGlobalCOM(),jacobian);
+    probot->CalculateJacobian(0,probot->GetLinks()[0]->GetGlobalCOM(),jacobian);
 
     dReal delta = TINY2;
     Vector ci, ciVg, q1, ciVq1, q2, ciVq2, q3, ciVq3;
@@ -156,7 +153,10 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
 
                 Vector tau,h;
                 Vector Atau, Btau, Ctau, Cisum, Ah, Bh, Ch;
-                for(int i=0; i < int(nlink); i++) {
+                for(int i=0; i < int(nlink0); i++) {
+                    if(activelinks[i]<=TINY) {
+                        continue;
+                    }
                     // Set DOFValues to q and extract jacobian
                     probot->SetDOFValues(qfilled,CLA_Nothing);
                     ci = linksvector[i]->GetGlobalCOM();
@@ -235,7 +235,10 @@ Vector ZMPTorqueLimits::COM(std::vector<dReal>& qfilled){
     {
         EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex());
         probot->SetDOFValues(qfilled,CLA_Nothing);
-        for(int i=0; i < int(nlink); i++) {
+        for(int i=0; i < int(nlink0); i++) {
+            if(activelinks[i]<=TINY) {
+                continue;
+            }
             com += linksvector[i]->GetMass() * linksvector[i]->GetGlobalCOM();
         }
     }
@@ -257,7 +260,10 @@ Vector ZMPTorqueLimits::ZMP(std::vector<dReal>& qfilled, std::vector<dReal>& qdf
         probot->SetDOFVelocities(qdfilled,CLA_Nothing);
         probot->GetLinkVelocities(linkvelocities);
         probot->GetLinkAccelerations(qddfilled,linkaccelerations);
-        for(int i=0; i < int(nlink); i++) {
+        for(int i=0; i < int(nlink0); i++) {
+            if(activelinks[i]<=TINY) {
+                continue;
+            }
             ri = linksvector[i]->GetTransform().rotate(linksvector[i]->GetLocalCOM());
             ci = linksvector[i]->GetGlobalCOM();
             linvel = linkvelocities[i].first;

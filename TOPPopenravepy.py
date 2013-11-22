@@ -19,7 +19,7 @@ import string
 from numpy import *
 from pylab import *
 from openravepy import *
-
+import time
 
 def ComputeTorquesConstraints(robot,traj,taumin,taumax,discrtimestep):
     # Sample the dynamics constraints
@@ -73,6 +73,7 @@ def PlotTorques(robot,traj0,traj1,dt=0.001,taumin=[],taumax=[],figstart=0):
     ax=gca()        
     ax.set_color_cycle(colorcycle)
     plot(tvect0,tauvect0,'--',linewidth=2)
+    ax.set_color_cycle(colorcycle)
     plot(tvect1,tauvect1,linewidth=2)
     for a in taumax:
         plot([0,Tmax],[a,a],'-.')
@@ -81,6 +82,7 @@ def PlotTorques(robot,traj0,traj1,dt=0.001,taumin=[],taumax=[],figstart=0):
     if(len(taumax)>0):
         axis([0,Tmax,1.2*min(taumin),1.2*max(taumax)])
     title('Joint torques')
+    legend()
 
 
 def PlotZMP(robot,traj0,traj1,zmplimits,dt=0.01,figstart=0):
@@ -104,7 +106,7 @@ def PlotZMP(robot,traj0,traj1,zmplimits,dt=0.01,figstart=0):
 
 
 
-def Fill(q,robot):
+def Fill(robot,q):
     if hasattr(robot,'activedofs'):
         n = robot.GetDOF()
         qfilled = zeros(n)
@@ -117,7 +119,7 @@ def Fill(q,robot):
     else:
         return q
 
-def Trim(q,robot):
+def Trim(robot,q):
     if hasattr(robot,'activedofs'):
         n = robot.GetDOF()
         qtrimmed = []
@@ -128,6 +130,14 @@ def Trim(q,robot):
     else:
         return q
 
+def Execute(robot,traj, dt=0.01):
+    tvect = arange(0,traj.duration+dt,dt)
+    for t in tvect:        
+        q = traj.Eval(t)
+        robot.SetDOFValues(Fill(robot,q))
+        time.sleep(dt)
+
+
 
 def ComputeTorques(traj,robot,dt):
     tvect = arange(0,traj.duration+dt,dt)
@@ -137,10 +147,10 @@ def ComputeTorques(traj,robot,dt):
             q = traj.Eval(t)
             qd = traj.Evald(t)
             qdd = traj.Evaldd(t)
-            robot.SetDOFValues(Fill(q,robot))
-            robot.SetDOFVelocities(Fill(qd,robot))
-            tau = robot.ComputeInverseDynamics(Fill(qdd,robot),None,returncomponents=False)
-            tauvect.append(Trim(tau,robot))
+            robot.SetDOFValues(Fill(robot,q))
+            robot.SetDOFVelocities(Fill(robot,qd))
+            tau = robot.ComputeInverseDynamics(Fill(robot,qdd),None,returncomponents=False)
+            tauvect.append(Trim(robot,tau))
     return tvect,array(tauvect)
 
 
@@ -148,11 +158,11 @@ def ComputeZMPConfig(robot,q,qd,qdd):
     n = len(robot.GetLinks())
     g = robot.GetEnv().GetPhysicsEngine().GetGravity()
     with robot:
-        robot.SetDOFValues(Fill(q,robot))
-        robot.SetDOFVelocities(Fill(qd,robot))
+        robot.SetDOFValues(Fill(robot,q))
+        robot.SetDOFVelocities(Fill(robot,qd))
         com_pos=array([k.GetGlobalCOM() for k in robot.GetLinks()])
         vel=robot.GetLinkVelocities()
-        acc=robot.GetLinkAccelerations(Fill(qdd,robot))
+        acc=robot.GetLinkAccelerations(Fill(robot,qdd))
         for i in range(n):
             vel[i,0:3]=vel[i,0:3]
             acc[i,0:3]=acc[i,0:3]
