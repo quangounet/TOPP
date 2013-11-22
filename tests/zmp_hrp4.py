@@ -124,7 +124,10 @@ ndof = int(sum(activedofs))
 trajectorystring = "%f\n%d"%(T,ndof)
 for i in range(ndoffull):
     if(activedofs[i])>0.1:
-        a,b,c,d = TOPPpy.Interpolate3rdDegree(q0[i],q1[i],qd0[i],qd1[i],T)
+        if(abs(q0[i]-q1[i])>1e-5):
+            a,b,c,d = TOPPpy.Interpolate3rdDegree(q0[i],q1[i],qd0[i],qd1[i],T)
+        else:
+            a,b,c,d = 0,0,0,q0[i]
         trajectorystring += "\n%f %f %f %f"%(d,c,b,a)
 
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
