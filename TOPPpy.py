@@ -22,51 +22,30 @@ from numpy import *
 import pylab
 import time
 
-import TOPPbindings
-
 from Trajectory import PiecewisePolynomialTrajectory
 from Trajectory import NoTrajectoryFound
+
+DEFAULTS = {
+    'discrtimestep': 1e-2,
+    'integrationtimestep': 1e-3,
+    'reparamtimestep': 1e-3,
+    'passswitchpointnsteps': 5,
+}
 
 
 ################### Public interface ######################
 
-class Tunings(object):
-    def __init__(self, dt, switchpoint_steps=10):
-        self.discr_tstep = dt
-        self.integ_tstep = dt
-        self.reparam_tstep = 0  # auto
-        self.switchpoint_steps = switchpoint_steps
-
-    def __str__(self):
-        return "%f %f %f %d" % (self.discr_tstep, self.integ_tstep,
-                                self.reparam_tstep, self.switchpoint_steps)
-
-
-class RaveTorqueInstance(object):
-    def __init__(self, rave_robot, traj, tunings, tau_min, tau_max, v_max):
-        assert isinstance(traj, PiecewisePolynomialTrajectory)
-
-        n = 2
-        rave_robot.SetDOFLimits(-10 * pylab.ones(n), 10 * pylab.ones(n))
-        rave_robot.SetDOFVelocityLimits(100 * pylab.ones(n))
-
-        buffsize = 200000
-        tunstring = str(tunings)
-        trajstring = str(traj)
-        constring = vect2str(tau_min) + "\n"
-        constring += vect2str(tau_max) + "\n"
-        constring += vect2str([0, 0])  # TODO: non-zero vmax
-        print "tuningsstring =", tunstring
-        print "constraintstring =", constring
-        print "trajectorystring = \"\"\"" + trajstring + "\"\"\"\n"
-
-        assert len(constring) < buffsize, \
-            "%d is bigger than buffer size" % len(constring)
-        assert len(trajstring) < buffsize
-        assert len(tunstring) < buffsize
-
-        self.solver = TOPPbindings.TOPPInstance(
-            "TorqueLimitsRave", constring, trajstring, tunstring, rave_robot)
+class RaveInstance(object):
+    def __init__(self, robot, traj, tau_min, tau_max, v_max,
+                 discrtimestep=DEFAULTS['discrtimestep'],
+                 integrationtimestep=DEFAULTS['integrationtimestep'],
+                 reparamtimestep=DEFAULTS['reparamtimestep'],
+                 passswitchpointnsteps=DEFAULTS['passswitchpointnsteps']):
+        self.discrtimestep = discrtimestep
+        self.integrationtimestep = integrationtimestep
+        self.reparamtimestep = reparamtimestep
+        self.passswitchpointnsteps = passswitchpointnsteps
+        self.solver = None  # set by child class
 
     def GetTrajectory(self, sd_beg=0., sd_end=0.):
         return_code = self.solver.RunComputeProfiles(sd_beg, sd_end)
