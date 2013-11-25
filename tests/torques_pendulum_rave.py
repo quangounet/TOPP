@@ -78,14 +78,48 @@ trajectorystring = """1.000000
 
 # TODO: forward profile crosses the MVC
 #discrtimestep = 0.005
-#sdbeg_min, sdbeg_max = 0.0 , 0.0001
+#sdbeg_min, sdbeg_max = 0.0, 0.0001
 #trajectorystring = """1.000000
 #2
 #0.0 -0.000441411097554 -0.16346942929 0.109925764182
 #0.0 -0.0902570804637 -0.811688277595 0.600976616276"""
 
+# TODO: minimum velocity curve in the beginning
+sdbeg_min, sdbeg_max = 0.000000, 8.808698
+trajectorystring = """1.000000
+2
+-0.420982931773 -0.111291845962 1.77275676137 -1.33551682399
+-0.630425778805 0.0894067072732 0.0852189728776 0.290595287026"""
+
+# TODO: lift degree limitation
+trajectorystring = """1.000000
+2
+-0.537652888623 0.234321204132 0.0
+0.183981719702 0.488818919925 3.33066907388e-16
+1.000000
+2
+-0.303331684468 0.234321204132 0.0315593379862 0.507751607858
+0.672800639677 0.488818919925 -2.25421681376 1.50275249907"""
+
+
+
+
+# Trajectory 510
+discrtimestep = 0.005000
+integrationtimestep = discrtimestep
+sdbeg_min, sdbeg_max = 0.000000, 2.963261
+tuningsstring = """0.005000 0.005000 0.000000 10"""
+constraintstring = """-11.0 -7.0
+11.0 7.0
+0 0"""
+trajectorystring = """1.000000
+2
+0.0598839777986 -0.767543731454 17.0567694943 -13.207517087
+0.43299721927 1.80131573114 -5.85537754605 3.62106459564"""
+
 #------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
+
 
 ############################ Constraints ############################
 vmax = array([0, 0])
@@ -103,9 +137,10 @@ t1 = time.time()
 x = TOPPbindings.TOPPInstance("TorqueLimitsRave", constraintstring,
                               trajectorystring, tuningsstring, robot)
 t2 = time.time()
-#ret = x.RunComputeProfiles(0,0)
+#ret = x.RunComputeProfiles(0, 1e-4)
+#print "RunComputeProfiles:", ret
 ret = x.RunVIP(sdbeg_min, sdbeg_max)
-print ret
+print "RunVIP:", ret
 t3 = time.time()
 
 #print x.resduration
