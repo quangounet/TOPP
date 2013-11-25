@@ -43,8 +43,8 @@ robot.SetDOFVelocityLimits(100*vel_lim)
 
 ############################ Tunings ############################
 discrtimestep = 1e-2
-integrationtimestep = discrtimestep
-reparamtimestep = discrtimestep
+integrationtimestep = 1e-3
+reparamtimestep = 1e-3
 passswitchpointnsteps = 5
 tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
 
@@ -89,7 +89,7 @@ q1 = array([  0.00000000e+00,   0.00000000e+00,   0.00000000e+00,
          0.00000000e+00,   0.00000000e+00,   0.00000000e+00,
          0.00000000e+00,   0.00000000e+00,   0.00000000e+00,
          0.00000000e+00,   0.00000000e+00])
-v=1
+v=0.3
 ndoffull = len(q0)
 qd0=[v]*ndoffull
 qd1=[v]*ndoffull

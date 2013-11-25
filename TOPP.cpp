@@ -668,15 +668,15 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
         dReal sstep = constraints.tunings.passswitchpointnsteps*constraints.tunings.integrationtimestep;
         dReal bestslope = 0;
         dReal bestscore = INF;
-        sforward = s + sstep;
-        sbackward = s - sstep;
+        sforward = std::min(s + sstep,constraints.trajectory.duration);
+        sbackward = std::max(s - sstep,0.);
         if(sforward>constraints.trajectory.duration || sbackward<0) {
             return false;
         }
         for(int i = 0; i<int(switchpoint.slopesvector.size()); i++) {
             dReal slope = switchpoint.slopesvector[i];
-            sdforward = sd + sstep*slope;
-            sdbackward = sd - sstep*slope;
+            sdforward = sd + (sforward-s)*slope;
+            sdbackward = sd - (s-sbackward)*slope;
             dReal alphabackward = constraints.SddLimits(sbackward,sdbackward).first/sd;
             dReal betaforward = constraints.SddLimits(sforward,sdforward).second/sd;
             dReal bob1 = constraints.SdLimitBobrow(sbackward)-sdbackward;
@@ -692,8 +692,8 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
                 }
             }
         }
-        sdforward = sd + sstep*bestslope;
-        sdbackward = sd - sstep*bestslope;
+        sdforward = sd + (sforward-s)*bestslope;
+        sdbackward = sd - (s-sbackward)*bestslope;
         return bestscore<INF;
 
         // here switchpointtype == SP_SINGULAR
