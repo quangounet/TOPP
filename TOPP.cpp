@@ -54,6 +54,7 @@ Tunings::Tunings(const std::string& tuningsstring) {
 
 
 void Constraints::Preprocess(Trajectory& trajectory0, Tunings& tunings0) {
+    resprofileslist.resize(0);
     trajectory = trajectory0;
     // Change discrtimestep so as it becomes a divisor of trajectory duration
     int ndiscrsteps = int((trajectory.duration+1e-10)/tunings0.discrtimestep);

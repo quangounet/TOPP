@@ -117,7 +117,12 @@ trajectorystring = """1.000000
 -1.14223493986 -1.14223493975 7.52345920063 -3.80261000559"""
 
 #------------------------------------------#
-
+discrtimestep = 1e-4
+sdbeg_min, sdbeg_max = 0., 1e-4
+trajectorystring = """1.000000
+2
+1.02380743853 -0.621211430375 6.66133814775e-16 -4.4408920985e-16
+-0.294007923442 -0.228798693785 1.66533453694e-16 0.0"""
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 
