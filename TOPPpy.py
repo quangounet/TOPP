@@ -18,6 +18,7 @@
 
 from pylab import array, double, gca, plot, figure, linspace
 from pylab import arange, clf, hold, axis, title, sqrt
+from numpy import *
 import pylab
 import time
 

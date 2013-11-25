@@ -19,7 +19,7 @@ import string
 from numpy import *
 from pylab import *
 from openravepy import *
-
+import time
 
 def ComputeTorquesConstraints(robot,traj,taumin,taumax,discrtimestep):
     # Sample the dynamics constraints
@@ -73,6 +73,7 @@ def PlotTorques(robot,traj0,traj1,dt=0.001,taumin=[],taumax=[],figstart=0):
     ax=gca()        
     ax.set_color_cycle(colorcycle)
     plot(tvect0,tauvect0,'--',linewidth=2)
+    ax.set_color_cycle(colorcycle)
     plot(tvect1,tauvect1,linewidth=2)
     for a in taumax:
         plot([0,Tmax],[a,a],'-.')
@@ -81,6 +82,61 @@ def PlotTorques(robot,traj0,traj1,dt=0.001,taumin=[],taumax=[],figstart=0):
     if(len(taumax)>0):
         axis([0,Tmax,1.2*min(taumin),1.2*max(taumax)])
     title('Joint torques')
+    legend()
+
+
+def PlotZMP(robot,traj0,traj1,zmplimits,dt=0.01,figstart=0):
+    figure(figstart)
+    clf()
+    hold('on')
+    xmin, xmax, ymin, ymax = zmplimits
+    tvect0,xzmp0,yzmp0 = ComputeZMP(traj0,robot,dt)
+    tvect1,xzmp1,yzmp1 = ComputeZMP(traj1,robot,dt)
+    plot(tvect0,xzmp0,'r--',linewidth=2)
+    plot(tvect0,yzmp0,'g--',linewidth=2)
+    plot(tvect1,xzmp1,'r',linewidth=2)
+    plot(tvect1,yzmp1,'g',linewidth=2)
+    Tmax = max(traj0.duration,traj1.duration)
+    plot([0,Tmax],[xmin,xmin],'r-.')
+    plot([0,Tmax],[xmax,xmax],'r-.')
+    plot([0,Tmax],[ymin,ymin],'g-.')
+    plot([0,Tmax],[ymax,ymax],'g-.')
+    axis([0,Tmax,1.2*min(xmin,ymin),1.2*max(xmax,ymax)]) 
+    title('ZMP')
+
+
+
+def Fill(robot,q):
+    if hasattr(robot,'activedofs'):
+        n = robot.GetDOF()
+        qfilled = zeros(n)
+        counter = 0
+        for i in range(n):
+            if(robot.activedofs[i]>0.1):
+                qfilled[i] = q[counter]
+                counter+=1
+        return qfilled
+    else:
+        return q
+
+def Trim(robot,q):
+    if hasattr(robot,'activedofs'):
+        n = robot.GetDOF()
+        qtrimmed = []
+        for i in range(n):
+            if(robot.activedofs[i]>0.1):
+                qtrimmed.append(q[i])
+        return qtrimmed
+    else:
+        return q
+
+def Execute(robot,traj, dt=0.01):
+    tvect = arange(0,traj.duration+dt,dt)
+    for t in tvect:        
+        q = traj.Eval(t)
+        robot.SetDOFValues(Fill(robot,q))
+        time.sleep(dt)
+
 
 
 def ComputeTorques(traj,robot,dt):
@@ -91,9 +147,201 @@ def ComputeTorques(traj,robot,dt):
             q = traj.Eval(t)
             qd = traj.Evald(t)
             qdd = traj.Evaldd(t)
-            robot.SetDOFValues(q)
-            robot.SetDOFVelocities(qd)
-            tau = robot.ComputeInverseDynamics(qdd,None,returncomponents=False)
-            tauvect.append(tau)
+            robot.SetDOFValues(Fill(robot,q))
+            robot.SetDOFVelocities(Fill(robot,qd))
+            tau = robot.ComputeInverseDynamics(Fill(robot,qdd),None,returncomponents=False)
+            tauvect.append(Trim(robot,tau))
     return tvect,array(tauvect)
+
+
+def ComputeZMPConfig(robot,q,qd,qdd):
+    n = len(robot.GetLinks())
+    g = robot.GetEnv().GetPhysicsEngine().GetGravity()
+    with robot:
+        robot.SetDOFValues(Fill(robot,q))
+        robot.SetDOFVelocities(Fill(robot,qd))
+        com_pos=array([k.GetGlobalCOM() for k in robot.GetLinks()])
+        vel=robot.GetLinkVelocities()
+        acc=robot.GetLinkAccelerations(Fill(robot,qdd))
+        for i in range(n):
+            vel[i,0:3]=vel[i,0:3]
+            acc[i,0:3]=acc[i,0:3]
+        transforms=[k.GetTransform()[0:3,0:3] for k in robot.GetLinks()]
+        masses=[k.GetMass() for k in robot.GetLinks()]
+        localCOM=[k.GetLocalCOM() for k in robot.GetLinks()]
+    tau0 = array([0.,0.,0.])
+    totalmass = sum(masses)
+    if hasattr(robot,'activelinks'):
+        totalmass = 0
+        for k in range(n):
+            if robot.activelinks[k]>0.1:
+                totalmass += masses[k]
+    f02 = totalmass * g[2]
+    for i in range(n):
+        if hasattr(robot,'activelinks') and robot.activelinks[i]<0.1:
+            continue
+        # Compute the inertia matrix in the global frame
+        R=transforms[i]
+        ri=dot(R,localCOM[i])
+        omegai=vel[i,3:6]
+        omegadi=acc[i,3:6]
+        com_vel=vel[i,0:3]+cross(omegai,ri)
+        ci = com_pos[i]
+        cidd=acc[i,0:3]+cross(omegai,cross(omegai,ri))+cross(omegadi,ri)
+        tau0 += masses[i]*cross(ci,g-cidd)
+        f02 -= masses[i]*cidd[2]
+    return -tau0[1]/f02,tau0[0]/f02
+
+
+def ComputeZMP(traj,robot,dt):
+    tvect = arange(0,traj.duration+dt,dt)
+    xzmp = []
+    yzmp = []
+    for t in tvect:
+        q = traj.Eval(t)
+        qd = traj.Evald(t)
+        qdd = traj.Evaldd(t)
+        x,y = ComputeZMPConfig(robot,q,qd,qdd)
+        xzmp.append(x)
+        yzmp.append(y)
+    return tvect,xzmp,yzmp
+
+
+
+
+# See Tait-Bryan X1-Y2-Z3 on Wikipedia
+def RotFromAngles(a):
+    h1=a[0]
+    h2=a[1]
+    h3=a[2]
+    c1 = cos(h1)
+    s1 = sin(h1)
+    c2 = cos(h2)
+    s2 = sin(h2)
+    c3 = cos(h3)
+    s3 = sin(h3)
+    return array([[c2*c3,-c2*s3,s2],[c1*s3+c3*s1*s2,c1*c3-s1*s2*s3,-c2*s1],[s1*s3-c1*c3*s2,c3*s1+c1*s2*s3,c1*c2]])
+
+def AnglesFromRot(R):
+    #Hypothesis 1
+    h2a = arcsin(R[0,2])
+    cos2 = cos(h2a)
+    if(abs(cos2)<1e-8):
+        cos2+=1e-8
+    h1a = arctan2(-R[1,2]/cos2,R[2,2]/cos2)
+    h3a = arctan2(-R[0,1]/cos2,R[0,0]/cos2)
+    #Hypothesis 2
+    h2b = pi-h2a
+    cos2 = cos(h2b)
+    if(abs(cos2)<1e-8):
+        cos2+=1e-8
+    h1b = arctan2(-R[1,2]/cos2,R[2,2]/cos2)
+    h3b = arctan2(-R[0,1]/cos2,R[0,0]/cos2)
+    #Testing
+    resa = abs(sum(R-RotFromAngles([h1a,h2a,h3a])))
+    resb = abs(sum(R-RotFromAngles([h1b,h2b,h3b])))
+    if(resa<resb):
+        return [h1a,h2a,h3a]
+    else:
+        return [h1b,h2b,h3b]
+
+
+# Find the dummy joint values such that the Transform of the baselink is Tdesired
+# T0 is the initial Transform of the baselink
+def JointValuesFromTransform(robot,Tdesired):
+    R = dot(inv(robot.baselinkinittransform[0:3,0:3]),Tdesired[0:3,0:3])
+    [h1,h2,h3] = AnglesFromRot(R)
+    offset = dot(R,robot.baselinkinittransform[0:3,3])
+    [s1,s2,s3] = Tdesired[0:3,3]-offset
+    return [s1,s2,s3,h1,h2,h3] 
+
+
+def LoadFloat(env,robotfile,baselinkname):
+    xml="""
+<robot>
+  <kinbody>
+    <body name="root">
+    <mass type="mimicgeom">
+      <total>0</total>
+    </mass>
+    </body>
+  </kinbody>
+  <kinbody>
+    <body name="dummy1">
+    <mass type="mimicgeom">
+      <total>0</total>
+    </mass>
+    </body>
+  </kinbody>
+  <kinbody>
+    <body name="dummy2">
+    <mass type="mimicgeom">
+      <total>0</total>
+    </mass>
+    </body>
+  </kinbody>
+  <kinbody>
+    <body name="dummy3">
+    <mass type="mimicgeom">
+      <total>0</total>
+    </mass>
+    </body>
+  </kinbody>
+  <kinbody>
+    <body name="dummy4">
+    <mass type="mimicgeom">
+      <total>0</total>
+    </mass>
+    </body>
+  </kinbody>
+  <kinbody>
+    <body name="dummy5">
+    <mass type="mimicgeom">
+      <total>0</total>
+    </mass>
+    </body>
+  </kinbody>
+  <robot file="%s"> 
+    <kinbody>
+      <body name="%s">
+      </body>
+      <joint name="slider1" type="slider" circular="true">
+        <body>root</body>
+        <body>dummy1</body>
+        <axis>1 0 0</axis>  
+      </joint>
+      <joint name="slider2" type="slider" circular="true">
+        <body>dummy1</body>
+        <body>dummy2</body>
+        <axis>0 1 0</axis>  
+      </joint>
+      <joint name="slider3" type="slider" circular="true">
+        <body>dummy2</body>
+        <body>dummy3</body>
+        <axis>0 0 1</axis>  
+      </joint>
+      <joint name="hinge1" type="hinge" circular="true">
+        <body>dummy3</body>
+        <body>dummy4</body>
+        <axis>1 0  0</axis>  
+      </joint>
+      <joint name="hinge2" type="hinge" circular="true">
+        <body>dummy4</body>
+        <body>dummy5</body>
+        <axis>0 1 0</axis>  
+      </joint>
+      <joint name="hinge3" type="hinge" circular="true">
+        <body>dummy5</body>
+        <body>%s</body>
+        <axis>0 0 1</axis>  
+      </joint>
+    </kinbody>
+  </robot>
+</robot>
+"""%(robotfile,baselinkname,baselinkname)
+    robot = env.ReadRobotData(xml)
+    env.Add(robot)
+    baselink = robot.GetLink(baselinkname)
+    robot.baselinkinittransform = baselink.GetTransform()    
+    return robot
 

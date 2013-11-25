@@ -20,8 +20,9 @@ From the top folder:
 
 will compile TOPPbindings.so in the current folder.
 
-*OpenRAVE integration:* let OPENRAVE_DIR denote your OpenRAVE source folder,
-for instance:
+**OpenRAVE integration**
+
+Let OPENRAVE_DIR denote your OpenRAVE source folder, for instance:
     
     export OPENRAVE_DIR=~/openrave
     git clone https://github.com/rdiankov/openrave.git OPENRAVE_DIR

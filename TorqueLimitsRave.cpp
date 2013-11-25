@@ -38,9 +38,11 @@ TorqueLimitsRave::TorqueLimitsRave(const std::string& constraintsstring, Traject
     hasvelocitylimits = VectorMax(vmax) > TINY;
     maxrep = 1;
 
+    int ndof = ptraj->dimension;
+
     // Define the avect, bvect, cvect
     int ndiscrsteps = int((ptraj->duration+1e-10)/tunings.discrtimestep)+1;
-    std::vector<dReal> q(ptraj->dimension), qd(ptraj->dimension), qdd(ptraj->dimension), torquesimple;
+    std::vector<dReal> q(ndof), qd(ndof), qdd(ndof), tmp0(ndof), tmp1(ndof), torquesimple;
     boost::array< std::vector< dReal >, 3 > torquecomponents;
     {
         EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex()); // lock environment
@@ -53,8 +55,11 @@ TorqueLimitsRave::TorqueLimitsRave(const std::string& constraintsstring, Traject
             probot->SetDOFVelocities(qd,CLA_Nothing);
             probot->ComputeInverseDynamics(torquesimple,qd);
             probot->ComputeInverseDynamics(torquecomponents,qdd);
-            avect.push_back(VectorAdd(VectorAdd(torquesimple,torquecomponents[1],1,-1),torquecomponents[2],1,-1));
-            bvect.push_back(VectorAdd(torquecomponents[0],torquecomponents[1]));
+            VectorAdd(torquesimple,torquecomponents[1],tmp0,1,-1);
+            VectorAdd(tmp0,torquecomponents[2],tmp1,1,-1);
+            avect.push_back(tmp1);
+            VectorAdd(torquecomponents[0],torquecomponents[1],tmp0);
+            bvect.push_back(tmp0);
             cvect.push_back(torquecomponents[2]);
         }
     }

@@ -668,15 +668,15 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
         dReal sstep = constraints.tunings.passswitchpointnsteps*constraints.tunings.integrationtimestep;
         dReal bestslope = 0;
         dReal bestscore = INF;
-        sforward = s + sstep;
-        sbackward = s - sstep;
+        sforward = std::min(s + sstep,constraints.trajectory.duration);
+        sbackward = std::max(s - sstep,0.);
         if(sforward>constraints.trajectory.duration || sbackward<0) {
             return false;
         }
         for(int i = 0; i<int(switchpoint.slopesvector.size()); i++) {
             dReal slope = switchpoint.slopesvector[i];
-            sdforward = sd + sstep*slope;
-            sdbackward = sd - sstep*slope;
+            sdforward = sd + (sforward-s)*slope;
+            sdbackward = sd - (s-sbackward)*slope;
             dReal alphabackward = constraints.SddLimits(sbackward,sdbackward).first/sd;
             dReal betaforward = constraints.SddLimits(sforward,sdforward).second/sd;
             dReal bob1 = constraints.SdLimitBobrow(sbackward)-sdbackward;
@@ -692,8 +692,8 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
                 }
             }
         }
-        sdforward = sd + sstep*bestslope;
-        sdbackward = sd - sstep*bestslope;
+        sdforward = sd + (sforward-s)*bestslope;
+        sdbackward = sd - (s-sbackward)*bestslope;
         return bestscore<INF;
 
         // here switchpointtype == SP_SINGULAR
@@ -1095,10 +1095,17 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
         else{
             slist.push_back(scur);
             sdlist.push_back(sdcur);
-            std ::pair<dReal,dReal> sddlimits = constraints.SddLimits(scur,sdcur);
+            // std::cout << "\n" << scur << "," << sdcur << "\n";
+            // std::vector<dReal> q(4), qd(4), qdd(4);
+            // constraints.trajectory.Eval(scur,q);
+            // constraints.trajectory.Evald(scur,qd);
+            // constraints.trajectory.Evaldd(scur,qdd);
+            // PrintVector(q);
+            // PrintVector(qd);
+            // PrintVector(qdd);
+            std::pair<dReal,dReal> sddlimits = constraints.SddLimits(scur,sdcur);
             dReal beta = sddlimits.second;
             sddlist.push_back(beta);
-            //std::cout << scur << "," << sdcur << "," << beta << "\n";
             dReal snext = scur + dt * sdcur + 0.5*dtsq*beta;
             dReal sdnext = sdcur + dt * beta;
             scur = snext;
@@ -1608,37 +1615,55 @@ void VectorFromString(const std::string& s,std::vector<dReal>&resvect){
 
 
 dReal VectorMin(const std::vector<dReal>&v){
-    std::vector<dReal>::const_iterator it = v.begin();
     dReal res = INF;
-    while(it!=v.end()) {
-        res = std::min(res,*it);
-        it++;
+    for(int i=0; i<int(v.size()); i++) {
+        res = std::min(res,v[i]);
     }
     return res;
 }
 
 
 dReal VectorMax(const std::vector<dReal>&v){
-    std::vector<dReal>::const_iterator it = v.begin();
     dReal res = -INF;
-    while(it!=v.end()) {
-        res = std::max(res,*it);
-        it++;
+    for(int i=0; i<int(v.size()); i++) {
+        res = std::max(res,v[i]);
     }
     return res;
 }
 
-std::vector<dReal> VectorAdd(const std::vector<dReal>& a, const std::vector<dReal>& b, dReal coefa, dReal coefb){
-    std::vector<dReal> res;
-    std::vector<dReal>::const_iterator ita = a.begin();
-    std::vector<dReal>::const_iterator itb = b.begin();
-    while(ita != a.end()) {
-        res.push_back(*ita*coefa+*itb*coefb);
-        ita++;
-        itb++;
+
+void PrintVector(const std::vector<dReal>& v){
+    std::cout << "[";
+    for(int i=0; i<int(v.size()); i++) {
+        std::cout<< v[i] << ", ";
     }
-    return res;
+    std::cout << "]\n";
 }
+
+void VectorAdd(const std::vector<dReal>&a, const std::vector<dReal>&b,  std::vector<dReal>&res, dReal coefa, dReal coefb){
+    assert(a.size() == b.size());
+    assert(a.size() == res.size());
+    for(int i=0; i<int(a.size()); i++) {
+        res[i] = coefa*a[i]+coefb*b[i];
+    }
+}
+
+void VectorMultScalar(const std::vector<dReal>&a, std::vector<dReal>&res, dReal scalar){
+    assert(a.size() == res.size());
+    for(int i=0; i<int(a.size()); i++) {
+        res[i] = scalar*a[i];
+    }
+}
+
+
+dReal VectorNorm(const std::vector<dReal>&v){
+    dReal norm = 0;
+    for(int i=0; i<int(v.size()); i++) {
+        norm += v[i]*v[i];
+    }
+    return sqrt(norm);
+}
+
 
 bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal& sol, dReal lowerbound, dReal upperbound) {
     dReal delta = a1*a1- 4*a0*a2;
