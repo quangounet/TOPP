@@ -101,8 +101,7 @@ trajectorystring = """1.000000
 -0.303331684468 0.234321204132 0.0315593379862 0.507751607858
 0.672800639677 0.488818919925 -2.25421681376 1.50275249907"""
 
-
-
+# TODO: AVP says yes but PP fails
 tuningsstring = "0.005000 0.005000 0.000000 10"
 constraintstring = """-11.0 -7.0
 11.0 7.0
@@ -116,13 +115,25 @@ trajectorystring = """1.000000
 0.623098875592 0.62309887553 -3.93787583145 2.48652201003
 -1.14223493986 -1.14223493975 7.52345920063 -3.80261000559"""
 
-#------------------------------------------#
-discrtimestep = 1e-4
-sdbeg_min, sdbeg_max = 0., 1e-4
+
+
+
+# same problem
+tuningsstring = "0.005000 0.005000 0.000000 10"
+constraintstring = """-11.0 -7.0
+11.0 7.0
+0 0"""
 trajectorystring = """1.000000
 2
-1.02380743853 -0.621211430375 6.66133814775e-16 -4.4408920985e-16
--0.294007923442 -0.228798693785 1.66533453694e-16 0.0"""
+-1.38118529249 0.786908176387 -6.66133814775e-16 3.33066907388e-16
+-0.20071048931 0.5732101573 -8.32667268469e-17 0.0"""
+
+
+
+
+
+
+#------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 
@@ -142,8 +153,8 @@ t1 = time.time()
 x = TOPPbindings.TOPPInstance("TorqueLimitsRave", constraintstring,
                               trajectorystring, tuningsstring, robot)
 t2 = time.time()
-#ret = x.RunComputeProfiles(0, 1e-4)
-#print "RunComputeProfiles:", ret
+ret = x.RunComputeProfiles(0, 1e-4)
+print "RunComputeProfiles:", ret
 ret = x.RunVIP(sdbeg_min, sdbeg_max)
 print "RunVIP:", ret
 t3 = time.time()
