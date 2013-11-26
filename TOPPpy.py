@@ -209,6 +209,10 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=1):
             plot(sw[0], sw[1], 'ro', markersize=8)
         if sw[2] == 1:
             plot(sw[0], sw[1], 'go', markersize=8)
+        if sw[2] == 2:
+            plot(sw[0], sw[1], 'bo', markersize=8)
+        if sw[2] == 3:
+            plot(sw[0], sw[1], 'yo', markersize=8)
     s_max, sd_max = mvcbobrow[0], M
     axis([0, s_max, 0, sd_max])
     title('MVCs and profiles')
