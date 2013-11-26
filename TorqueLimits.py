@@ -49,3 +49,8 @@ class RaveInstance(TOPPpy.RaveInstance):
 
         self.solver = TOPPbindings.TOPPInstance(
             "TorqueLimitsRave", constring, trajstring, tunstring, robot)
+
+
+def AVP(robot, traj, sdbegmin, sdbegmax, taumin, taumax, vmax, **kwargs):
+    rave_instance = RaveInstance(robot, traj, taumin, taumax, vmax, **kwargs)
+    return rave_instance.GetAVP(sdbegmin, sdbegmax)
