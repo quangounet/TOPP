@@ -22,53 +22,33 @@ from numpy import *
 import pylab
 import time
 
-import TOPPbindings
-
 from Trajectory import PiecewisePolynomialTrajectory
 from Trajectory import NoTrajectoryFound
+
+DEFAULTS = {
+    'discrtimestep': 1e-2,
+    'integrationtimestep': 1e-3,
+    'reparamtimestep': 1e-3,
+    'passswitchpointnsteps': 5,
+}
 
 
 ################### Public interface ######################
 
-class Tunings(object):
-    def __init__(self, dt, mvc_dt=None, integ_dt=None, switchpoint_steps=10,
-                 reparam_dt=None):
-        self.mvc_tstep = mvc_dt if mvc_dt else dt
-        self.integ_tstep = integ_dt if integ_dt else dt
-        self.reparam_tstep = reparam_dt if reparam_dt else dt
-        self.switchpoint_steps = switchpoint_steps
+class RaveInstance(object):
+    def __init__(self, robot, traj, tau_min, tau_max, v_max,
+                 discrtimestep=DEFAULTS['discrtimestep'],
+                 integrationtimestep=DEFAULTS['integrationtimestep'],
+                 reparamtimestep=DEFAULTS['reparamtimestep'],
+                 passswitchpointnsteps=DEFAULTS['passswitchpointnsteps']):
+        self.discrtimestep = discrtimestep
+        self.integrationtimestep = integrationtimestep
+        self.reparamtimestep = reparamtimestep
+        self.passswitchpointnsteps = passswitchpointnsteps
+        self.solver = None  # set by child class
 
-    def __str__(self):
-        return "%f %f %f %d" % (
-            self.mvc_tstep, self.integ_tstep, self.reparam_tstep,
-            self.switchpoint_steps)
-
-
-class RaveTorqueInstance(object):
-    def __init__(self, rave_robot, traj, tunings, tau_min, tau_max, v_max):
-        assert isinstance(traj, PiecewisePolynomialTrajectory)
-        self.robot = rave_robot
-        self.tunings = tunings
-        self.traj = traj
-
-        print "trajectorystring = \"\"\"" + str(traj) + "\"\"\"\n"
-
-        buffsize = 200000
-        constring = vect2str(tau_min) + "\n"
-        constring += vect2str(tau_max) + "\n"
-        constring += vect2str([0, 0])  # vmax
-
-        assert len(constring) < buffsize, \
-            "%d is bigger than buffer size" % len(constring)
-        assert len(str(self.traj)) < buffsize
-        assert len(str(self.tunings)) < buffsize
-
-        self.solver = TOPPbindings.TOPPInstance("TorqueLimitsRave", constring,
-                                                str(self.traj),
-                                                str(self.tunings), self.robot)
-
-    def GetTrajectory(self):
-        return_code = self.solver.RunComputeProfiles(0, 0)
+    def GetTrajectory(self, sd_beg=0., sd_end=0.):
+        return_code = self.solver.RunComputeProfiles(sd_beg, sd_end)
         if return_code != 1:
             raise NoTrajectoryFound
 
