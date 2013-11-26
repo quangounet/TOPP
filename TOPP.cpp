@@ -241,7 +241,25 @@ void Constraints::FindTangentSwitchPoints(){
 
 
 void Constraints::FindDiscontinuousSwitchPoints() {
-
+    if(ndiscrsteps<3)
+        return;
+    int i = 0;
+    dReal sd, sdn, sdnn;
+    sd = SdLimitBobrow(discrsvect[i]);
+    sdn = SdLimitBobrow(discrsvect[i+1]);
+    for(int i=0; i<ndiscrsteps-3; i++) {
+        sdnn = SdLimitBobrow(discrsvect[i+2]);
+        if(std::abs(sdnn-sdn)>100*std::abs(sdn-sd)) {
+            if(sdn<sdnn) {
+                AddSwitchPoint(i+1,SP_DISCONTINUOUS);
+            }
+            else{
+                AddSwitchPoint(i+2,SP_DISCONTINUOUS);
+            }
+        }
+        sd = sdn;
+        sdn = sdnn;
+    }
 }
 
 
@@ -647,14 +665,11 @@ dReal BisectionSearch(Constraints& constraints, dReal s, dReal sdbottom, dReal s
 bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint, dReal& sbackward, dReal& sdbackward, dReal& sforward, dReal& sdforward){
     dReal s = switchpoint.s;
     dReal sd = switchpoint.sd;
-    dReal discr = constraints.tunings.discrtimestep;
-    dReal dt = 0; // should be changed
     Profile resprofile;
 
     // Tangent, Discontinuous and Zlajpah switchpoints
     if(switchpoint.switchpointtype == SP_TANGENT || switchpoint.switchpointtype == SP_DISCONTINUOUS || switchpoint.switchpointtype == SP_ZLAJPAH) {
-        dt = discr/2;
-        dReal sdtop = BisectionSearch(constraints,s,sd*constraints.tunings.loweringcoef,sd,dt,0);
+        dReal sdtop = BisectionSearch(constraints,s,sd*constraints.tunings.loweringcoef,sd,constraints.tunings.integrationtimestep,0);
         if(sdtop<=0) {
             return false;
         }
@@ -696,26 +711,6 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
         sdforward = sd + (sforward-s)*bestslope;
         sdbackward = sd - (s-sbackward)*bestslope;
         return bestscore<INF;
-
-        // here switchpointtype == SP_SINGULAR
-        // dt = discr/2;
-        // ret = IntegrateBackward(constraints,s-discr,sd*constraints.tunings.loweringcoef,dt,resprofile,constraints.tunings.passswitchpointnsteps,testaboveexistingprofiles,testmvc);
-        // if(ret==INT_MAXSTEPS || ret==INT_END || ret==INT_PROFILE) {
-        //     sbackward = resprofile.Eval(0);
-        //     sdbackward = resprofile.Evald(0);
-        //     if(sdbackward>constraints.SdLimitBobrow(sbackward)) {
-        //         return false;
-        //     }
-        //     ret = IntegrateForward(constraints,s+discr,sd*constraints.tunings.loweringcoef,dt,resprofile,constraints.tunings.passswitchpointnsteps,testaboveexistingprofiles,testmvc,zlajpah);
-        //     if(ret==INT_MAXSTEPS || ret==INT_END || ret==INT_PROFILE) {
-        //         sforward = resprofile.Eval(resprofile.duration);
-        //         sdforward = resprofile.Evald(resprofile.duration);
-        //         if(sdforward>constraints.SdLimitBobrow(sforward)) {
-        //             return false;
-        //         }
-        //         return true;
-        //     }
-        // }
     }
     return false;
 }
