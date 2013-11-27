@@ -54,3 +54,9 @@ class RaveInstance(TOPPpy.RaveInstance):
 def AVP(robot, traj, sdbegmin, sdbegmax, taumin, taumax, vmax, **kwargs):
     rave_instance = RaveInstance(robot, traj, taumin, taumax, vmax, **kwargs)
     return rave_instance.GetAVP(sdbegmin, sdbegmax)
+
+
+def Reparameterize(robot, traj, sdbegmin, sdbegmax, taumin, taumax, vmax,
+                   **kwargs):
+    rave_instance = RaveInstance(robot, traj, taumin, taumax, vmax, **kwargs)
+    return rave_instance.GetTrajectory(sdbegmin, sdbegmax)
