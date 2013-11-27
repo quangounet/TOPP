@@ -131,6 +131,32 @@ for i in range(ndoffull):
             a,b,c,d = 0,0,0,q0[i]
         trajectorystring += "\n%f %f %f %f"%(d,c,b,a)
 
+
+trajectorystring = """1.500000
+22
+0.0 0.0 1.99242076297 -1.32221433021
+0.0 0.0 2.53280855643 -1.67759722295
+0.0 0.0 0.0 0.0
+0.0 0.0 0.0 0.0
+0.0 0.0 0.967382109132 -0.642750868261
+0.0 0.0 -0.519933641176 0.348891374481
+0.0 0.0 2.89830573159 -1.93488398449
+0.0 0.0 -2.14170672114 1.44939278452
+0.0 0.0 0.0 0.0
+0.0 0.0 0.0 0.0
+0.0 0.0 0.0 0.0
+0.0 0.0 0.0 0.0
+0.0 0.0 0.0 0.0
+0.0 0.0 3.13256805344 -2.08537050225
+0.0 0.0 4.59613512542 -3.04279209114
+0.0 0.0 4.81882377745 -3.21312086562
+0.0 0.0 -3.18430860851 2.12838441106
+0.0 0.0 0.0 0.0
+0.0 0.0 0.0 0.0
+0.0 0.0 0.0 0.0
+0.0 0.0 0.0 0.0
+0.0 0.0 0.0 0.0"""
+
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 
@@ -186,6 +212,7 @@ if(ret == 1):
     TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)
     TOPPopenravepy.PlotZMP(robot,traj0,traj1,zmplimits,dtplot,4)
 
+raw_input()
 
 print "\n--------------"
 print "Python preprocessing: ", t1-t0

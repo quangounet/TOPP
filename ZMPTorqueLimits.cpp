@@ -149,8 +149,10 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
             // ZMP limits (only processed when xmax>xmin)
             if(xmax-xmin>=TINY2) {
                 dReal norm_qd = VectorNorm(qd);
-                VectorAdd(qfilled,qdfilled,qplusdeltaqdfilled,1,delta/norm_qd);
-
+                bool qdiszero = norm_qd<TINY;
+                if(!qdiszero) {
+                    VectorAdd(qfilled,qdfilled,qplusdeltaqdfilled,1,delta/norm_qd);
+                }
                 Vector tau,h;
                 Vector Atau, Btau, Ctau, Cisum, Ah, Bh, Ch;
                 for(int i=0; i < int(nlink0); i++) {
@@ -163,14 +165,22 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
                     probot->CalculateJacobian(i,ci,jacobian);
 
                     // Set DOFValues to qplusdeltaqdfilled and extract jacobian
-                    probot->SetDOFValues(qplusdeltaqdfilled,CLA_Nothing);
-                    probot->CalculateJacobian(i,linksvector[i]->GetGlobalCOM(),jacobiandelta);
-                    //Calculate the derivative of the jacobian
-                    MatrixAdd(jacobiandelta,jacobian,jacobiandiff,norm_qd/delta,-norm_qd/delta);
+                    if(!qdiszero) {
+                        probot->SetDOFValues(qplusdeltaqdfilled,CLA_Nothing);
+                        probot->CalculateJacobian(i,linksvector[i]->GetGlobalCOM(),jacobiandelta);
+                        //Calculate the derivative of the jacobian
+                        MatrixAdd(jacobiandelta,jacobian,jacobiandiff,norm_qd/delta,-norm_qd/delta);
+                    }
+
                     // Compute the components
                     q1 = MatrixMultVector(jacobian,qd);
                     q2 = MatrixMultVector(jacobian,qdd);
-                    q3 = MatrixMultVector(jacobiandiff,qd);
+                    if(!qdiszero) {
+                        q3 = MatrixMultVector(jacobiandiff,qd);
+                    }
+                    else{
+                        q3 = 0.*q1;
+                    }
                     ciVq1 = ci.cross(q1);
                     ciVq2 = ci.cross(q2);
                     ciVq3 = ci.cross(q3);
