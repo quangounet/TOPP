@@ -40,7 +40,7 @@ class TOPPInstance {
 public:
     TOPPInstance(std::string problemtype, std::string
                  constraintsstring, std::string trajectorystring,
-                 std::string tuningsstring, object o) {
+                 std::string tuningsstring, openravepy::PyRobotBasePtr o) {
         ptrajectory = new TOPP::Trajectory(trajectorystring);
         RobotBasePtr probot = GetRobot(o);
 
@@ -144,7 +144,7 @@ public:
 BOOST_PYTHON_MODULE(TOPPbindings) {
     using namespace boost::python;
     class_<TOPPInstance>("TOPPInstance",
-                         init<std::string,std::string,std::string,std::string,object>())
+                         init<std::string,std::string,std::string,std::string,openravepy::PyRobotBasePtr>())
     .def_readonly("restrajectorystring", &TOPPInstance::restrajectorystring)
     .def_readonly("resprofilesliststring", &TOPPInstance::resprofilesliststring)
     .def_readonly("switchpointsliststring", &TOPPInstance::switchpointsliststring)

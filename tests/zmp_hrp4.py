@@ -23,6 +23,7 @@ import TOPPpy
 import TOPPopenravepy
 import time
 import string
+
 from pylab import *
 from numpy import *
 from openravepy import *
