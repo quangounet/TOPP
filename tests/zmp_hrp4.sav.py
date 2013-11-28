@@ -23,6 +23,8 @@ import TOPPpy
 import TOPPopenravepy
 import time
 import string
+import scipy
+import Image
 from pylab import *
 from numpy import *
 from openravepy import *
@@ -31,6 +33,7 @@ ion()
 
 ########################### Robot ################################
 env = Environment()
+env.Load("../robots/floorwalls.xml")
 robotfile = "../robots/hrp4r.dae"
 baselinkname = "BODY"
 robot = TOPPopenravepy.LoadFloat(env,robotfile,baselinkname) #Load a robot with dummy joints that mimick floating base
@@ -39,6 +42,12 @@ dof_lim=robot.GetDOFLimits()
 vel_lim=robot.GetDOFVelocityLimits()
 robot.SetDOFLimits(-10*ones(n),10*ones(n))
 robot.SetDOFVelocityLimits(100*vel_lim)
+M = array([[-0.81072723, -0.02540599, -0.58487254,  1.37787211],
+       [ 0.58541559, -0.04056306, -0.80971799,  1.72345638],
+       [-0.00315253, -0.99885393,  0.04775864,  0.70553762],
+       [ 0.        ,  0.        ,  0.        ,  1.        ]])
+env.SetViewer('qtcoin')
+env.GetViewer().SetCamera(M)
 
 
 ############################ Tunings ############################
@@ -130,32 +139,6 @@ for i in range(ndoffull):
             a,b,c,d = 0,0,0,q0[i]
         trajectorystring += "\n%f %f %f %f"%(d,c,b,a)
 
-
-trajectorystring = """1.500000
-22
-0.0 0.0 1.99242076297 -1.32221433021
-0.0 0.0 2.53280855643 -1.67759722295
-0.0 0.0 0.0 0.0
-0.0 0.0 0.0 0.0
-0.0 0.0 0.967382109132 -0.642750868261
-0.0 0.0 -0.519933641176 0.348891374481
-0.0 0.0 2.89830573159 -1.93488398449
-0.0 0.0 -2.14170672114 1.44939278452
-0.0 0.0 0.0 0.0
-0.0 0.0 0.0 0.0
-0.0 0.0 0.0 0.0
-0.0 0.0 0.0 0.0
-0.0 0.0 0.0 0.0
-0.0 0.0 3.13256805344 -2.08537050225
-0.0 0.0 4.59613512542 -3.04279209114
-0.0 0.0 4.81882377745 -3.21312086562
-0.0 0.0 -3.18430860851 2.12838441106
-0.0 0.0 0.0 0.0
-0.0 0.0 0.0 0.0
-0.0 0.0 0.0 0.0
-0.0 0.0 0.0 0.0
-0.0 0.0 0.0 0.0"""
-
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 
@@ -170,11 +153,13 @@ robot.activelinks = activelinks
 ############################ Constraints ############################
 
 taumin = -ones(ndof)*45
-taumax = ones(ndof)*30
-xmax = 0.15
-xmin = 0.02
-ymax = 0.15
-ymin = -0.08
+taumax = ones(ndof)*45
+aabb = robot.GetLink("L_FOOT_LINK").ComputeAABB()
+border = 0.015 #safety border of 0.02
+xmax = aabb.pos()[0]+aabb.extents()[0]-border
+xmin = aabb.pos()[0]-aabb.extents()[0]+border
+ymax = aabb.pos()[1]+aabb.extents()[1]-border
+ymin = aabb.pos()[1]-aabb.extents()[1]+border
 zmplimits = [xmin,xmax,ymin,ymax]
 vmax = ones(ndof)*3
 t0 = time.time()
@@ -199,7 +184,7 @@ x.WriteProfilesList()
 x.WriteSwitchPointsList()
 profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
 switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
-TOPPpy.PlotProfiles(profileslist,switchpointslist,5)
+TOPPpy.PlotProfiles(profileslist,switchpointslist,6)
 
 
 ##################### Plotting the trajectories #####################
@@ -209,7 +194,7 @@ if(ret == 1):
     dtplot = discrtimestep
     TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax)
     TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)
-    TOPPopenravepy.PlotZMP(robot,traj0,traj1,zmplimits,dtplot,4)
+    TOPPopenravepy.PlotZMP(robot,traj0,traj1,zmplimits,dtplot,4,border)
 
 
 print "\n--------------"
@@ -222,4 +207,20 @@ print "Trajectory duration (estimate): ", x.resduration
 if(ret == 1):
     print "Trajectory duration: ", traj1.duration
 
-raw_input()
+
+nsnaps=11
+box=[130,0,480,480]
+traj=traj0
+color=[0,0,1]
+ni=0
+for t in linspace(0,traj.duration,nsnaps):
+    with robot:
+        robot.SetDOFValues(TOPPopenravepy.Fill(robot,traj.Eval(t)))
+        I=env.GetViewer().GetCameraImage(640,480,M,[640,640,320,240])
+        scipy.misc.imsave('tmp.jpg',I)
+        im=Image.open('tmp.jpg')
+        im2=im.crop(box)
+        im2.save('zmp_snap_'+str(ni)+'.jpg')
+        ni+=1
+
+

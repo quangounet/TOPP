@@ -119,7 +119,7 @@ public:
         std::stringstream ss;
         pconstraints->WriteMVCBobrow(ss,tunings.discrtimestep);
         ss << "\n";
-        pconstraints->WriteMVCCombined(ss,tunings.discrtimestep);
+        pconstraints->WriteMVCDirect(ss,tunings.discrtimestep);
         ss << "\n";
         while(itprofile!=pconstraints->resprofileslist.end()) {
             itprofile->Write(ss);

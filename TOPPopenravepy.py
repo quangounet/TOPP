@@ -62,7 +62,7 @@ def ComputeTorquesConstraintsLegacy(robot,traj,taumin,taumax,discrtimestep):
 
 
 def PlotTorques(robot,traj0,traj1,dt=0.001,taumin=[],taumax=[],figstart=0):
-    colorcycle = ['r','g','b','m','c','y']
+    colorcycle = ['r', 'g', 'b', 'm', 'c', 'y', 'k']
     colorcycle = colorcycle[0:traj0.dimension]
     Tmax = max(traj0.duration,traj1.duration)
     tvect0,tauvect0 = ComputeTorques(traj0,robot,dt)
@@ -81,17 +81,20 @@ def PlotTorques(robot,traj0,traj1,dt=0.001,taumin=[],taumax=[],figstart=0):
         plot([0,Tmax],[a,a],'-.')
     if(len(taumax)>0):
         axis([0,Tmax,1.2*min(taumin),1.2*max(taumax)])
-    title('Joint torques')
-    legend()
+    title('Joint torques',fontsize=20)
+    xlabel('Time (s)',fontsize=18)
+    ylabel('Joint torques (Nm)',fontsize=18)    
 
 
-def PlotZMP(robot,traj0,traj1,zmplimits,dt=0.01,figstart=0):
+def PlotZMP(robot,traj0,traj1,zmplimits,dt=0.01,figstart=0,border=0.015):
+    xmin, xmax, ymin, ymax = zmplimits
+    xminf, xmaxf, yminf, ymaxf = xmin-border, xmax+border, ymin-border, ymax+border
+    tvect0,xzmp0,yzmp0,com0 = ComputeZMP(traj0,robot,dt)
+    tvect1,xzmp1,yzmp1,com1 = ComputeZMP(traj1,robot,dt)
+    com0, com1 = array(com0), array(com1)
     figure(figstart)
     clf()
     hold('on')
-    xmin, xmax, ymin, ymax = zmplimits
-    tvect0,xzmp0,yzmp0 = ComputeZMP(traj0,robot,dt)
-    tvect1,xzmp1,yzmp1 = ComputeZMP(traj1,robot,dt)
     plot(tvect0,xzmp0,'r--',linewidth=2)
     plot(tvect0,yzmp0,'g--',linewidth=2)
     plot(tvect1,xzmp1,'r',linewidth=2)
@@ -101,8 +104,28 @@ def PlotZMP(robot,traj0,traj1,zmplimits,dt=0.01,figstart=0):
     plot([0,Tmax],[xmax,xmax],'r-.')
     plot([0,Tmax],[ymin,ymin],'g-.')
     plot([0,Tmax],[ymax,ymax],'g-.')
-    axis([0,Tmax,1.2*min(xmin,ymin),1.2*max(xmax,ymax)]) 
-    title('ZMP')
+    axis([0,Tmax,1.2*min(xmin,ymin),1.2*max(xmax,ymax)])
+    title('Coordinates of the ZMP',fontsize=20)
+    xlabel('Time (s)',fontsize=18)
+    ylabel('ZMP (m)',fontsize=18)    
+    figure(figstart+1)
+    clf()
+    plot([xminf,xminf,xmaxf,xmaxf,xminf],[yminf,ymaxf,ymaxf,yminf,yminf],'k',linewidth=2)
+    plot([xmin,xmin,xmax,xmax,xmin],[ymin,ymax,ymax,ymin,ymin],'k--',linewidth=2)
+    plot(xzmp0,yzmp0,'g',linewidth=3)
+    plot(xzmp1,yzmp1,'r',linewidth=3)
+    plot(xzmp0[0],yzmp0[0],'gs',markersize=14)
+    plot(xzmp1[0],yzmp1[0],'rs',markersize=15)
+    plot(com1[0,0],com1[0,1],'bs',markersize=8)
+    plot(xzmp0[-1],yzmp0[-1],'g*',markersize=25)
+    plot(xzmp1[-1],yzmp1[-1],'r*',markersize=25)
+    plot(com1[:,0],com1[:,1],'b',linewidth=3)
+    plot(com1[-1,0],com1[-1,1],'b*',markersize=15)
+    axis([xminf-0.01,xmax+0.01,ymin-0.01,ymax+0.01])
+    axis('equal')
+    title('Spatial trajectory of the ZMP under the left foot',fontsize=20)
+    xlabel('Anteroposterior axis (m)',fontsize=18)
+    ylabel('Mediolateral axis (m)',fontsize=18)    
 
 
 
@@ -163,9 +186,6 @@ def ComputeZMPConfig(robot,q,qd,qdd):
         com_pos=array([k.GetGlobalCOM() for k in robot.GetLinks()])
         vel=robot.GetLinkVelocities()
         acc=robot.GetLinkAccelerations(Fill(robot,qdd))
-        for i in range(n):
-            vel[i,0:3]=vel[i,0:3]
-            acc[i,0:3]=acc[i,0:3]
         transforms=[k.GetTransform()[0:3,0:3] for k in robot.GetLinks()]
         masses=[k.GetMass() for k in robot.GetLinks()]
         localCOM=[k.GetLocalCOM() for k in robot.GetLinks()]
@@ -177,6 +197,7 @@ def ComputeZMPConfig(robot,q,qd,qdd):
             if robot.activelinks[k]>0.1:
                 totalmass += masses[k]
     f02 = totalmass * g[2]
+    com = zeros(3)
     for i in range(n):
         if hasattr(robot,'activelinks') and robot.activelinks[i]<0.1:
             continue
@@ -190,21 +211,25 @@ def ComputeZMPConfig(robot,q,qd,qdd):
         cidd=acc[i,0:3]+cross(omegai,cross(omegai,ri))+cross(omegadi,ri)
         tau0 += masses[i]*cross(ci,g-cidd)
         f02 -= masses[i]*cidd[2]
-    return -tau0[1]/f02,tau0[0]/f02
+        com += masses[i]*ci
+
+    return -tau0[1]/f02,tau0[0]/f02,com/totalmass
 
 
 def ComputeZMP(traj,robot,dt):
     tvect = arange(0,traj.duration+dt,dt)
     xzmp = []
     yzmp = []
+    com = []
     for t in tvect:
         q = traj.Eval(t)
         qd = traj.Evald(t)
         qdd = traj.Evaldd(t)
-        x,y = ComputeZMPConfig(robot,q,qd,qdd)
+        x,y,comq = ComputeZMPConfig(robot,q,qd,qdd)
         xzmp.append(x)
         yzmp.append(y)
-    return tvect,xzmp,yzmp
+        com.append(comq)
+    return tvect,xzmp,yzmp,com
 
 
 
