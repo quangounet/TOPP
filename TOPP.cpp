@@ -121,8 +121,8 @@ dReal Constraints::Interpolate1D(dReal s, const std::vector<dReal>& v) {
 
 dReal Constraints::SdLimitCombinedInit(dReal s){
     dReal res = SdLimitBobrow(s);
+    std::vector<dReal> qd(trajectory.dimension);
     if(hasvelocitylimits) {
-        std::vector<dReal> qd(trajectory.dimension);
         trajectory.Evald(s, qd);
         for(int i=0; i<trajectory.dimension; i++) {
             if(std::abs(qd[i])>TINY) {
@@ -157,7 +157,8 @@ void Constraints::WriteMVCBobrow(std::stringstream& ss, dReal dt){
 }
 
 
-void Constraints::WriteMVCCombined(std::stringstream& ss, dReal dt){
+void Constraints::WriteMVCDirect(std::stringstream& ss, dReal dt){
+    std::vector<dReal> qd(trajectory.dimension);
     dReal duration = trajectory.duration;
     ss << duration << " " << dt << "\n";
     for(dReal t=0; t<=duration; t+=dt) {
@@ -165,7 +166,14 @@ void Constraints::WriteMVCCombined(std::stringstream& ss, dReal dt){
     }
     ss << "\n";
     for(dReal t=0; t<=duration; t+=dt) {
-        ss << SdLimitCombined(t) << " ";
+        dReal res = INF;
+        trajectory.Evald(t, qd);
+        for(int i=0; i<trajectory.dimension; i++) {
+            if(std::abs(qd[i])>TINY) {
+                res = std::min(res,vmax[i]/std::abs(qd[i]));
+            }
+        }
+        ss << res << " ";
     }
 }
 

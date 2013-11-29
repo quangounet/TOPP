@@ -16,8 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from pylab import array, double, gca, plot, figure, linspace
-from pylab import arange, clf, hold, axis, title, sqrt
+from pylab import *
 from numpy import *
 import pylab
 import time
@@ -172,6 +171,9 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=1):
     plot(mvcbobrow[2], mvcbobrow[3], 'm--', linewidth=4)
     mvcdirect = profileslist.pop(0)
     plot(mvcdirect[2], mvcdirect[3], 'c--', linewidth=4)
+    colorcycle = ['r', 'g', 'b', 'y', 'k']
+    ax = gca()
+    ax.set_color_cycle(colorcycle)
     for p in profileslist:
         plot(p[2], p[3], linewidth=2)
     if len(profileslist) > 0:
@@ -195,7 +197,9 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=1):
             plot(sw[0], sw[1], 'yo', markersize=8)
     s_max, sd_max = mvcbobrow[0], M
     axis([0, s_max, 0, sd_max])
-    title('MVCs and profiles')
+    title('Maximum Velocity Curves and profiles',fontsize=20)
+    xlabel('$s$',fontsize=22)
+    ylabel('$\dot s$',fontsize=22)    
     return s_max, sd_max  # return this for PlotPhase (yurk!)
 
 
@@ -233,7 +237,7 @@ def PlotAlphaBeta(topp_inst, prec=30):
 
 
 def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
-    colorcycle = ['r', 'g', 'b', 'm', 'c', 'y']
+    colorcycle = ['r', 'g', 'b', 'm', 'c', 'y', 'k']
     colorcycle = colorcycle[0:traj0.dimension]
     Tmax = max(traj0.duration, traj1.duration)
     # Joint angles
@@ -243,8 +247,11 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
     ax = gca()
     ax.set_color_cycle(colorcycle)
     traj0.Plot(dt, '--')
+    ax.set_color_cycle(colorcycle)
     traj1.Plot(dt)
-    title('Joint values')
+    title('Joint values',fontsize=20)
+    xlabel('Time (s)',fontsize=18)
+    ylabel('Joint values (rad)',fontsize=18)    
     # Velocity
     figure(figstart + 1)
     clf()
@@ -252,6 +259,7 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
     ax = gca()
     ax.set_color_cycle(colorcycle)
     traj0.Plotd(dt, '--')
+    ax.set_color_cycle(colorcycle)
     traj1.Plotd(dt)
     for v in vmax:
         plot([0, Tmax], [v, v], '-.')
@@ -262,7 +270,9 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
         if Vmax < 0.1:
             Vmax = 10
         axis([0, Tmax, -Vmax, Vmax])
-    title('Joint velocities')
+    title('Joint velocities',fontsize=20)
+    xlabel('Time (s)',fontsize=18)
+    ylabel('Joint velocities (rad/s)',fontsize=18)    
     # Acceleration
     figure(figstart + 2)
     clf()
@@ -270,6 +280,7 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
     ax.set_color_cycle(colorcycle)
     hold('on')
     traj0.Plotdd(dt, '--')
+    ax.set_color_cycle(colorcycle)
     traj1.Plotdd(dt)
     for a in amax:
         plot([0, Tmax], [a, a], '-.')
@@ -278,7 +289,9 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
     if len(amax) > 0:
         Amax = 1.2 * max(amax)
         axis([0, Tmax, -Amax, Amax])
-    title('Joint accelerations')
+    title('Joint accelerations',fontsize=20)
+    xlabel('Time (s)',fontsize=18)
+    ylabel('Joint accelerations (rad/s^2)',fontsize=18)    
 
 
 def string2p(s):
