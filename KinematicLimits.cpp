@@ -179,16 +179,39 @@ void KinematicLimits::FindSingularSwitchPoints(){
         return;
     }
     int i = 0;
-    std::vector<dReal> qd(trajectory.dimension),qdprev(trajectory.dimension);
+    std::vector<dReal> qd(trajectory.dimension),qdprev(trajectory.dimension),qdd(trajectory.dimension);
+    std::vector<dReal> a_alpha(trajectory.dimension), a_beta(trajectory.dimension);
     trajectory.Evald(discrsvect[i],qdprev);
 
     for(int i=1; i<ndiscrsteps-1; i++) {
         trajectory.Evald(discrsvect[i],qd);
+        trajectory.Evaldd(discrsvect[i],qdd);
+        for(int j=0; j<trajectory.dimension; j++) {
+            if(qd[j] > 0) {
+                a_alpha[j] = -amax[j];
+                a_beta[j] = amax[j];
+            }
+            else{
+                a_alpha[j] = amax[j];
+                a_beta[j] = -amax[j];
+            }
+        }
+        dReal minsd = mvcbobrow[i];
+        bool found = false;
         for(int j=0; j<trajectory.dimension; j++) {
             if(qd[j]*qdprev[j]<0) {
-                AddSwitchPoint(i,SP_SINGULAR);
-                continue;
+                found = true;
+                if(a_beta[j]/qdd[j]<0) {
+                    minsd = std::min(minsd,sqrt(-a_beta[j]/qdd[j]));
+                }
+                else{
+                    minsd = std::min(minsd,sqrt(a_beta[j]/qdd[j]));
+                }
+                //std::cout << i << " " << j << " " << a_beta[j] << "\n";
             }
+        }
+        if(found) {
+            AddSwitchPoint(i,SP_SINGULAR,minsd);
         }
         qdprev = qd;
     }
