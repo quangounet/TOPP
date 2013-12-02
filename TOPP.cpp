@@ -66,7 +66,7 @@ void Constraints::Preprocess(Trajectory& trajectory0, Tunings& tunings0) {
     ComputeMVCCombined();
     FindSwitchPoints();
 
-    // Set the reparam timestep automatically if it is initially set to 0
+    // Set integration timestep automatically if it is initially set to 0
     dReal meanmvc = 0;
     if(tunings.integrationtimestep == 0) {
         for(int i=0; i<ndiscrsteps; i++) {
@@ -77,6 +77,15 @@ void Constraints::Preprocess(Trajectory& trajectory0, Tunings& tunings0) {
         tunings.integrationtimestep = tunings.discrtimestep/meanmvc;
         //std::cout << "\n--------------\nIntegration timestep: " << tunings.integrationtimestep << "\n";
     }
+
+    // Set passswitchpoint automatically if it is initially set to 0
+    if(tunings.passswitchpointnsteps == 0) {
+        tunings.passswitchpointnsteps = int(trajectory.duration/20./tunings.integrationtimestep)+1;
+        //std::cout << "PS : " << tunings.passswitchpointnsteps << "\n";
+    }
+
+
+
 }
 
 
@@ -1089,7 +1098,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                 }
             }
         }
-        else if((!zlajpah) && testmvc && sdcur > constraints.SdLimitCombined(scur)) {
+        else if((!zlajpah) && testmvc && sdcur > constraints.SdLimitCombined(scur)+TINY2) {
             slist.push_back(scur);
             sdlist.push_back(sdcur);
             constraints.zlajpahlist.push_back(std::pair<dReal,dReal>(scur,sdcur));
@@ -1176,20 +1185,6 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
                 returntype = INT_MVC;
                 break;
             }
-            // // Lower the sd to the MVC
-            // if(slist.size()>0) {
-            //     dReal sprev = slist.back(), sdprev = sdlist.back();
-            //     dReal slidesdd = ComputeSlidesddBackward(constraints,sprev,sdprev,-dt);
-            //     scur = sprev - sdprev*dt + 0.5*dtsq*slidesdd;
-            //     sdcur = sdprev - dt*slidesdd;
-            //     sddlist.pop_back();
-            //     sddlist.push_back(slidesdd);
-            // }
-            //Now we have sdcombined < sdcur <= sdbobrow
-            // Slide along MVCCombined, which is admissible, until either
-            // alpha points above MVCCombined (trapped)
-
-            //std::cout <<"\nSlide backward ("<< scur << "," << sdcur << ") \n";
             while(true) {
                 if(scur <0) {
                     cont = false;
@@ -1205,6 +1200,13 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
                     sdlist.push_back(sdcur);
                     sddlist.push_back(0);
                     returntype = INT_BOTTOM;
+                    break;
+                }
+                if(sdcur > constraints.SdLimitBobrow(scur)) {
+                    slist.push_back(scur);
+                    sdlist.push_back(sdcur);
+                    sddlist.push_back(0);
+                    returntype = INT_MVC;
                     break;
                 }
                 else if(IsAboveProfilesList(scur,sdcur,constraints.resprofileslist)) {
@@ -1238,7 +1240,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
                 }
             }
         }
-        else if(!zlajpah && testmvc && sdcur > constraints.SdLimitCombined(scur)) {
+        else if(!zlajpah && testmvc && sdcur > constraints.SdLimitCombined(scur)+TINY2) {
             slist.push_back(scur);
             sdlist.push_back(sdcur);
             returntype = INT_MVC;
@@ -1444,11 +1446,12 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
         // Estimate resulting trajectory duration
         constraints.resduration = 0;
         Profile profile;
-        dReal ds = tunings.discrtimestep/10;
-        dReal sdprev,sdnext;
+        dReal ds = 1e-3;
+        int nsamples = int((trajectory.duration+TINY)/ds);
+        dReal s,sdcur,sdnext;
         dReal tres;
         if(FindLowestProfile(0,profile,tres,constraints.resprofileslist)) {
-            sdprev = profile.Evald(tres);
+            sdcur = profile.Evald(tres);
         }
         else{
             message = "CLC discontinuous";
@@ -1456,11 +1459,12 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
             continue;
         }
         bool clcdiscontinuous = false;
-        for(dReal s=ds; s<=trajectory.duration; s+=ds) {
+        for(int i=1; i<=nsamples; i++) {
+            s = i*ds;
             if(FindLowestProfile(s,profile,tres,constraints.resprofileslist)) {
                 sdnext = profile.Evald(tres);
-                constraints.resduration += 2*ds/(sdprev+sdnext);
-                sdprev = sdnext;
+                constraints.resduration += 2*ds/(sdcur+sdnext);
+                sdcur = sdnext;
             }
             else{
                 clcdiscontinuous = true;
