@@ -185,7 +185,9 @@ Trajectory::Trajectory(const std::string& trajectorystring) {
             iss.getline(buff, buffsize);
             polynomialsvector.push_back(Polynomial(std::string(buff)));
         }
-        chunkslist0.push_back(Chunk(duration,polynomialsvector));
+        if(duration>TINY) {
+            chunkslist0.push_back(Chunk(duration,polynomialsvector));
+        }
     }
     InitFromChunksList(chunkslist0);
 }
