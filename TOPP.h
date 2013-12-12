@@ -65,6 +65,8 @@ public:
     dReal integrationtimestep; // Time step to integrate the profiles, usually 0.01
     dReal reparamtimestep; // Time step for the reparameterization, usually 0.01. If 0, set reparamtimestep so as to keep the number of discretization points unchanged
     int passswitchpointnsteps; // Number of steps to integrate from the switch point when assessing whether it's addressable
+    dReal tangentstublength;
+    dReal singularstublength;
     dReal bisectionprecision; //Precision for the sd search, set to 0.01 by default
     dReal loweringcoef; //While addressing switchpoints, lower sd by loweringcoef. Set to 0.9
 };
@@ -195,6 +197,12 @@ public:
         std::cout << "Virtual method not implemented\n";
         throw "Virtual method not implemented";
     }
+    virtual dReal SddLimitAlpha(dReal s, dReal sd){
+        return SddLimits(s, sd).first;
+    }
+    virtual dReal SddLimitBeta(dReal s, dReal sd){
+        return SddLimits(s, sd).second;
+    }
 
 
     ///////////////////////// Switch Points ///////////////////////
@@ -315,6 +323,11 @@ bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>& resprofileslist,
 // Find the lowest profile at s
 // Return false if no profile covers s, true otherwise
 bool FindLowestProfile(dReal s, Profile& profile, dReal& tres, std::list<Profile>& resprofileslist);
+
+void CheckInsert(std::list<std::pair<dReal,dReal> >& reslist, std::pair<dReal,dReal> e, bool inverse = false);
+void FindMaxima(const std::list<std::pair<dReal,dReal> >& origlist, std::list<std::pair<dReal,dReal> >& reslist, bool inverse = false);
+
+
 
 }
 

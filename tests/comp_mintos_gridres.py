@@ -39,16 +39,18 @@ diff_low = []
 all_dur = []
 all_dur_mintos = []
 
-v = 1.2
+v = 1.5
 a = 1
-ndof = 10
-gridresv = [100,200,300,400,500,600,700,800,900,1000]
+ndof = 20
+nchunks = 10.
+gridresv = [50,100,200,500,1000]
 
 
 for i in range(len(gridresv)):
     gridres = gridresv[i]
     print gridres
-    discrtimestep = 1./gridres
+    #discrtimestep = nchunks/gridres/50.
+    discrtimestep = 1e-3
     tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
     limitfile = 'testfiles/limits-%d-%f-%f'%(ndof,v,a)
     comput_time_v=[]
@@ -56,12 +58,12 @@ for i in range(len(gridresv)):
     comput_time_mintos_v=[]
     traj_dur_mintos_v=[]
     for j in range(30):
+        print j
         trajfile = 'testfiles/traj-%d-%d'%(ndof,j)
         h = open(trajfile,'r')
         s = h.read()
         h.close()      
-        [p0v,p1v,p2v,p3v] = TOPPpy.string2p(s)
-        Tv = [1]
+        Tv,p0v,p1v,p2v,p3v = TOPPpy.string2p(s)
         trajectorystring = TOPPpy.BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v)
         vmax = v*ones(ndof)
         amax = a*ones(ndof)
@@ -122,16 +124,25 @@ for j in range(30):
     plot(X, [(l[j]-all_dur_mintos[-1][j])/all_dur_mintos[-1][j]*100 for l in all_dur_mintos], 'r' , linewidth=1)
 
 xlabel('Grid res',fontsize=18)
-ylabel('Computation time in seconds (log)',fontsize=18)    
+ylabel('Difference with optimum (in %)',fontsize=18)    
 ax=gca()
 ax.set_xticks(X)
 ax.set_xticklabels([str(x) for x in gridresv])
+grid('on')
 
 
+figure(1)
+clf()
 for j in range(30):
-    l = all_dur[6]
-    print j,abs((l[j]-all_dur[-1][j])/all_dur[-1][j]*100)
+    plot(X, time_low, 'g', linewidth=1)
+    plot(X, time_low_mintos, 'r' , linewidth=1)
 
+xlabel('Grid res',fontsize=18)
+ylabel('Log execution time (in s)',fontsize=18)    
+ax=gca()
+ax.set_xticks(X)
+ax.set_xticklabels([str(x) for x in gridresv])
+grid('on')
 
 
 

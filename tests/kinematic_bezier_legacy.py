@@ -18,6 +18,8 @@
 import sys
 sys.path.append('..')
 
+import os
+
 import TOPPbindings
 import TOPPpy
 import time
@@ -30,85 +32,63 @@ plotting = True
 
 ion()
 
-#random.seed(0)
-
 ############################ Tunings ############################
-discrtimestep = 0.005
-integrationtimestep = 0#auto
-reparamtimestep = 0#auto
-passswitchpointnsteps = 5
+
+integrationtimestep = 0 # auto
+reparamtimestep = 0 # auto
+passswitchpointnsteps = 0
+discrtimestep = 1e-2
 tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
+gridres2 = 2000
+
+############################ Constraints ############################
+ndof = 20
+v = 1.5
+a = 1
+j = 10
+vmax = v*ones(ndof)
+amax = a*ones(ndof)
+constraintstring = string.join([str(v) for v in amax]) + "\n"
+constraintstring += string.join([str(v) for v in vmax])
 
 
 ############################ Trajectory ############################
-#------------------------------------------#
-# p0v = [[1,1],[1,1]]
-# p1v = [[0.3,1.3],[1,2]]
-# p2v = [[1,0],[0.3,1.3]]
-# p3v = [[1,1],[1,1]]
-# p0v = [[1,1,0],[1,1,0]]
-# p1v = [[0.3,1.3,1],[1,2,-1]]
-# p2v = [[1,0,1],[0.3,1.3,0]]
-# p3v = [[1,1,0],[1,1,1]]
-# Tv = [0.5,0.5]
 
-ndof = 20
-p0v = [rand(ndof)*2*pi-pi]
-p1v = [rand(ndof)*2*pi-pi]
-p2v = [rand(ndof)*2*pi-pi]
-p3v = [rand(ndof)*2*pi-pi]
-Tv = [1]
-trajectorystring="""1
-2
-1.000000 -4.476723 -4.127280 4.327536
-1.000000 -10.662396 12.189375 -4.581347"""
-
-# """1
-# 2
-# 1.000000 -4.476723 -4.127280 4.327536
-# 1.000000 -10.662396 12.189375 -4.581347"""
-#trajectorystring = TOPPpy.BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v)
-
-# trajfile = 'testfiles/traj-10-0'
-# h = open(trajfile,'r')
-# s = h.read()
-# h.close()      
-# [p0v,p1v,p2v,p3v] = TOPPpy.string2p(s)
-# Tv = [1]
+trajfile = 'testfiles/traj-%d-%d'%(ndof,j)
+h = open(trajfile,'r')
+s = h.read()
+h.close()      
+Tv,p0v,p1v,p2v,p3v = TOPPpy.string2p(s)
 trajectorystring = TOPPpy.BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v)
 
 
-trajectorystring = """1
-2
-1.000000 4.351032 -14.383305 5.595961
-1.000000 2.689188 -3.397875 -0.546376"""
-
-
-#------------------------------------------#
-traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
-
-
-############################ Constraints ############################
-#------------------------------------------#
-vmax = 0.2*ones(ndof)
-amax = 0.2*ones(ndof)
-t0 = time.time()
-constraintstring = string.join([str(v) for v in amax]) + "\n"
-constraintstring += string.join([str(v) for v in vmax])
-#------------------------------------------#
+# ############################ Mintos ############################
+# limitfile = 'testfiles/limits-%d-%f-%f'%(ndof,v,a)
+# command = "./timeopt %s %s %d 1 > /tmp/res-%d-%f"%(trajfile,limitfile,gridres2,ndof,v)
+# os.system(command)
+# res = open("/tmp/res-%d-%f"%(ndof,v),"r").read()
+# lines = [l.strip(" \n") for l in res.split('\n')]
+# resline = ""
+# for l in lines:
+#     if(len(l)>0 and l[0]=="O"):
+#         resline = l
+#         break
+# print "Mintos traj duration: ", (float(resline.split(" ")[2].strip(",")))
+# print "Mintos comput time: ", (float(resline.split(" ")[4]))
 
 
 ############################ Run TOPP ############################
+t0 = time.time()
+x = TOPPbindings.TOPPInstance("KinematicLimits",constraintstring,trajectorystring,tuningsstring,False);
 t1 = time.time()
-x = TOPPbindings.TOPPInstance("KinematicLimits",constraintstring,trajectorystring,tuningsstring);
-t2 = time.time()
 ret = x.RunComputeProfiles(0,0)
-t3 = time.time()
+t2 = time.time()
 
 if(ret == 1):
     x.ReparameterizeTrajectory()
 
-t4 = time.time()
+t3 = time.time()
+
 
 ################ Plotting the MVC and the profiles #################
 x.WriteProfilesList()
@@ -117,26 +97,18 @@ profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
 switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
 if plotting:
     TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
+    axis([0,sum(Tv),0,1])
 
 
 ##################### Plotting the trajectories #####################
 if(ret == 1):
     x.WriteResultTrajectory()
     traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
-    #if plotting:
-        #TOPPpy.PlotKinematics(traj0,traj1,0.01,vmax,amax)
+    if plotting:
+        TOPPpy.PlotKinematics(traj1,traj1,0.01,vmax,amax)
 
-
-print "Python preprocessing: ", t1-t0
-print "Building TOPP Instance: ", t2-t1
-print "Compute profiles: ", t3-t2
-print "Reparameterize trajectory: ", t4-t3
-print "Total: ", t4-t0
-print "Trajectory duration (estimate): ", x.resduration
-if(ret == 1):
-    print "Trajectory duration: ", traj1.duration
-    print "Trajectory 0 nsteps: ", len(traj0.chunkslist)
-
+print "TOPP traj duration: ", x.resduration
+print "TOPP comput time: ", t2-t0
 
 
 raw_input()

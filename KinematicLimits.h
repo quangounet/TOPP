@@ -29,6 +29,8 @@ public:
 
     //////////////// Overloaded methods //////////////////////
     std::pair<dReal,dReal> SddLimits(dReal s, dReal sd);
+    dReal SddLimitAlpha(dReal s, dReal sd);
+    dReal SddLimitBeta(dReal s, dReal sd);
     void FindSingularSwitchPoints();
     void Discretize();
     dReal SdLimitBobrowInit(dReal s);

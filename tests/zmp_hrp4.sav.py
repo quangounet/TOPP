@@ -51,7 +51,7 @@ env.GetViewer().SetCamera(M)
 
 
 ############################ Tunings ############################
-discrtimestep = 1e-2
+discrtimestep = 1e-1
 integrationtimestep = 1e-3
 reparamtimestep = 1e-3
 passswitchpointnsteps = 5
@@ -208,19 +208,32 @@ if(ret == 1):
     print "Trajectory duration: ", traj1.duration
 
 
-nsnaps=11
-box=[130,0,480,480]
-traj=traj0
-color=[0,0,1]
-ni=0
-for t in linspace(0,traj.duration,nsnaps):
-    with robot:
-        robot.SetDOFValues(TOPPopenravepy.Fill(robot,traj.Eval(t)))
-        I=env.GetViewer().GetCameraImage(640,480,M,[640,640,320,240])
-        scipy.misc.imsave('tmp.jpg',I)
-        im=Image.open('tmp.jpg')
-        im2=im.crop(box)
-        im2.save('zmp_snap_'+str(ni)+'.jpg')
-        ni+=1
+# nsnaps=11
+# box=[130,0,480,480]
+# traj=traj0
+# color=[0,0,1]
+# ni=0
+# for t in linspace(0,traj.duration,nsnaps):
+#         robot.SetDOFValues(TOPPopenravepy.Fill(robot,traj.Eval(t)))
+#         raw_input()
+        # I=env.GetViewer().GetCameraImage(640,480,M,[640,640,320,240])
+        # scipy.misc.imsave('tmp.jpg',I)
+        # im=Image.open('tmp.jpg')
+        # im2=im.crop(box)
+        # im2.save('zmp_snap_'+str(ni)+'.jpg')
+        # ni+=1
 
 
+# convert i00.png -crop 328x396+970+248 j00.eps
+# convert i01.png -crop 328x396+970+248 j01.eps
+# convert i02.png -crop 328x396+970+248 j02.eps
+# convert i03.png -crop 328x396+970+248 j03.eps
+# convert i04.png -crop 328x396+970+248 j04.eps
+# convert i05.png -crop 328x396+970+248 j05.eps
+# convert i06.png -crop 328x396+970+248 j06.eps
+# convert i07.png -crop 328x396+970+248 j07.eps
+# convert i08.png -crop 328x396+970+248 j08.eps
+# convert i09.png -crop 328x396+970+248 j09.eps
+# convert i10.png -crop 328x396+970+248 j10.eps
+
+raw_input()
