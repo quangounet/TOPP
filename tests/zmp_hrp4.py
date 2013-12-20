@@ -24,6 +24,7 @@ import TOPPopenravepy
 import MotionPlanning
 import time
 import string
+
 from pylab import *
 from numpy import *
 from openravepy import *
