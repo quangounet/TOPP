@@ -37,15 +37,14 @@ ion()
 integrationtimestep = 0 # auto
 reparamtimestep = 0 # auto
 passswitchpointnsteps = 0
-discrtimestep = 1e-2
+discrtimestep = 1/100.
 tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
-gridres2 = 2000
 
 ############################ Constraints ############################
-ndof = 20
+ndof = 30
 v = 1.5
 a = 1
-j = 10
+j = 28
 vmax = v*ones(ndof)
 amax = a*ones(ndof)
 constraintstring = string.join([str(v) for v in amax]) + "\n"
@@ -60,7 +59,6 @@ s = h.read()
 h.close()      
 Tv,p0v,p1v,p2v,p3v = TOPPpy.string2p(s)
 trajectorystring = TOPPpy.BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v)
-
 
 # ############################ Mintos ############################
 # limitfile = 'testfiles/limits-%d-%f-%f'%(ndof,v,a)

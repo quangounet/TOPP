@@ -41,16 +41,16 @@ all_dur_mintos = []
 
 v = 1.5
 a = 1
-ndof = 20
-nchunks = 10.
-gridresv = [50,100,200,500,1000]
+ndof = 30
+nchunks = 1
+gridresv = [100,150,200,250,300,400,500,750,1000]
 
 
 for i in range(len(gridresv)):
-    gridres = gridresv[i]
+    gridres = gridresv[i]*1.
     print gridres
-    #discrtimestep = nchunks/gridres/50.
-    discrtimestep = 1e-3
+    discrtimestep = nchunks/gridres
+    integrationtimestep = 0
     tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
     limitfile = 'testfiles/limits-%d-%f-%f'%(ndof,v,a)
     comput_time_v=[]
@@ -128,6 +128,7 @@ ylabel('Difference with optimum (in %)',fontsize=18)
 ax=gca()
 ax.set_xticks(X)
 ax.set_xticklabels([str(x) for x in gridresv])
+axis([100,1000,-1,2])
 grid('on')
 
 
@@ -143,7 +144,19 @@ ax=gca()
 ax.set_xticks(X)
 ax.set_xticklabels([str(x) for x in gridresv])
 grid('on')
+axis([100,1000,-3.5,0.5])
+
+
+
+#####################
+
+
+for j in range(30):
+    print j, (all_dur[0][j]-all_dur[-1][j])/all_dur[-1][j]*100
+
 
 
 
 raw_input()
+
+

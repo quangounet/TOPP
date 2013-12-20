@@ -20,12 +20,11 @@
 
 #include <boost/numeric/ublas/lu.hpp>
 
-#define CLA_Nothing 0
+#define CLA_Nothing 0 // no warning when setting DOF values or velocities
 
 // \brief Different in z-coordinate used to detect the support foot in the
 // single-support case.
 const dReal SINGLE_SUPPORT_Z_DIFF = 1e-2; 
-
 
 using namespace OpenRAVE;
 
@@ -49,7 +48,7 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
     iss.getline(buff,buffsize);
     VectorFromString(std::string(buff),vmax);
     hasvelocitylimits = VectorMax(vmax) > TINY;
-    maxrep = 1;
+    maxrep = 5;
 
     probot = probot0;
     activelinks = activelinks0;
@@ -82,6 +81,9 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
     dReal ymin = zmplimits[2];
     dReal ymax = zmplimits[3];
 
+    cout << "ZMP limits: ";
+    cout << xmin << " " << xmax << " " <<  ymin << " " << ymax << "\n";
+
     Vector g = probot->GetEnv()->GetPhysicsEngine()->GetGravity();
     std::vector<dReal> q(ndof), qd(ndof), qdd(ndof), qfilled, qdfilled, qddfilled;
     probot->GetDOFValues(qfilled);
@@ -104,7 +106,9 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
     dReal delta = TINY2;
     Vector ci, ciVg, q1, ciVq1, q2, ciVq2, q3, ciVq3;
 
-    int ndiscrsteps = int((ptraj->duration+1e-10)/tunings.discrtimestep)+1;
+    int ndiscrsteps = int((ptraj->duration+1e-15)/tunings.discrtimestep)+1;
+    dReal dt = ptraj->duration/(ndiscrsteps-1);
+
 
     // for(int t = 0; t<ndiscrsteps; t++) {
     //     dReal s = t*tunings.discrtimestep;
@@ -120,7 +124,7 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
     {
         EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex());
         for(int t = 0; t<ndiscrsteps; t++) {
-            dReal s = t*tunings.discrtimestep;
+            dReal s = t*dt;
             ptraj->Eval(s,q);
             ptraj->Evald(s,qd);
             ptraj->Evaldd(s,qdd);
