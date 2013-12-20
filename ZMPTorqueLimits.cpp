@@ -18,7 +18,14 @@
 
 #include "ZMPTorqueLimits.h"
 
+#include <boost/numeric/ublas/lu.hpp>
+
 #define CLA_Nothing 0
+
+// \brief Different in z-coordinate used to detect the support foot in the
+// single-support case.
+const dReal SINGLE_SUPPORT_Z_DIFF = 1e-2; 
+
 
 using namespace OpenRAVE;
 
@@ -128,8 +135,10 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
             c.resize(0);
 
             // Torque limits
-            probot->ComputeInverseDynamics(torquesimple,qdfilled);
-            probot->ComputeInverseDynamics(torquecomponents,qddfilled);
+            //probot->ComputeInverseDynamics(torquesimple,qdfilled);
+            //probot->ComputeInverseDynamics(torquecomponents,qddfilled);
+            this->ComputeInverseDynamicsSingleSupport(torquesimple, qdfilled);
+            this->ComputeInverseDynamicsSingleSupport(torquecomponents, qddfilled);
             Trim(torquesimple,torquesimpletrimmed);
             Trim(torquecomponents[0],torquecomponents0trimmed);
             Trim(torquecomponents[1],torquecomponents1trimmed);
@@ -301,12 +310,12 @@ void ZMPTorqueLimits::Fill(const std::vector<dReal>&q, std::vector<dReal>&qfille
     }
 }
 
+
 void ZMPTorqueLimits::Trim(const std::vector<dReal>&q, std::vector<dReal>&qtrimmed){
     for(int i=0; i<ndof; i++) {
         qtrimmed[i]=q[dofsvector[i]];
     }
 }
-
 
 
 Vector ZMPTorqueLimits::MatrixMultVector(const boost::multi_array<dReal,2>& M, const std::vector<dReal>& v){
@@ -330,5 +339,101 @@ void MatrixAdd(const boost::multi_array<dReal,2>& A, const boost::multi_array<dR
     }
 }
 
+
+/** 
+ * \brief Get the transpose of the contact (rotational and translational)
+ * Jacobian for a given foot.
+ *
+ * \param[in] foot LinkPtr to the targeted foot
+ * \param[out] mjacobiantrans Transpose of the contact Jacobian matrix.
+ */
+void GetFootJacobianTranspose(const KinBody::LinkPtr foot, boost::multi_array<dReal,2>& mjacobiantrans) {
+    int linkindex = foot->GetIndex();
+    Transform t = foot->GetTransform();
+
+    std::vector<dReal> transjacobian;
+    std::vector<dReal> rotjacobian;
+    KinBody::CalculateJacobian(linkindex, t.trans, transjacobian);
+    KinBody::CalculateRotationJacobian(linkindex, t.rot, rotjacobian);
+
+    int nbdof = probot->GetDOF();
+    mjacobian.resize(boost::extents[nbdof][7]);
+    for (int dof = 0; dof < nbdof; dof++) {
+        mjacobiantrans[dof][0 * nbdof] = rotjacobian[0 * dofstride + dof];
+        mjacobiantrans[dof][1 * nbdof] = rotjacobian[1 * dofstride + dof];
+        mjacobiantrans[dof][2 * nbdof] = rotjacobian[2 * dofstride + dof];
+        mjacobiantrans[dof][3 * nbdof] = rotjacobian[3 * dofstride + dof];
+        mjacobiantrans[dof][4 * nbdof] = transjacobian[0 * dofstride + dof];
+        mjacobiantrans[dof][5 * nbdof] = transjacobian[1 * dofstride + dof];
+        mjacobiantrans[dof][6 * nbdof] = transjacobian[2 * dofstride + dof];
+    }
+}
+
+
+/**
+ * \brief ...
+ *
+ * \param[out] doftorques The output actuated joint torques (base link
+ * coordinates will be zero).
+ * \param[in] dofaccelerations The dof accelerations of the current robot state.
+ */
+void ComputeInverseDynamicsSingleSupport(std::vector<dReal>& doftorques, const
+        std::vector<dReal>& dofaccelerations) {
+    // Support foot is assumed to be the lowest one (z coordinate)
+    KinBody::LinkPtr leftfoot = probot->GetLink("L_FOOT_LINK");
+    KinBody::LinkPtr rightfoot = probot->GetLink("R_FOOT_LINK");
+    Transform lefttrans = leftfoot->GetTransform();
+    Transform righttrans = rightfoot->GetTransform();
+    dReal zdiff = lefttrans.trans.z - righttrans.trans.z;
+    assert(zdiff < -SINGLE_SUPPORT_Z_DIFF || zdiff > +SINGLE_SUPPORT_Z_DIFF);
+    KinBody::LinkPtr foot = (zdiff < 0) ? leftfoot : rightfoot;
+
+    int nbdof = probot->GetDOF();
+    int nbactivedof = nbdof - 6;
+    int baselinkstart = nbactivedof;
+
+    boost::multi_array<dReal,2> mjacobiantrans;
+    boost::array<std::vector<dReal>,3> torquecomponents;
+
+    this->GetFootJacobianTranspose(foot, mjacobiantrans);
+    this->probot->ComputeInverseDynamics(torquecomponents, dofaccelerations);
+
+    std::vector<dReal> tau0(nbdof);
+    for (int i = 0; i < nbdof; i++)
+        tau0[i] = torquecomponents[0][i] + torquecomponents[1][i] + torquecomponents[2][i];
+
+    std::vector<dReal> taubaselink(6);
+    for (int i = 0; i < 6; i++) {
+        int j = nbdof - 6 + i;
+        taubaselink[i] = torquecomponents[0][j] + torquecomponents[1][j] + torquecomponents[2][j];
+    }
+
+    boost::multi_array<dReal,2> mactuatedjacobiantrans(boost::extents[nbactivedof][7]);
+    for (int i = 0; i < nbactivedof; i++)
+        for (int j = 0; j < 7; j++)
+            mactuatedjacobiantrans[i][j] = mjacobiantrans[i][j];
+
+    boost::multi_array<dReal,2> U(boost::extents[6][7]);
+    for (int i = 0; i < 6; i++)
+        for (int j = 0; j < 7; j++)
+            U[i][j] = mjacobiantrans[baselinkstart + i][j];
+
+    boost::numeric::ublas::permutation_matrix<size_t> P(U.size1());
+    boost::numeric::ublas::matrix<dReal> M = U;
+    boost::numeric::ublas::vector<dReal> x = taubaselink;
+    boost::numeric::ublas::lu_factorize(M, P);
+    boost::numeric::ublas::lu_substitute(M, P, x);
+
+    std::vector<dReal> externalwrench(7);
+    for (int i = 0; i < 7; i++)
+        externalwrench[i] = x[i];
+    Vector backtorques = MatrixMultVect(mactuatedjacobiantrans, externalwrench);
+
+    // Write the output torques
+    for (int i = 0; i < nbactivedof; i++)
+        doftorques[i] = tau0[i] - backtorques[i];
+    for (int i = nbactivedof; i < ndof; i++)
+        doftorques[i] = 0.;
+}
 
 }

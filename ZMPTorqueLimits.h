@@ -45,7 +45,7 @@ public:
     ZMPTorqueLimits(const std::string& constraintsstring, Trajectory* ptraj, const Tunings &tunings, RobotBasePtr probot0);
 
     RobotBasePtr probot;
-    int ndof;
+    int ndof; // number of active DOFs
     int nlink0;
     dReal totalmass;
     std::vector<dReal> taumin, taumax; // Torque limits
