@@ -185,7 +185,9 @@ Trajectory::Trajectory(const std::string& trajectorystring) {
             iss.getline(buff, buffsize);
             polynomialsvector.push_back(Polynomial(std::string(buff)));
         }
-        chunkslist0.push_back(Chunk(duration,polynomialsvector));
+        if(duration>TINY) {
+            chunkslist0.push_back(Chunk(duration,polynomialsvector));
+        }
     }
     InitFromChunksList(chunkslist0);
 }
@@ -374,7 +376,7 @@ int Trajectory::Reparameterize(Constraints& constraints, Trajectory& restrajecto
         sdd = profile.Evaldd(tres);
         sdnext = sdcur + dt*sdd;
         snext = scur + dt*sdcur + 0.5*dtsq*sdd;
-        if(snext >= scur+TINY && FindLowestProfile(snext,profile,tres,constraints.resprofileslist)) {
+        if(snext >= scur+TINY && snext<= duration && FindLowestProfile(snext,profile,tres,constraints.resprofileslist)) {
             sdnext2 = profile.Evald(tres);
             dtmod = dt;
             // If discrepancy between integrated sd and profile's sd then

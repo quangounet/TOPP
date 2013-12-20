@@ -117,12 +117,13 @@ public:
     void WriteProfilesList(){
         std::list<Profile>::iterator itprofile = pconstraints->resprofileslist.begin();
         std::stringstream ss;
-        pconstraints->WriteMVCBobrow(ss,tunings.discrtimestep);
+        dReal dt = 1e-4;
+        pconstraints->WriteMVCBobrow(ss,dt);
         ss << "\n";
-        pconstraints->WriteMVCDirect(ss,tunings.discrtimestep);
+        pconstraints->WriteMVCDirect(ss,dt);
         ss << "\n";
         while(itprofile!=pconstraints->resprofileslist.end()) {
-            itprofile->Write(ss);
+            itprofile->Write(ss,dt);
             ss << "\n";
             itprofile++;
         }
