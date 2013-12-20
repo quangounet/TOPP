@@ -25,8 +25,8 @@ def log10(x):
     return log(x)/log(10)
 
 
-ncurve = 10
-ndofs = [2,5,10,20,50,100]
+ncurve = 1
+ndofs = [6,30]
 lowcoef = 0.2
 vn = [[1.2/5,1.2,1.2*5]]*3 + [[1.5/5,1.5,1.5*5]]*3
 an = [[1]]*7
@@ -100,7 +100,6 @@ for i in range(len(ndofs)):
                 s = h.read()
                 h.close()      
                 Tv,p0v,p1v,p2v,p3v = TOPPpy.string2p(s)
-                trajectorystring = TOPPpy.BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v)
                 trajectorystring = TOPPpy.BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v)
                 vmax = v*ones(ndof)
                 amax = a*ones(ndof)

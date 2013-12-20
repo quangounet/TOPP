@@ -32,21 +32,6 @@ KinematicLimits::KinematicLimits(const std::string& constraintsstring){
     VectorFromString(std::string(buff),vmax);
     hasvelocitylimits =  VectorMax(vmax) > TINY;
     maxrep = 5;
-
-    // std::list<std::pair<dReal,dReal> > origlist, reslist;
-    // origlist.push_back(std::pair<dReal,dReal>(1,1));
-    // origlist.push_back(std::pair<dReal,dReal>(1,2));
-    // origlist.push_back(std::pair<dReal,dReal>(2,1));
-    // origlist.push_back(std::pair<dReal,dReal>(1,0));
-    // origlist.push_back(std::pair<dReal,dReal>(0,1));
-    // origlist.push_back(std::pair<dReal,dReal>(0,0));
-    // FindMaxima(origlist,reslist,true);
-    // std::list<std::pair<dReal,dReal> >::iterator it = reslist.begin();
-    // while(it!=reslist.end()) {
-    //     std::cout << it->first << " " << it->second << "\n";
-    //     it++;
-    // }
-
 }
 
 
@@ -217,14 +202,10 @@ dReal KinematicLimits::SdLimitBobrowInit(dReal s){
         if(qd[i] > 0) {
             CheckInsert(alpha_list,std::pair<dReal,dReal>(-a,b));
             CheckInsert(beta_list,std::pair<dReal,dReal>(a,b),true);
-            //alpha_list.push_back(std::pair<dReal,dReal>(-a,b));
-            //beta_list.push_back(std::pair<dReal,dReal>(a,b));
         }
         else{
             CheckInsert(alpha_list,std::pair<dReal,dReal>(a,b));
             CheckInsert(beta_list,std::pair<dReal,dReal>(-a,b),true);
-            //alpha_list.push_back(std::pair<dReal,dReal>(a,b));
-            //beta_list.push_back(std::pair<dReal,dReal>(-a,b));
         }
     }
     //t2 = std::chrono::system_clock::now();

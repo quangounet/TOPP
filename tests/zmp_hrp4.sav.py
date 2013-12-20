@@ -104,6 +104,8 @@ qd0=[v]*ndoffull
 qd1=[v]*ndoffull
 T = 1.5
 
+robot.qdefault = q0
+
 activedofs = zeros(ndoffull)
 activedofs[16] = 1 #R_HIP_Y
 activedofs[17] = 1 #R_HIP_R
@@ -150,12 +152,14 @@ robot.activelinks = activelinks
 
 #tvect,xzmp,yzmp = TOPPopenravepy.ComputeZMP(traj0,robot,0.01)
 
+
+
 ############################ Constraints ############################
 
 taumin = -ones(ndof)*45
 taumax = ones(ndof)*45
 aabb = robot.GetLink("L_FOOT_LINK").ComputeAABB()
-border = 0.015 #safety border of 0.02
+border = 0.005 #safety border of 0.02
 xmax = aabb.pos()[0]+aabb.extents()[0]-border
 xmin = aabb.pos()[0]-aabb.extents()[0]+border
 ymax = aabb.pos()[1]+aabb.extents()[1]-border
