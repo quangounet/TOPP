@@ -16,7 +16,7 @@ CCG=g++ $(CFLAGS) $(DEBUG_CFLAGS) -g
 
 # Linking
 SO_LIBS=$(shell openrave-config --python-dir)/openravepy/_openravepy_/openravepy_int.so
-LIBS=-lboost_python -lopenrave0.9-core $(SO_LIBS)
+LIBS=-lboost_python -lopenrave0.9-core $(SO_LIBS) -llapack
 
 
 help:

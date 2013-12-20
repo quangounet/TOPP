@@ -18,7 +18,12 @@
 
 #include "ZMPTorqueLimits.h"
 
-#include <boost/numeric/ublas/lu.hpp>
+#include <boost/numeric/bindings/traits/ublas_matrix.hpp>
+#include <boost/numeric/bindings/traits/ublas_vector2.hpp>
+#include <boost/numeric/bindings/lapack/gels.hpp>
+#include <boost/numeric/ublas/matrix.hpp>
+namespace ublas = boost::numeric::ublas;
+namespace lapack = boost::numeric::bindings::lapack;
 
 #define CLA_Nothing 0 // no warning when setting DOF values or velocities
 
@@ -395,32 +400,31 @@ void ZMPTorqueLimits::ComputeInverseDynamicsSingleSupport(
     }
 
     // Compute the contact wrench from the (virtual) base link torques
-    boost::multi_array<dReal,2> mactuatedjacobiantrans(boost::extents[nbactivedof][7]);
-    boost::numeric::ublas::matrix<dReal> U(6, 7);
+    ublas::matrix<dReal> mactuatedjacobiantrans(nbactivedof, 7);
+    ublas::matrix<dReal,ublas::column_major> U(6, 7);
     for (int j = 0; j < 7; j++) {
         for (int i = 0; i < nbactivedof; i++)
-            mactuatedjacobiantrans[i][j] = mjacobiantrans[i][j];
+            mactuatedjacobiantrans(i, j) = mjacobiantrans[i][j];
         for (int i = 0; i < 6; i++)
             U(i, j) = mjacobiantrans[baselinkstart + i][j];
     }
 
-    boost::numeric::ublas::permutation_matrix<size_t> P(6); // U has 6 rows
-    boost::numeric::ublas::vector<dReal> x(6);
+    ublas::vector<dReal> x(7);
     for (int i = 0; i < 6; i++)
         x(i) = taubaselink[i];
+    lapack::gels('N', U, x, lapack::optimal_workspace());
+    // now x is the LS solution to U * x = taubaselink
 
-    boost::numeric::ublas::lu_factorize(U, P);
-    boost::numeric::ublas::lu_substitute(U, P, x);
-
-    std::vector<dReal> externalwrench(7);
+    ublas::matrix<dReal> externalwrench(7, 1);
     for (int i = 0; i < 7; i++)
-        externalwrench[i] = x[i];
+        externalwrench(i, 0) = x(i);
 
     // Feed the contact wrench back into the free-flying torque components
-    Vector backtorques = MatrixMultVector(mactuatedjacobiantrans, externalwrench);
+    //Vector backtorques = MatrixMultVector(mactuatedjacobiantrans, externalwrench);
+    ublas::matrix<dReal> backtorques = ublas::prod(mactuatedjacobiantrans, externalwrench);
     for (int i = 0; i < nbactivedof; i++)
-        doftorquecomponents[2][i] -= backtorques[i];
-    for (int i = nbactivedof; i < nbdof; i++)
+        doftorquecomponents[2][i] -= backtorques(i, 0);
+    for (int i = 0; i < 6; i++)
         doftorquecomponents[2][baselinkstart + i] -= taubaselink[i];
 }
 
