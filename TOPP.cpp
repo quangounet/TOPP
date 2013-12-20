@@ -1568,7 +1568,7 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
             }
         }
         if(clcdiscontinuous) {
-            message = std::string("CLC discontinuous : ") + std::to_string(s);
+            message = std::string("CLC discontinuous : ") + std::to_string((long double)s);
             integrateprofilesstatus = false;
             continue;
         }
