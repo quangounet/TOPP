@@ -379,52 +379,58 @@ void ZMPTorqueLimits::ComputeInverseDynamicsSingleSupport(
     assert(zdiff < -SINGLE_SUPPORT_Z_DIFF || zdiff > +SINGLE_SUPPORT_Z_DIFF);
     KinBody::LinkPtr foot = (zdiff < 0) ? leftfoot : rightfoot;
 
-    int nbdof = probot->GetDOF();
-    int nbactivedof = nbdof - 6;
-    int baselinkstart = nbactivedof;
-
+    // Compute the flying-base inverse dynamics
     boost::multi_array<dReal,2> mjacobiantrans;
-    boost::array<std::vector<dReal>,3> torquecomponents;
-
-    this->GetFootJacobianTranspose(foot, mjacobiantrans);
-    this->probot->ComputeInverseDynamics(torquecomponents, dofaccelerations);
-
-    std::vector<dReal> tau0(nbdof);
-    for (int i = 0; i < nbdof; i++)
-        tau0[i] = torquecomponents[0][i] + torquecomponents[1][i] + torquecomponents[2][i];
-
     std::vector<dReal> taubaselink(6);
+    
+    this->GetFootJacobianTranspose(foot, mjacobiantrans);
+    probot->ComputeInverseDynamics(doftorquecomponents, dofaccelerations);
     for (int i = 0; i < 6; i++) {
-        int j = nbdof - 6 + i;
-        taubaselink[i] = torquecomponents[0][j] + torquecomponents[1][j] + torquecomponents[2][j];
+        int j = baselinkstart + i;
+        taubaselink[i] = doftorquecomponents[0][j] + doftorquecomponents[1][j] + doftorquecomponents[2][j];
     }
 
+    // Compute the contact wrench from the (virtual) base link torques
     boost::multi_array<dReal,2> mactuatedjacobiantrans(boost::extents[nbactivedof][7]);
-    for (int i = 0; i < nbactivedof; i++)
-        for (int j = 0; j < 7; j++)
+    boost::numeric::ublas::matrix<dReal> U(6, 7);
+    for (int j = 0; j < 7; j++) {
+        for (int i = 0; i < nbactivedof; i++)
             mactuatedjacobiantrans[i][j] = mjacobiantrans[i][j];
+        for (int i = 0; i < 6; i++)
+            U(i, j) = mjacobiantrans[baselinkstart + i][j];
+    }
 
-    boost::multi_array<dReal,2> U(boost::extents[6][7]);
+    boost::numeric::ublas::permutation_matrix<size_t> P(6); // U has 6 rows
+    boost::numeric::ublas::vector<dReal> x(6);
     for (int i = 0; i < 6; i++)
-        for (int j = 0; j < 7; j++)
-            U[i][j] = mjacobiantrans[baselinkstart + i][j];
+        x(i) = taubaselink[i];
 
-    boost::numeric::ublas::permutation_matrix<size_t> P(U.size1());
-    boost::numeric::ublas::matrix<dReal> M = U;
-    boost::numeric::ublas::vector<dReal> x = taubaselink;
-    boost::numeric::ublas::lu_factorize(M, P);
-    boost::numeric::ublas::lu_substitute(M, P, x);
+    boost::numeric::ublas::lu_factorize(U, P);
+    boost::numeric::ublas::lu_substitute(U, P, x);
 
     std::vector<dReal> externalwrench(7);
     for (int i = 0; i < 7; i++)
         externalwrench[i] = x[i];
-    Vector backtorques = MatrixMultVect(mactuatedjacobiantrans, externalwrench);
 
-    // Write the output torques
+    // Feed the contact wrench back into the free-flying torques
+    Vector backtorques = MatrixMultVector(mactuatedjacobiantrans, externalwrench);
     for (int i = 0; i < nbactivedof; i++)
-        doftorques[i] = tau0[i] - backtorques[i];
-    for (int i = nbactivedof; i < ndof; i++)
-        doftorques[i] = 0.;
+        doftorquecomponents[2][i] -= backtorques[i];
+    for (int i = nbactivedof; i < nbdof; i++)
+        doftorquecomponents[2][baselinkstart + i] -= taubaselink[i];
 }
+
+
+void ZMPTorqueLimits::ComputeInverseDynamicsSingleSupport(
+        std::vector<dReal>& doftorques, 
+        const std::vector<dReal>& dofaccelerations) {
+    boost::array<std::vector<dReal>, 3> doftorquecomponents;
+    this->ComputeInverseDynamicsSingleSupport(doftorquecomponents, dofaccelerations);
+    int nbdof = probot->GetDOF();
+    doftorques.resize(nbdof);
+    for (int i = 0; i < nbdof; i++)
+        doftorques[i] = doftorquecomponents[0][i] + doftorquecomponents[1][i] + doftorquecomponents[2][i];
+}
+
 
 }
