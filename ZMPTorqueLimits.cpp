@@ -412,7 +412,7 @@ void ZMPTorqueLimits::ComputeInverseDynamicsSingleSupport(
     for (int i = 0; i < 7; i++)
         externalwrench[i] = x[i];
 
-    // Feed the contact wrench back into the free-flying torques
+    // Feed the contact wrench back into the free-flying torque components
     Vector backtorques = MatrixMultVector(mactuatedjacobiantrans, externalwrench);
     for (int i = 0; i < nbactivedof; i++)
         doftorquecomponents[2][i] -= backtorques[i];
