@@ -82,7 +82,6 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
     dReal ymin = zmplimits[2];
     dReal ymax = zmplimits[3];
 
-
     Vector g = probot->GetEnv()->GetPhysicsEngine()->GetGravity();
     std::vector<dReal> q(ndof), qd(ndof), qdd(ndof), qfilled, qdfilled, qddfilled;
     probot->GetDOFValues(qfilled);
@@ -340,46 +339,38 @@ void MatrixAdd(const boost::multi_array<dReal,2>& A, const boost::multi_array<dR
 }
 
 
-/** 
- * \brief Get the transpose of the contact (rotational and translational)
- * Jacobian for a given foot.
- *
- * \param[in] foot LinkPtr to the targeted foot
- * \param[out] mjacobiantrans Transpose of the contact Jacobian matrix.
- */
-void GetFootJacobianTranspose(const KinBody::LinkPtr foot, boost::multi_array<dReal,2>& mjacobiantrans) {
+void ZMPTorqueLimits::GetFootJacobianTranspose(const KinBody::LinkPtr foot, 
+        boost::multi_array<dReal,2>& mjacobiantrans) {
     int linkindex = foot->GetIndex();
     Transform t = foot->GetTransform();
 
     std::vector<dReal> transjacobian;
     std::vector<dReal> rotjacobian;
-    KinBody::CalculateJacobian(linkindex, t.trans, transjacobian);
-    KinBody::CalculateRotationJacobian(linkindex, t.rot, rotjacobian);
+    probot->CalculateJacobian(linkindex, t.trans, transjacobian);
+    probot->CalculateRotationJacobian(linkindex, t.rot, rotjacobian);
 
     int nbdof = probot->GetDOF();
-    mjacobian.resize(boost::extents[nbdof][7]);
+    mjacobiantrans.resize(boost::extents[nbdof][7]);
     for (int dof = 0; dof < nbdof; dof++) {
-        mjacobiantrans[dof][0 * nbdof] = rotjacobian[0 * dofstride + dof];
-        mjacobiantrans[dof][1 * nbdof] = rotjacobian[1 * dofstride + dof];
-        mjacobiantrans[dof][2 * nbdof] = rotjacobian[2 * dofstride + dof];
-        mjacobiantrans[dof][3 * nbdof] = rotjacobian[3 * dofstride + dof];
-        mjacobiantrans[dof][4 * nbdof] = transjacobian[0 * dofstride + dof];
-        mjacobiantrans[dof][5 * nbdof] = transjacobian[1 * dofstride + dof];
-        mjacobiantrans[dof][6 * nbdof] = transjacobian[2 * dofstride + dof];
+        mjacobiantrans[dof][0] = rotjacobian[0 * nbdof + dof];
+        mjacobiantrans[dof][1] = rotjacobian[1 * nbdof + dof];
+        mjacobiantrans[dof][2] = rotjacobian[2 * nbdof + dof];
+        mjacobiantrans[dof][3] = rotjacobian[3 * nbdof + dof];
+        mjacobiantrans[dof][4] = transjacobian[0 * nbdof + dof];
+        mjacobiantrans[dof][5] = transjacobian[1 * nbdof + dof];
+        mjacobiantrans[dof][6] = transjacobian[2 * nbdof + dof];
     }
 }
 
 
-/**
- * \brief ...
- *
- * \param[out] doftorques The output actuated joint torques (base link
- * coordinates will be zero).
- * \param[in] dofaccelerations The dof accelerations of the current robot state.
- */
-void ComputeInverseDynamicsSingleSupport(std::vector<dReal>& doftorques, const
-        std::vector<dReal>& dofaccelerations) {
-    // Support foot is assumed to be the lowest one (z coordinate)
+void ZMPTorqueLimits::ComputeInverseDynamicsSingleSupport(
+        boost::array<std::vector<dReal>, 3>& doftorquecomponents, 
+        const std::vector<dReal>& dofaccelerations) {
+    int nbdof = probot->GetDOF();
+    int nbactivedof = nbdof - 6;
+    int baselinkstart = nbactivedof;
+
+    // Detect the support foot
     KinBody::LinkPtr leftfoot = probot->GetLink("L_FOOT_LINK");
     KinBody::LinkPtr rightfoot = probot->GetLink("R_FOOT_LINK");
     Transform lefttrans = leftfoot->GetTransform();
