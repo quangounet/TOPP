@@ -9,8 +9,10 @@ TARGET=TOPPbindings.so
 # Compilation
 INC_PATH=$(shell python-config --includes) $(shell openrave-config --cflags-only-I)
 CFLAGS=-Wall -fPIC -std=c++0x
-CC=g++ $(CFLAGS) -O2
-CCG=g++ $(CFLAGS) -g
+RELEASE_CFLAGS=-DNDEBUG -DBOOST_UBLAS_NDEBUG
+DEBUG_CFLAGS=
+CC=g++ $(CFLAGS) $(RELEASE_CFLAGS) -O2
+CCG=g++ $(CFLAGS) $(DEBUG_CFLAGS) -g
 
 # Linking
 SO_LIBS=$(shell openrave-config --python-dir)/openravepy/_openravepy_/openravepy_int.so
