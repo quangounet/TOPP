@@ -25,6 +25,7 @@ import MotionPlanning
 import Trajectory
 import time
 import string
+
 from pylab import *
 from numpy import *
 from openravepy import *
