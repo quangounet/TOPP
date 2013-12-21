@@ -40,7 +40,7 @@ class TOPPInstance {
 public:
     TOPPInstance(std::string problemtype, std::string
                  constraintsstring, std::string trajectorystring,
-                 std::string tuningsstring, openravepy::PyRobotBasePtr o) {
+                 std::string tuningsstring, Object o) {
         ptrajectory = new TOPP::Trajectory(trajectorystring);
         RobotBasePtr probot = GetRobot(o);
 
