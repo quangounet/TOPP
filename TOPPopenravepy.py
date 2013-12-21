@@ -86,7 +86,7 @@ def PlotTorques(robot,traj0,traj1,dt=0.001,taumin=[],taumax=[],figstart=0):
     ylabel('Joint torques (Nm)',fontsize=18)    
 
 
-def PlotZMP(robot,traj0,traj1,zmplimits,dt=0.01,figstart=0,border=0.015):
+def PlotZMP(robot,traj0,traj1,zmplimits,dt=0.01,figstart=0,border=0):    
     xmin, xmax, ymin, ymax = zmplimits
     xminf, xmaxf, yminf, ymaxf = xmin-border, xmax+border, ymin-border, ymax+border
     tvect0,xzmp0,yzmp0,com0 = ComputeZMP(traj0,robot,dt)

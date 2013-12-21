@@ -190,25 +190,23 @@ def RepeatLinearShortcut(robot,path,nshortcuts):
 def MakeParabolicTrajectory(path,robot=None,constraintstring=None,tuningstring=None):
     chunkslist = []
     for i in range(len(path)-1):
-        #if i < 6:
-        #    continue
         print i, len(path)
         q0 = path[i]
         q1 = path[i+1]
         qd0 = 0 * q0
         qd1 = 0 * q1
-        traj = Trajectory.PiecewisePolynomialTrajectory([Trajectory.MakeChunk(q0,q1,qd0,qd1,norm(q1-q0))])
+        traj = Trajectory.PiecewisePolynomialTrajectory([Trajectory.MakeChunk(q0,q1,qd0,qd1,norm(q1-q2))])
         if robot:
             x = TOPPbindings.TOPPInstance("ZMPTorqueLimits",constraintstring,str(traj),tuningstring,robot)
             ret = x.RunComputeProfiles(1,1)
-            x.WriteProfilesList()
-            x.WriteSwitchPointsList()
-            profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
-            switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
+            #x.WriteProfilesList()
+            #x.WriteSwitchPointsList()
+            #profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
+            #switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
+            #TOPPpy.PlotProfiles(profileslist,switchpointslist,10)
+            #axis([0,1,0,20])
+            #raw_input()                
             if(ret == 0):
-                TOPPpy.PlotProfiles(profileslist,switchpointslist,10)
-                axis([0,1,0,20])
-                raw_input()
                 print "Failed reparameterizing segment: ", i
                 return None
             x.ReparameterizeTrajectory()
@@ -223,3 +221,65 @@ def MakeParabolicTrajectory(path,robot=None,constraintstring=None,tuningstring=N
             chunkslist.extend(traj.chunkslist)
     return Trajectory.PiecewisePolynomialTrajectory(chunkslist)
 
+
+def ParabolicShortcut(rrtrobot,constraintstring,tuningstring,orig_traj):
+    s0 = orig_traj.duration*rand()
+    s1 = orig_traj.duration*rand()
+    if s0>s1:
+        s = s1
+        s1 = s0
+        s0 = s
+    if s1 - s0 < orig_traj.duration/20.:
+        print "Too short"
+        return None    
+    q0 = orig_traj.Eval(s0)
+    qd0 = orig_traj.Evald(s0)
+    q1 = orig_traj.Eval(s1)
+    qd1 = orig_traj.Evald(s1)
+    d = norm(q1-q0)
+    traj = Trajectory.PiecewisePolynomialTrajectory([Trajectory.MakeChunk(q0,q1,qd0,qd1,d+d/2.*norm(q1-q0))])
+    x = TOPPbindings.TOPPInstance("ZMPTorqueLimits",constraintstring,str(traj),tuningstring,rrtrobot.robot)
+    ret = x.RunComputeProfiles(1,1)
+    #x.WriteProfilesList()
+    #x.WriteSwitchPointsList()
+    #profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
+    #switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
+    if(ret == 0):
+        print "Not parameterizable"
+        #TOPPpy.PlotProfiles(profileslist,switchpointslist,10)
+        #axis([0,traj.duration,0,20])
+        #raw_input()
+        return None
+    if(x.resduration>s1-s0-1e-2):
+        print "Not significant: ", x.resduration, s1-s0
+        return None
+    x.ReparameterizeTrajectory()
+    x.WriteResultTrajectory()        
+    trajretimed = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
+    if(trajretimed.duration>s1-s0-1e-2):
+        print "Not significant (2): ", trajretimed.duration, x.resduration, s1-s0
+        return None
+    for s in arange(0,trajretimed.duration,0.01):
+        if rrtrobot.CheckCollisionConfig(trajretimed.Eval(s)):
+            print "Collision"
+            return None
+    #TOPPpy.PlotProfiles(profileslist,switchpointslist,10)
+    #TOPPpy.PlotKinematics(traj,trajretimed)
+    return Trajectory.InsertIntoTrajectory(orig_traj,trajretimed,s0,s1)
+
+
+
+def RepeatParabolicShortcut(rrtrobot,constraintstring,tuningstring,orig_traj,nshortcuts):
+    nsuccess = 0
+    cur_traj = orig_traj
+    print "Original duration: ", orig_traj.duration
+    for i in range(nshortcuts):
+        print i
+        new_traj = ParabolicShortcut(rrtrobot,constraintstring,tuningstring,cur_traj)
+        if new_traj:
+            nsuccess += 1
+            cur_traj = new_traj
+            print "*********** New duration: ", cur_traj.duration, " *****************"
+    print nsuccess
+    return cur_traj
+        

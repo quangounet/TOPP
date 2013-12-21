@@ -508,7 +508,7 @@ void QuadraticConstraints::FixStart(dReal& sstart,dReal& sdstart){
         }
     }
     if(sdcurrent<1e3) {
-        sstart = 1e-2;
+        sstart = tunings.integrationtimestep;
         ap = (a2[indexcurrent]-a[indexcurrent])/delta;
         bp = (b2[indexcurrent]-b[indexcurrent])/delta;
         cp = (c2[indexcurrent]-c[indexcurrent])/delta;
@@ -538,7 +538,7 @@ void QuadraticConstraints::FixEnd(dReal& sendnew,dReal& sdendnew){
         }
     }
     if(sdcurrent<1e3) {
-        dReal stub = 1e-2;
+        dReal stub = tunings.integrationtimestep;
         sendnew = send-stub;
         ap = (a[indexcurrent]-a2[indexcurrent])/delta;
         bp = (b[indexcurrent]-b2[indexcurrent])/delta;
@@ -1571,7 +1571,6 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
             sdstartnew = sdbeg;
         }
         ret = IntegrateForward(constraints,sstartnew,sdstartnew,constraints.tunings.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
-        std::cout << sstartnew << " " << sdstartnew << " " << ret << "\n";
         if(resprofile.nsteps>1) {
             constraints.resprofileslist.push_back(resprofile);
         }
@@ -1588,7 +1587,6 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
             sdendnew = sdend;
         }
         ret = IntegrateBackward(constraints,sendnew,sdendnew,constraints.tunings.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
-        std::cout << trajectory.duration-sendnew << " " << sdendnew << " " << ret << "\n";
         if(resprofile.nsteps>1) {
             constraints.resprofileslist.push_back(resprofile);
         }

@@ -41,9 +41,12 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
     VectorFromString(std::string(buff),zmplimits);
     iss.getline(buff,buffsize);
     VectorFromString(std::string(buff),vmax);
-    hasvelocitylimits = VectorMax(vmax) > TINY;
+    iss.getline(buff,buffsize);
+    VectorFromString(std::string(buff),qdefault);
+
     maxrep = 5;
 
+    hasvelocitylimits = VectorMax(vmax) > TINY;
     probot = probot0;
     activelinks = activelinks0;
 
@@ -75,12 +78,13 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
     dReal ymin = zmplimits[2];
     dReal ymax = zmplimits[3];
 
-    cout << xmin << " " << xmax << " " <<  ymin << " " << ymax << "\n";
-
     Vector g = probot->GetEnv()->GetPhysicsEngine()->GetGravity();
     std::vector<dReal> q(ndof), qd(ndof), qdd(ndof), qfilled, qdfilled, qddfilled;
-    probot->GetDOFValues(qfilled);
-    probot->GetDOFVelocities(qdfilled);
+    // Set the default values for dofs that are non active
+    for(int i=0; i<int(qdefault.size()); i++) {
+        qfilled.push_back(qdefault[i]);
+    }
+    qdfilled.resize(probot->GetDOF());
     qddfilled.resize(probot->GetDOF());
 
     // Torque intermediate variables
@@ -126,6 +130,7 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
             Fill(qdd,qddfilled);
             probot->SetDOFValues(qfilled,CLA_Nothing);
             probot->SetDOFVelocities(qdfilled,CLA_Nothing);
+            //std::cout << probot->GetLink("L_FOOT_LINK")->ComputeAABB().pos << "\n";
             a.resize(0);
             b.resize(0);
             c.resize(0);

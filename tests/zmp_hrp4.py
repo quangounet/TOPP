@@ -22,6 +22,7 @@ import TOPPbindings
 import TOPPpy
 import TOPPopenravepy
 import MotionPlanning
+import Trajectory
 import time
 import string
 from pylab import *
@@ -77,11 +78,10 @@ pole.SetTransform(Tr)
 
 ############################ Tunings ############################
 discrtimestep = 1e-2
-integrationtimestep = 1e-2
-reparamtimestep = 1e-2
+integrationtimestep = 1e-3
+reparamtimestep = 1e-3
 passswitchpointnsteps = 5
 tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
-
 
 ############################ Trajectory ############################
 
@@ -205,8 +205,8 @@ robot.activelinks = activelinks
 
 ############################ Constraints ############################
 
-taumin = -ones(ndof)*200
-taumax = ones(ndof)*200
+taumin = -ones(ndof)*40
+taumax = ones(ndof)*40
 baseaabb = robot.GetLink("L_FOOT_LINK").ComputeAABB()
 border2 = 0
 xmax2 = baseaabb.pos()[0]+baseaabb.extents()[0]-border2
@@ -214,15 +214,15 @@ xmin2 = baseaabb.pos()[0]-baseaabb.extents()[0]+border2
 ymax2 = baseaabb.pos()[1]+baseaabb.extents()[1]-border2
 ymin2 = baseaabb.pos()[1]-baseaabb.extents()[1]+border2
 zmplimits = [xmin2,xmax2,ymin2,ymax2]
-vmax = ones(ndof)*3
-constraintstring = string.join([str(x) for x in activedofs]) + "\n" + string.join([str(x) for x in activelinks]) + "\n" + string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax]) + "\n" +  string.join([str(a) for a in zmplimits]) + "\n" + string.join([str(a) for a in vmax])
+vmax = ones(ndof)*pi
+constraintstring = string.join([str(x) for x in activedofs]) + "\n" + string.join([str(x) for x in activelinks]) + "\n" + string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax]) + "\n" +  string.join([str(a) for a in zmplimits]) + "\n" + string.join([str(a) for a in vmax]) + "\n" + string.join([str(a) for a in robot.qdefault])
 
 
 
 
 ############################ RRT ############################
 
-border = 0.015 #safety border of 0.02
+border = 0 #safety border of 0.02
 xmax = baseaabb.pos()[0]+baseaabb.extents()[0]-border
 xmin = baseaabb.pos()[0]-baseaabb.extents()[0]+border
 ymax = baseaabb.pos()[1]+baseaabb.extents()[1]-border
@@ -306,12 +306,20 @@ path = [array([ 0.        , -0.0132645 , -0.4       ,  2.00000006, -0.32724929,
 ############################ TOPP ############################
 
 
-t0 = time.time()
-
 traj0 =  MotionPlanning.MakeParabolicTrajectory(path,robot,constraintstring,tuningsstring)
 
-
+TOPPpy.PlotKinematics(traj0,traj0,0.01)
 TOPPopenravepy.PlotTorques(robot,traj0,traj0,0.01,taumin,taumax,3)
 TOPPopenravepy.PlotZMP(robot,traj0,traj0,zmplimits,0.01,4,border=0.1)
+
+raw_input()
+
+nshortcuts = 500
+seed(0)
+traj1 = MotionPlanning.RepeatParabolicShortcut(rrtrobot,constraintstring,tuningsstring,traj0,nshortcuts)
+
+TOPPpy.PlotKinematics(traj0,traj1,0.01)
+TOPPopenravepy.PlotTorques(robot,traj0,traj1,0.01,taumin,taumax,3)
+TOPPopenravepy.PlotZMP(robot,traj0,traj1,zmplimits,0.01,4,border=0.1)
 
 raw_input()

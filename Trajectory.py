@@ -161,14 +161,24 @@ def InsertIntoTrajectory(traj,traj2,s0,s1):
     c1 = traj.chunkslist[i1]
     chunk0 = MakeChunk(c0.Eval(0),c0.Eval(r0),c0.Evald(0),c0.Evald(r0),r0)
     chunk1 = MakeChunk(c1.Eval(r1),c1.Eval(c1.duration),c1.Evald(r1),c1.Evald(c1.duration),c1.duration-r1)
-    assert(linalg.linalg.norm(traj2.Eval(0)-c0.Eval(r0))<1e-5)
-    assert(linalg.linalg.norm(traj2.Evald(0)-c0.Evald(r0))<1e-5)
-    assert(linalg.linalg.norm(traj2.Eval(traj2.duration)-c1.Eval(r1))<1e-5)
-    assert(linalg.linalg.norm(traj2.Evald(traj2.duration)-c1.Evald(r1))<1e-5)
+    tolerance = 0.05
+    if linalg.linalg.norm(traj2.Eval(0)-c0.Eval(r0))>=tolerance :
+        print "Position mismatch at s0 : ", linalg.linalg.norm(traj2.Eval(0)-c0.Eval(r0))
+        return None    
+    if linalg.linalg.norm(traj2.Eval(traj2.duration)-c1.Eval(r1))>=tolerance:
+        print "Position mismatch at s1 : ", linalg.linalg.norm(traj2.Eval(traj2.duration)-c1.Eval(r1))
+        return None
+    if linalg.linalg.norm(traj2.Evald(0)-c0.Evald(r0)) >= tolerance:
+        print "Velocity mismatch at s0 : ", linalg.linalg.norm(traj2.Evald(0)-c0.Evald(r0))
+        return None    
+    if linalg.linalg.norm(traj2.Evald(traj2.duration)-c1.Evald(r1)) >= tolerance:
+        print "Velocity mismatch at s1: ", linalg.linalg.norm(traj2.Evald(traj2.duration)-c1.Evald(r1))
+        return None    
     newchunkslist = list(traj.chunkslist)
     for i in range(i1-i0+1):
         newchunkslist.pop(i0)
     newchunkslist.insert(i0,chunk1)
+    traj2.chunkslist.reverse()
     for chunk in traj2.chunkslist:
         newchunkslist.insert(i0,chunk)
     newchunkslist.insert(i0,chunk0)
