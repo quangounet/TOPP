@@ -318,6 +318,8 @@ raw_input()
 nshortcuts = 500
 seed(0)
 traj1 = MotionPlanning.RepeatParabolicShortcut(rrtrobot,constraintstring,tuningsstring,traj0,nshortcuts)
+print traj0.duration, traj1.duration
+
 
 TOPPpy.PlotKinematics(traj0,traj1,0.01)
 TOPPopenravepy.PlotTorques(robot,traj0,traj1,0.01,taumin,taumax,3)
