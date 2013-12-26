@@ -195,7 +195,7 @@ def MakeParabolicTrajectory(path,robot=None,constraintstring=None,tuningstring=N
         q1 = path[i+1]
         qd0 = 0 * q0
         qd1 = 0 * q1
-        traj = Trajectory.PiecewisePolynomialTrajectory([Trajectory.MakeChunk(q0,q1,qd0,qd1,norm(q1-q2))])
+        traj = Trajectory.PiecewisePolynomialTrajectory([Trajectory.MakeChunk(q0,q1,qd0,qd1,norm(q1-q0))])
         if robot:
             x = TOPPbindings.TOPPInstance("ZMPTorqueLimits",constraintstring,str(traj),tuningstring,robot)
             ret = x.RunComputeProfiles(1,1)
