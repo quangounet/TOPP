@@ -1565,9 +1565,9 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
         bool testaboveexistingprofiles = true, testmvc = true, zlajpah = false;
 
         // Integrate forward from s = 0
-        dReal sstartnew, sdstartnew;
+        dReal sstartnew = 0, sdstartnew = sdbeg;
         constraints.FixStart(sstartnew,sdstartnew);
-        if(sstartnew<=TINY2) {
+        if(sstartnew<=TINY2 || sdstartnew > constraints.SdLimitCombined(0) - TINY2) {
             sdstartnew = sdbeg;
         }
         ret = IntegrateForward(constraints,sstartnew,sdstartnew,constraints.tunings.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
@@ -1581,9 +1581,9 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
         }
 
         // Integrate backward from s = s_end
-        dReal sendnew, sdendnew;
+        dReal sendnew = trajectory.duration, sdendnew = sdend;
         constraints.FixEnd(sendnew,sdendnew);
-        if(trajectory.duration-sendnew<=TINY2) {
+        if(trajectory.duration-sendnew<=TINY2 || sdendnew > constraints.SdLimitCombined(sendnew)- TINY2) {
             sdendnew = sdend;
         }
         ret = IntegrateBackward(constraints,sendnew,sdendnew,constraints.tunings.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);

@@ -124,7 +124,6 @@ def ProfileFromLines(lines):
     sdarray = array([double(x) for x in l.split(' ')])
     return [duration, dt, sarray, sdarray]
 
-
 def ProfilesFromString(s):
     s = s.strip(" \n")
     profileslist = []
@@ -134,6 +133,16 @@ def ProfilesFromString(s):
         profileslist.append(ProfileFromLines(lines[3 * i:3 * i + 3]))
     return profileslist
 
+def ExtraFromString(s):
+    s = s.strip(" \n")
+    lines = [l.strip(" \n") for l in s.split('\n')]
+    lines.pop(0)
+    tvect = []
+    torques = []
+    for i in range(len(lines)/2):
+        tvect.append(double(lines[2*i]))
+        torques.append(array([double(x) for x in lines[2*i+1].split(' ')]))
+    return array(tvect),array(torques)
 
 def SwitchPointsFromString(s):
     if len(s) == 0:

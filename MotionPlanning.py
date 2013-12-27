@@ -198,19 +198,19 @@ def MakeParabolicTrajectory(path,robot=None,constraintstring=None,tuningstring=N
         traj = Trajectory.PiecewisePolynomialTrajectory([Trajectory.MakeChunk(q0,q1,qd0,qd1,norm(q1-q0))])
         if robot:
             x = TOPPbindings.TOPPInstance("ZMPTorqueLimits",constraintstring,str(traj),tuningstring,robot)
-            ret = x.RunComputeProfiles(1,1)
-            #x.WriteProfilesList()
-            #x.WriteSwitchPointsList()
-            #profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
-            #switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
-            #TOPPpy.PlotProfiles(profileslist,switchpointslist,10)
-            #axis([0,1,0,20])
-            #raw_input()                
+            ret = x.RunComputeProfiles(0.5,0.5)
             if(ret == 0):
                 print "Failed reparameterizing segment: ", i
+                x.WriteProfilesList()
+                x.WriteSwitchPointsList()
+                profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
+                switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
+                TOPPpy.PlotProfiles(profileslist,switchpointslist,10)
+                axis([0,1,0,20])
+                raw_input()                
                 return None
             x.ReparameterizeTrajectory()
-            x.WriteResultTrajectory()        
+            x.WriteResultTrajectory()
             trajretimed = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
             #TOPPopenravepy.PlotZMP(robot,traj,trajretimed,baselimits,0.01,4)
             #TOPPpy.PlotKinematics(traj,trajretimed)
@@ -237,7 +237,10 @@ def ParabolicShortcut(rrtrobot,constraintstring,tuningstring,orig_traj):
     q1 = orig_traj.Eval(s1)
     qd1 = orig_traj.Evald(s1)
     d = norm(q1-q0)
-    traj = Trajectory.PiecewisePolynomialTrajectory([Trajectory.MakeChunk(q0,q1,qd0,qd1,d+d/2.*norm(q1-q0))])
+    d = d*2/3. + randn()*d*1/3.
+    if(d<0.1):
+        return None
+    traj = Trajectory.PiecewisePolynomialTrajectory([Trajectory.MakeChunk(q0,q1,qd0,qd1,d)])
     x = TOPPbindings.TOPPInstance("ZMPTorqueLimits",constraintstring,str(traj),tuningstring,rrtrobot.robot)
     ret = x.RunComputeProfiles(1,1)
     #x.WriteProfilesList()
@@ -245,7 +248,7 @@ def ParabolicShortcut(rrtrobot,constraintstring,tuningstring,orig_traj):
     #profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
     #switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
     if(ret == 0):
-        print "Not parameterizable"
+        #print "Not parameterizable"
         #TOPPpy.PlotProfiles(profileslist,switchpointslist,10)
         #axis([0,traj.duration,0,20])
         #raw_input()

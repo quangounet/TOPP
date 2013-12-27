@@ -40,7 +40,7 @@ class TOPPInstance {
 public:
     TOPPInstance(std::string problemtype, std::string
                  constraintsstring, std::string trajectorystring,
-                 std::string tuningsstring, Object o) {
+                 std::string tuningsstring, object o) {
         ptrajectory = new TOPP::Trajectory(trajectorystring);
         RobotBasePtr probot = GetRobot(o);
 
@@ -63,6 +63,7 @@ public:
 
     Tunings tunings;
     std::string restrajectorystring;
+    std::string resextrastring;
     std::string resprofilesliststring;
     std::string switchpointsliststring;
     TOPP::dReal resduration;
@@ -139,15 +140,24 @@ public:
         }
         switchpointsliststring = ss.str();
     }
+
+    void WriteExtra(){
+        std::stringstream ss;
+        pconstraints->WriteExtra(ss);
+        resextrastring = ss.str();
+
+    }
+
 };
 
 
 BOOST_PYTHON_MODULE(TOPPbindings) {
     using namespace boost::python;
     class_<TOPPInstance>("TOPPInstance",
-                         init<std::string,std::string,std::string,std::string,openravepy::PyRobotBasePtr>())
+                         init<std::string,std::string,std::string,std::string,object>())
     .def_readonly("restrajectorystring", &TOPPInstance::restrajectorystring)
     .def_readonly("resprofilesliststring", &TOPPInstance::resprofilesliststring)
+    .def_readonly("resextrastring", &TOPPInstance::resextrastring)
     .def_readonly("switchpointsliststring", &TOPPInstance::switchpointsliststring)
     .def_readonly("resduration", &TOPPInstance::resduration)
     .def_readonly("sdendmin", &TOPPInstance::sdendmin)
@@ -160,5 +170,6 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def("RunVIP",&TOPPInstance::RunVIP)
     .def("WriteResultTrajectory",&TOPPInstance::WriteResultTrajectory)
     .def("WriteProfilesList",&TOPPInstance::WriteProfilesList)
+    .def("WriteExtra",&TOPPInstance::WriteExtra)
     .def("WriteSwitchPointsList",&TOPPInstance::WriteSwitchPointsList);
 }

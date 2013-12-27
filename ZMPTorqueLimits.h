@@ -60,6 +60,9 @@ public:
     Vector ZMP(std::vector<dReal>& qfilled, std::vector<dReal>& qdfilled, std::vector<dReal>& qddfilled, bool withangularmomentum=false);
     void Fill(const std::vector<dReal>&q, std::vector<dReal>&qfilled);
     void Trim(const std::vector<dReal>&q, std::vector<dReal>&qtrimmed);
+
+    void WriteExtra(std::stringstream& ss);
+
     // Multiply a matrix and a vector taking into account activedofs
     Vector MatrixMultVector(const boost::multi_array<dReal,2>& M, const std::vector<dReal>& v);
 
@@ -69,7 +72,7 @@ public:
     /// \param[in] foot LinkPtr to the targeted foot
     /// \param[out] mjacobiantrans Transpose of the contact Jacobian matrix.
     void GetFootJacobianTranspose(const KinBody::LinkPtr foot,
-            boost::multi_array<dReal,2>& mjacobiantrans);
+                                  boost::multi_array<dReal,2>& mjacobiantrans);
 
     /// \brief Compute the inverse dynamics (actuated joint torques + contact
     /// wrench) for the humanoid robot in a single-support setting. The support
@@ -79,8 +82,8 @@ public:
     /// coordinates will be zero).
     /// \param[in] dofaccelerations The dof accelerations of the current robot state.
     void ComputeInverseDynamicsSingleSupport(std::vector<dReal>& doftorques,
-            const std::vector<dReal>& dofaccelerations);
-    
+                                             const std::vector<dReal>& dofaccelerations);
+
     /// \brief Compute the separated inverse dynamics
     /// for the humanoid robot in a single-support setting. The support
     /// foot is assumed to be the one with lowest z-coordinate. Actuated
@@ -90,7 +93,7 @@ public:
     ///           G(dofvalues) - J(dofvalues)^T * Wext
     ///
     /// with:
-    /// 
+    ///
     /// torques -- generalized forces associated with dofvalues
     /// M -- manipulator inertia tensor
     /// C -- coriolis and centripetal effects
@@ -99,13 +102,13 @@ public:
     /// Wext -- contact wrench exerted at the support foot
     ///
     /// \param[out] doftorquecomponents A set of 3 torques:
-    ///    [M(dofvalues) * dofaccel, 
-    ///     C(dofvalues,dofvel) * dofvel, 
+    ///    [M(dofvalues) * dofaccel,
+    ///     C(dofvalues,dofvel) * dofvel,
     ///     G(dofvalues) - J(dofvalues)^T * Wext]
     /// coordinates will be zero).
     /// \param[in] dofaccelerations The dof accelerations of the current robot state.
     void ComputeInverseDynamicsSingleSupport(boost::array<std::vector<dReal>, 3>&
-            doftorquecomponents, const std::vector<dReal>& dofaccelerations);
+                                             doftorquecomponents, const std::vector<dReal>& dofaccelerations);
 };
 
 

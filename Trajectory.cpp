@@ -194,6 +194,7 @@ Trajectory::Trajectory(const std::string& trajectorystring) {
 
 
 void Trajectory::FindChunkIndex(dReal s, int& index, dReal& remainder) {
+
     std::list<dReal>::iterator it = chunkcumulateddurationslist.begin();
     if(s <= TINY) {
         index = 0;
@@ -319,7 +320,8 @@ void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
     // Process all chunks that have been overpassed
     while(currentchunkindex<chunkindex) {
         if(itcurrentchunk->duration-processedcursor>=TINY) {
-            assert(SolveQuadraticEquation(s-itcurrentchunk->send,sd,0.5*sdd,tnext,t,T));
+            bool res = SolveQuadraticEquation(s-itcurrentchunk->send,sd,0.5*sdd,tnext,t,T);
+            assert(res);
             ComputeChunk(t,tnext,s-itcurrentchunk->sbegin,sd,sdd,*itcurrentchunk,newchunk);
             chunkslist.push_back(newchunk);
             t = tnext;
@@ -330,7 +332,8 @@ void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
     }
 
     // Process current chunk
-    assert(SolveQuadraticEquation((s-itcurrentchunk->sbegin)-remainder,sd,0.5*sdd,tnext,t,T));
+    bool res = SolveQuadraticEquation((s-itcurrentchunk->sbegin)-remainder,sd,0.5*sdd,tnext,t,T);
+    assert(res);
     ComputeChunk(t,tnext,s-itcurrentchunk->sbegin,sd,sdd,*itcurrentchunk,newchunk);
     chunkslist.push_back(newchunk);
     processedcursor = remainder;

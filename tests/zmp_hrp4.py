@@ -84,6 +84,13 @@ reparamtimestep = 1e-3
 passswitchpointnsteps = 5
 tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
 
+discrtimestep = 2e-2
+integrationtimestep = 1e-3
+reparamtimestep = 1e-2
+passswitchpointnsteps = 5
+tuningsstring2 = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
+
+
 ############################ Trajectory ############################
 
 q0 = array([  1.37383090e-16,   1.37383090e-16,   1.37383090e-16,
@@ -138,12 +145,12 @@ activedofs[18] = 1 #R_HIP_P
 activedofs[19] = 1 #R_KNEE_P
 activedofs[20] = 1 #R_ANKLE_P
 activedofs[21] = 1 #R_ANKLE_R
-activedofs[22] = 0 #L_HIP_Y
-activedofs[23] = 0 #L_HIP_R
-activedofs[24] = 0 #L_HIP_P
-activedofs[25] = 0 #L_KNEE_P
-activedofs[26] = 0 #L_ANKLE_P
-activedofs[27] = 0 #L_ANKLE_R
+activedofs[22] = 1 #L_HIP_Y
+activedofs[23] = 1 #L_HIP_R
+activedofs[24] = 1 #L_HIP_P
+activedofs[25] = 1 #L_KNEE_P
+activedofs[26] = 1 #L_ANKLE_P
+activedofs[27] = 1 #L_ANKLE_R
 activedofs[28] = 1 #CHEST_P
 activedofs[29] = 1 #CHEST_Y
 activedofs[32] = 1 #R_SHOULDER_P
@@ -155,7 +162,10 @@ activedofs[42] = 1 #L_SHOULDER_R
 activedofs[43] = 1 #L_SHOULDER_Y
 activedofs[44] = 1 #L_ELBOW_P
 
+nonsearchdofs = [22,23,24,25,26,27]
+
 robot.activedofs = activedofs
+robot.nonsearchdofs = nonsearchdofs
 robot.qdefault = array(q0)
 ndof = int(sum(activedofs))
 trajectorystring = "%f\n%d"%(T,ndof)
@@ -168,34 +178,6 @@ for i in range(ndoffull):
         trajectorystring += "\n%f %f %f %f"%(d,c,b,a)
 
 
-trajectorystring = """1.500000
-22
-0.0 0.0 1.99242076297 -1.32221433021
-0.0 0.0 2.53280855643 -1.67759722295
-0.0 0.0 0.0 0.0
-0.0 0.0 0.0 0.0
-0.0 0.0 0.967382109132 -0.642750868261
-0.0 0.0 -0.519933641176 0.348891374481
-0.0 0.0 2.89830573159 -1.93488398449
-0.0 0.0 -2.14170672114 1.44939278452
-0.0 0.0 0.0 0.0
-0.0 0.0 0.0 0.0
-0.0 0.0 0.0 0.0
-0.0 0.0 0.0 0.0
-0.0 0.0 0.0 0.0
-0.0 0.0 3.13256805344 -2.08537050225
-0.0 0.0 4.59613512542 -3.04279209114
-0.0 0.0 4.81882377745 -3.21312086562
-0.0 0.0 -3.18430860851 2.12838441106
-0.0 0.0 0.0 0.0
-0.0 0.0 0.0 0.0
-0.0 0.0 0.0 0.0
-0.0 0.0 0.0 0.0
-0.0 0.0 0.0 0.0"""
-
-traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
-
-
 activelinks = ones(len(robot.GetLinks()))
 for i in range(len(activelinks)):
     if(robot.GetLinks()[i].GetMass()<0.1):
@@ -206,8 +188,8 @@ robot.activelinks = activelinks
 
 ############################ Constraints ############################
 
-taumin = -ones(ndof)*40
-taumax = ones(ndof)*40
+taumin = -ones(ndof)*60
+taumax = ones(ndof)*60
 baseaabb = robot.GetLink("L_FOOT_LINK").ComputeAABB()
 border2 = 0
 xmax2 = baseaabb.pos()[0]+baseaabb.extents()[0]-border2
@@ -215,7 +197,7 @@ xmin2 = baseaabb.pos()[0]-baseaabb.extents()[0]+border2
 ymax2 = baseaabb.pos()[1]+baseaabb.extents()[1]-border2
 ymin2 = baseaabb.pos()[1]-baseaabb.extents()[1]+border2
 zmplimits = [xmin2,xmax2,ymin2,ymax2]
-vmax = ones(ndof)*pi
+vmax = ones(ndof)*4
 constraintstring = string.join([str(x) for x in activedofs]) + "\n" + string.join([str(x) for x in activelinks]) + "\n" + string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax]) + "\n" +  string.join([str(a) for a in zmplimits]) + "\n" + string.join([str(a) for a in vmax]) + "\n" + string.join([str(a) for a in robot.qdefault])
 
 
@@ -230,15 +212,15 @@ ymax = baseaabb.pos()[1]+baseaabb.extents()[1]-border
 ymin = baseaabb.pos()[1]-baseaabb.extents()[1]+border
 baselimits = [xmin,xmax,ymin,ymax]
 
-q0trimmed = array(TOPPopenravepy.Trim(robot,q0))
-q1trimmed = array(TOPPopenravepy.Trim(robot,q1))
+# q0trimmed = array(TOPPopenravepy.Trim(robot,q0))
+# q1trimmed = array(TOPPopenravepy.Trim(robot,q1))
 
 rrtrobot = TOPPopenravepy.HRP4Robot(robot,baselimits,0.05)
-epsilon = 0.2
-nloops = 10000000
+# epsilon = 0.2
+# nloops = 10000000
 
-TOPPopenravepy.CheckCollisionStaticStabilityConfig(robot,q0trimmed,baselimits)
-TOPPopenravepy.CheckCollisionStaticStabilityConfig(robot,q1trimmed,baselimits)
+# TOPPopenravepy.CheckCollisionStaticStabilityConfig(robot,q0trimmed,baselimits)
+# TOPPopenravepy.CheckCollisionStaticStabilityConfig(robot,q1trimmed,baselimits)
 
 # print "Initial distance: ", norm(q1trimmed-q0trimmed)
 
@@ -301,28 +283,90 @@ path = [array([ 0.        , -0.0132645 , -0.4       ,  2.00000006, -0.32724929,
        -1.35968925])]
 
 
+path2 = []
+for p in path:
+    a = zeros(22)
+    a[0:6] = p[0:6]
+    a[6:12] = robot.qdefault[22:28]
+    a[12:22] = p[6:16]
+    path2.append(a)
 
 
 
 ############################ TOPP ############################
 
+t0 = time.time()
+traj0 =  MotionPlanning.MakeParabolicTrajectory(path2,robot,constraintstring,tuningsstring)
+dt0 = time.time() - t0
 
-traj0 =  MotionPlanning.MakeParabolicTrajectory(path,robot,constraintstring,tuningsstring)
 
-TOPPpy.PlotKinematics(traj0,traj0,0.01)
-TOPPopenravepy.PlotTorques(robot,traj0,traj0,0.01,taumin,taumax,3)
-TOPPopenravepy.PlotZMP(robot,traj0,traj0,zmplimits,0.01,4,border=0.1)
+x = TOPPbindings.TOPPInstance("ZMPTorqueLimits",constraintstring,str(traj0),tuningsstring,robot)
+ret = x.RunComputeProfiles(0,0)
+x.WriteExtra()
+tvect0,torques0 = TOPPpy.ExtraFromString(x.resextrastring)
+
+
+
+#TOPPopenravepy.PlotTorques(robot,traj0,traj0,0.01,taumin,taumax,3)
+
+t1 = time.time()
+nshortcuts = 200
+reps = 5
+
+tmin = 1000;
+
+for i in range(reps):
+    traj1 = MotionPlanning.RepeatParabolicShortcut(rrtrobot,constraintstring,tuningsstring2,traj0,nshortcuts)
+    if traj1.duration < tmin:
+        trajmin = traj1
+        tmin = trajmin.duration
+    print "\n\n**************************************\n"
+    print i, " ", traj1.duration, "Current min: ", tmin
+    print "\n\n\n"
+
+
+traj1 = trajmin
+dt1 = time.time() - t1
+
+
+TOPPpy.PlotKinematics(traj0,traj1,0.01,vmax=4*ones(traj0.dimension))
+TOPPopenravepy.PlotZMP(robot,traj0,traj1,zmplimits,0.01,4,border=0)
+
+x = TOPPbindings.TOPPInstance("ZMPTorqueLimits",constraintstring,str(traj1),tuningsstring,robot)
+ret = x.RunComputeProfiles(0,0)
+x.WriteExtra()
+tvect1,torques1 = TOPPpy.ExtraFromString(x.resextrastring)
+TOPPopenravepy.PlotTorques2(tvect0,torques0,tvect1,torques1,taumin,taumax,3)
+
+print "\n*************\n"
+print "Stage 0: ", dt0
+print "Stage 1: ", dt1
+print "Time durations: ", traj0.duration, "vs" , traj1.duration
 
 raw_input()
 
-nshortcuts = 500
-seed(0)
-traj1 = MotionPlanning.RepeatParabolicShortcut(rrtrobot,constraintstring,tuningsstring,traj0,nshortcuts)
-print traj0.duration, traj1.duration
 
+# env.SetViewer('qtcoin')
+# nsnaps=10
+# box=[130,0,480,480]
+# traj=traj0
+# color=[0,0,1]
+# ni=0
+# for t in linspace(0,traj.duration,nsnaps):
+#         robot.SetDOFValues(TOPPopenravepy.Fill(robot,traj.Eval(t)))
+#         raw_input()
+#         ni+=1
 
-TOPPpy.PlotKinematics(traj0,traj1,0.01)
-TOPPopenravepy.PlotTorques(robot,traj0,traj1,0.01,taumin,taumax,3)
-TOPPopenravepy.PlotZMP(robot,traj0,traj1,zmplimits,0.01,4,border=0.1)
+# -crop 495x831+786+258
 
-raw_input()
+# convert i0.png -crop 495x831+786+258 j00.eps
+# convert i1.png -crop 495x831+786+258 j01.eps
+# convert i2.png -crop 495x831+786+258 j02.eps
+# convert i3.png -crop 495x831+786+258 j03.eps
+# convert i4.png -crop 495x831+786+258 j04.eps
+# convert i5.png -crop 495x831+786+258 j05.eps
+# convert i6.png -crop 495x831+786+258 j06.eps
+# convert i7.png -crop 495x831+786+258 j07.eps
+# convert i8.png -crop 495x831+786+258 j08.eps
+# convert i9.png -crop 495x831+786+258 j09.eps
+

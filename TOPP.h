@@ -171,6 +171,9 @@ public:
     // Write the MVC to stringstreams
     void WriteMVCBobrow(std::stringstream& ss, dReal dt=0.01);
     void WriteMVCDirect(std::stringstream& ss, dReal dt=0.01);
+    virtual void WriteExtra(std::stringstream& ss){
+        return;
+    }
 
     // Linear interpolation
     dReal Interpolate1D(dReal s, const std::vector<dReal>& v);

@@ -86,6 +86,28 @@ def PlotTorques(robot,traj0,traj1,dt=0.001,taumin=[],taumax=[],figstart=0):
     ylabel('Joint torques (Nm)',fontsize=18)    
 
 
+def PlotTorques2(tvect0,torques0,tvect1,torques1,taumin=[],taumax=[],figstart=0):
+    colorcycle = ['r', 'g', 'b', 'm', 'c', 'y', 'k']
+    Tmax = max(max(tvect0),max(tvect1))
+    figure(figstart)
+    clf()
+    hold('on')
+    ax=gca()        
+    ax.set_color_cycle(colorcycle)
+    plot(tvect0,torques0,'--',linewidth=2)
+    ax.set_color_cycle(colorcycle)
+    plot(tvect1,torques1,linewidth=2)
+    for a in taumax:
+        plot([0,Tmax],[a,a],'-.')
+    for a in taumin:
+        plot([0,Tmax],[a,a],'-.')
+    if(len(taumax)>0):
+        axis([0,Tmax,1.2*min(taumin),1.2*max(taumax)])
+    title('Joint torques',fontsize=20)
+    xlabel('Time (s)',fontsize=18)
+    ylabel('Joint torques (Nm)',fontsize=18)    
+
+
 def PlotZMP(robot,traj0,traj1,zmplimits,dt=0.01,figstart=0,border=0):    
     xmin, xmax, ymin, ymax = zmplimits
     xminf, xmaxf, yminf, ymaxf = xmin-border, xmax+border, ymin-border, ymax+border
@@ -114,12 +136,12 @@ def PlotZMP(robot,traj0,traj1,zmplimits,dt=0.01,figstart=0,border=0):
     clf()
     plot([xminf,xminf,xmaxf,xmaxf,xminf],[yminf,ymaxf,ymaxf,yminf,yminf],'k',linewidth=2)
     plot([xmin,xmin,xmax,xmax,xmin],[ymin,ymax,ymax,ymin,ymin],'k--',linewidth=2)
-    plot(xzmp0,yzmp0,'g',linewidth=3)
+    plot(xzmp0,yzmp0,'r--',linewidth=3)
     plot(xzmp1,yzmp1,'r',linewidth=3)
-    plot(xzmp0[0],yzmp0[0],'gs',markersize=14)
+    plot(xzmp0[0],yzmp0[0],'rs',markersize=14)
     plot(xzmp1[0],yzmp1[0],'rs',markersize=15)
     plot(com1[0,0],com1[0,1],'bs',markersize=8)
-    plot(xzmp0[-1],yzmp0[-1],'g*',markersize=25)
+    plot(xzmp0[-1],yzmp0[-1],'r*',markersize=25)
     plot(xzmp1[-1],yzmp1[-1],'r*',markersize=25)
     plot(com1[:,0],com1[:,1],'b',linewidth=3)
     plot(com1[-1,0],com1[-1,1],'b*',markersize=15)
