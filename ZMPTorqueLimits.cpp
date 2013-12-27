@@ -101,7 +101,7 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
 
     // Torque intermediate variables
     std::vector<dReal> a,b,c;
-    std::vector<dReal> tmp0(robotdofs), tmp1(robotdofs), tmp2(robotdofs), tmp3(robotdofs), z(robotdofs), Mqd(robotdofs), gq(robotdofs), Cqd(robotdofs), Mqdd(robotdofs), MqddplusCqd(robotdofs);
+    std::vector<dReal> tmp0(robotdofs), tmp1(robotdofs), tmp2(robotdofs), tmp3(robotdofs), zero(robotdofs), Mqd(robotdofs), gq(robotdofs), Cqd(robotdofs), Mqdd(robotdofs), MqddplusCqd(robotdofs);
     std::vector<dReal> Mqdtrimmed(ndof), MqddplusCqdtrimmed(ndof), gqtrimmed(ndof);
 
     // ZMP intermediate variables
@@ -132,12 +132,13 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
             a.resize(0);
             b.resize(0);
             c.resize(0);
+
             // Torque limits
             this->ComputeInverseDynamicsSingleSupport(tmp0, qdfilled); // Mqd + Cqd + gq
-            this->ComputeInverseDynamicsSingleSupport(tmp1, z); // Cqd + gq
+            this->ComputeInverseDynamicsSingleSupport(tmp1, zero); // Cqd + gq
             VectorAdd(tmp0,tmp1,Mqd,1,-1); // Mqd = tmp0 - tmp1
-            probot->SetDOFVelocities(z,CLA_Nothing);
-            this->ComputeInverseDynamicsSingleSupport(gq, z); // gq
+            probot->SetDOFVelocities(zero,CLA_Nothing);
+            this->ComputeInverseDynamicsSingleSupport(gq, zero); // gq
             VectorAdd(tmp1,gq,Cqd,1,-1); // Cqd = tmp1 - gq
             this->ComputeInverseDynamicsSingleSupport(tmp2, qddfilled); // Mqdd + gq
             VectorAdd(tmp2,gq,Mqdd,1,-1); // Mqdd = tmp2 - gq
@@ -160,6 +161,7 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
             }
 
             // ZMP limits (processed only when xmax>xmin)
+            probot->SetDOFVelocities(qdfilled,CLA_Nothing);
             if(xmax-xmin>=TINY2) {
                 dReal norm_qd = VectorNorm(qd);
                 bool qdiszero = norm_qd<TINY;
