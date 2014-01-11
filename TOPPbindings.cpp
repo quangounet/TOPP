@@ -21,6 +21,7 @@
 #include "TorqueLimits.h"
 #include "TorqueLimitsRave.h"
 #include "ZMPTorqueLimits.h"
+#include "FrictionLimits.h"
 
 
 #include <boost/python.hpp>
@@ -55,6 +56,8 @@ public:
             pconstraints = new TorqueLimitsRave(constraintsstring,ptrajectory,tunings,probot);
         else if (problemtype.compare("ZMPTorqueLimits")==0)
             pconstraints = new ZMPTorqueLimits(constraintsstring,ptrajectory,tunings,probot);
+	else if (problemtype.compare("FrictionLimits")==0)
+	    pconstraints = new FrictionLimits(constraintsstring,ptrajectory,tunings,probot);
     }
 
     Constraints* pconstraints;
