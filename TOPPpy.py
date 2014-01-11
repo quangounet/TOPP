@@ -70,6 +70,14 @@ class RaveInstance(object):
 
 ###################### Utilities #########################
 
+def vector2string(v):
+    ndof = len(v);
+    s = str(ndof)
+    for a in v:
+        s+= ' %f'%a
+    return s
+
+
 def vect2str(v):
     return ' '.join(map(str, v))
 
@@ -86,7 +94,7 @@ def BezierToPolynomial(T, p0, p1, p2, p3):
     a = -p0 + 3 * p1 - 3 * p2 + p3
     b = 3 * p0 - 6 * p1 + 3 * p2
     c = -3 * p0 + 3 * p1
-    d = 1
+    d = p0
     return a / (T * T * T), b / (T * T), c / T, d
 
 
@@ -116,7 +124,6 @@ def ProfileFromLines(lines):
     sdarray = array([double(x) for x in l.split(' ')])
     return [duration, dt, sarray, sdarray]
 
-
 def ProfilesFromString(s):
     s = s.strip(" \n")
     profileslist = []
@@ -126,6 +133,16 @@ def ProfilesFromString(s):
         profileslist.append(ProfileFromLines(lines[3 * i:3 * i + 3]))
     return profileslist
 
+def ExtraFromString(s):
+    s = s.strip(" \n")
+    lines = [l.strip(" \n") for l in s.split('\n')]
+    lines.pop(0)
+    tvect = []
+    torques = []
+    for i in range(len(lines)/2):
+        tvect.append(double(lines[2*i]))
+        torques.append(array([double(x) for x in lines[2*i+1].split(' ')]))
+    return array(tvect),array(torques)
 
 def SwitchPointsFromString(s):
     if len(s) == 0:
@@ -296,14 +313,20 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
 
 def string2p(s):
     lines = [l.strip(" \n") for l in s.split('\n')]
-    l = [float(x) for x in lines[1].split(' ')]
-    l.pop(0)
-    ndof = int(l[0])
-    p0 = [l[1:ndof + 1]]
-    p1 = [l[ndof + 2:2 * (ndof + 1)]]
-    p2 = [l[2 * (ndof + 1) + 1:3 * (ndof + 1)]]
-    p3 = [l[3 * (ndof + 1) + 1:4 * (ndof + 1)]]
-    return [p0, p1, p2, p3]
+    Tv = []
+    p0v = []
+    p1v = []
+    p2v = []
+    p3v = []
+    for i in range(1,len(lines)):
+        l = [float(x) for x in lines[i].split(' ')]
+        Tv.append(l.pop(0))
+        ndof = int(l[0])
+        p0v.append(l[1:ndof + 1])
+        p1v.append(l[ndof + 2:2 * (ndof + 1)])
+        p2v.append(l[2 * (ndof + 1) + 1:3 * (ndof + 1)])
+        p3v.append(l[3 * (ndof + 1) + 1:4 * (ndof + 1)])
+    return Tv, p0v, p1v, p2v, p3v
 
 
 ############################### (s, sd)-RRT ###################################

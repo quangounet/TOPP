@@ -86,7 +86,29 @@ def PlotTorques(robot,traj0,traj1,dt=0.001,taumin=[],taumax=[],figstart=0):
     ylabel('Joint torques (Nm)',fontsize=18)    
 
 
-def PlotZMP(robot,traj0,traj1,zmplimits,dt=0.01,figstart=0,border=0.015):
+def PlotTorques2(tvect0,torques0,tvect1,torques1,taumin=[],taumax=[],figstart=0):
+    colorcycle = ['r', 'g', 'b', 'm', 'c', 'y', 'k']
+    Tmax = max(max(tvect0),max(tvect1))
+    figure(figstart)
+    clf()
+    hold('on')
+    ax=gca()        
+    ax.set_color_cycle(colorcycle)
+    plot(tvect0,torques0,'--',linewidth=2)
+    ax.set_color_cycle(colorcycle)
+    plot(tvect1,torques1,linewidth=2)
+    for a in taumax:
+        plot([0,Tmax],[a,a],'-.')
+    for a in taumin:
+        plot([0,Tmax],[a,a],'-.')
+    if(len(taumax)>0):
+        axis([0,Tmax,1.2*min(taumin),1.2*max(taumax)])
+    title('Joint torques',fontsize=20)
+    xlabel('Time (s)',fontsize=18)
+    ylabel('Joint torques (Nm)',fontsize=18)    
+
+
+def PlotZMP(robot,traj0,traj1,zmplimits,dt=0.01,figstart=0,border=0):    
     xmin, xmax, ymin, ymax = zmplimits
     xminf, xmaxf, yminf, ymaxf = xmin-border, xmax+border, ymin-border, ymax+border
     tvect0,xzmp0,yzmp0,com0 = ComputeZMP(traj0,robot,dt)
@@ -99,6 +121,8 @@ def PlotZMP(robot,traj0,traj1,zmplimits,dt=0.01,figstart=0,border=0.015):
     plot(tvect0,yzmp0,'g--',linewidth=2)
     plot(tvect1,xzmp1,'r',linewidth=2)
     plot(tvect1,yzmp1,'g',linewidth=2)
+    plot(tvect0,com0[:,0],'m',linewidth=2)
+    plot(tvect0,com0[:,1],'c',linewidth=2)
     Tmax = max(traj0.duration,traj1.duration)
     plot([0,Tmax],[xmin,xmin],'r-.')
     plot([0,Tmax],[xmax,xmax],'r-.')
@@ -112,12 +136,12 @@ def PlotZMP(robot,traj0,traj1,zmplimits,dt=0.01,figstart=0,border=0.015):
     clf()
     plot([xminf,xminf,xmaxf,xmaxf,xminf],[yminf,ymaxf,ymaxf,yminf,yminf],'k',linewidth=2)
     plot([xmin,xmin,xmax,xmax,xmin],[ymin,ymax,ymax,ymin,ymin],'k--',linewidth=2)
-    plot(xzmp0,yzmp0,'g',linewidth=3)
+    plot(xzmp0,yzmp0,'r--',linewidth=3)
     plot(xzmp1,yzmp1,'r',linewidth=3)
-    plot(xzmp0[0],yzmp0[0],'gs',markersize=14)
+    plot(xzmp0[0],yzmp0[0],'rs',markersize=14)
     plot(xzmp1[0],yzmp1[0],'rs',markersize=15)
     plot(com1[0,0],com1[0,1],'bs',markersize=8)
-    plot(xzmp0[-1],yzmp0[-1],'g*',markersize=25)
+    plot(xzmp0[-1],yzmp0[-1],'r*',markersize=25)
     plot(xzmp1[-1],yzmp1[-1],'r*',markersize=25)
     plot(com1[:,0],com1[:,1],'b',linewidth=3)
     plot(com1[-1,0],com1[-1,1],'b*',markersize=15)
@@ -132,7 +156,7 @@ def PlotZMP(robot,traj0,traj1,zmplimits,dt=0.01,figstart=0,border=0.015):
 def Fill(robot,q):
     if hasattr(robot,'activedofs'):
         n = robot.GetDOF()
-        qfilled = zeros(n)
+        qfilled = robot.qdefault
         counter = 0
         for i in range(n):
             if(robot.activedofs[i]>0.1):
@@ -175,6 +199,38 @@ def ComputeTorques(traj,robot,dt):
             tau = robot.ComputeInverseDynamics(Fill(robot,qdd),None,returncomponents=False)
             tauvect.append(Trim(robot,tau))
     return tvect,array(tauvect)
+
+
+# Return true if in collision or not quasi-statically stable
+def CheckCollisionStaticStabilityConfig(robot,q,baselimits):
+    with robot:
+        robot.SetDOFValues(Fill(robot,q))
+        n = len(robot.GetLinks())
+        totalmass = 0
+        com = zeros(3)
+        for i in range(n):
+            if hasattr(robot,'activelinks') and robot.activelinks[i]<0.1:
+                continue
+            ci = robot.GetLinks()[i].GetGlobalCOM()
+            mass = robot.GetLinks()[i].GetMass()
+            com += mass*ci
+            totalmass += mass
+        com = com/totalmass        
+        if(com[0]<baselimits[0] or com[0]>baselimits[1] or com[1]<baselimits[2] or com[1]>baselimits[3]):
+            return True
+        return robot.GetEnv().CheckCollision(robot) or robot.CheckSelfCollision()
+
+
+# Return true if segment is in collision or not quasi-statically stable
+# Checks discretized configurations starting from qstart
+def CheckCollisionStaticStabilitySegment(robot,qstart,qend,steplength,baselimits):
+    n = int(norm(qend-qstart)/steplength)+1
+    dq = (qend-qstart)/n
+    for i in range(n+1):
+        q = qstart+i*dq
+        if CheckCollisionStaticStabilityConfig(robot,q,baselimits):
+            return True
+    return False
 
 
 def ComputeZMPConfig(robot,q,qd,qdd):
@@ -231,6 +287,37 @@ def ComputeZMP(traj,robot,dt):
         com.append(comq)
     return tvect,xzmp,yzmp,com
 
+
+class HRP4Robot():
+    def __init__(self,robot,baselimits,collisioncheckstep):
+        self.robot = robot
+        self.baselimits = baselimits
+        self.collisioncheckstep = collisioncheckstep
+        self.qlowerlimit = []
+        self.qupperlimit = []
+        n = robot.GetDOF()
+        for i in range(n):
+            if hasattr(robot,'activedofs'):
+                if(robot.activedofs[i]>0.1):
+                    self.qlowerlimit.append(robot.GetDOFLimits()[0][i])
+                    self.qupperlimit.append(robot.GetDOFLimits()[1][i])
+            else:
+                self.qlowerlimit.append(robot.GetDOFLimits()[0][i])
+                self.qupperlimit.append(robot.GetDOFLimits()[1][i])
+                self.weights.append(1)
+        self.weights = abs(array(self.qupperlimit)-array(self.qlowerlimit))
+        self.weights = self.weights / norm(self.weights)
+ 
+    def CheckCollisionSegment(self,qstart,qend):
+        return CheckCollisionStaticStabilitySegment(self.robot,qstart,qend,self.collisioncheckstep,self.baselimits)
+    def CheckCollisionConfig(self,q):
+        return CheckCollisionStaticStabilityConfig(self.robot,q,self.baselimits)
+
+    def RandomConfig(self):
+        q = zeros(len(self.qlowerlimit))
+        for i in range(len(self.qlowerlimit)):
+            q[i]=self.qlowerlimit[i]+rand()*(self.qupperlimit[i]-self.qlowerlimit[i])
+        return q
 
 
 

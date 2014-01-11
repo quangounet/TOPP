@@ -45,7 +45,7 @@ public:
     ZMPTorqueLimits(const std::string& constraintsstring, Trajectory* ptraj, const Tunings &tunings, RobotBasePtr probot0);
 
     RobotBasePtr probot;
-    int ndof;
+    int ndof; // number of active DOFs
     int nlink0;
     dReal totalmass;
     std::vector<dReal> taumin, taumax; // Torque limits
@@ -54,13 +54,61 @@ public:
     std::vector<KinBody::LinkPtr> linksvector; // Vector of pointers to the links
     std::vector<int> dofsvector; // Vector of indices of active dofs
     std::vector<dReal> mass;
+    std::vector<dReal> qdefault;
 
     Vector COM(std::vector<dReal>& qfilled);
     Vector ZMP(std::vector<dReal>& qfilled, std::vector<dReal>& qdfilled, std::vector<dReal>& qddfilled, bool withangularmomentum=false);
     void Fill(const std::vector<dReal>&q, std::vector<dReal>&qfilled);
     void Trim(const std::vector<dReal>&q, std::vector<dReal>&qtrimmed);
+
+    void WriteExtra(std::stringstream& ss);
+
     // Multiply a matrix and a vector taking into account activedofs
     Vector MatrixMultVector(const boost::multi_array<dReal,2>& M, const std::vector<dReal>& v);
+
+    /// \brief Get the transpose of the contact (rotational and translational)
+    /// Jacobian for a given foot.
+    ///
+    /// \param[in] foot LinkPtr to the targeted foot
+    /// \param[out] mjacobiantrans Transpose of the contact Jacobian matrix.
+    void GetFootJacobianTranspose(const KinBody::LinkPtr foot,
+                                  boost::multi_array<dReal,2>& mjacobiantrans);
+
+    /// \brief Compute the inverse dynamics (actuated joint torques + contact
+    /// wrench) for the humanoid robot in a single-support setting. The support
+    /// foot is assumed to be the one with lowest z-coordinate.
+    ///
+    /// \param[out] doftorques The output actuated joint torques (base link
+    /// coordinates will be zero).
+    /// \param[in] dofaccelerations The dof accelerations of the current robot state.
+    void ComputeInverseDynamicsSingleSupport(std::vector<dReal>& doftorques,
+                                             const std::vector<dReal>& dofaccelerations);
+
+    /// \brief Compute the separated inverse dynamics
+    /// for the humanoid robot in a single-support setting. The support
+    /// foot is assumed to be the one with lowest z-coordinate. Actuated
+    /// torques are such that:
+    ///
+    /// torques = M(dofvalues) * dofaccel + C(dofvalues,dofvel) * dofvel +
+    ///           G(dofvalues) - J(dofvalues)^T * Wext
+    ///
+    /// with:
+    ///
+    /// torques -- generalized forces associated with dofvalues
+    /// M -- manipulator inertia tensor
+    /// C -- coriolis and centripetal effects
+    /// G -- gravity loading + base link angular acceleration contribution
+    /// J -- contact Jacobian at the support foot
+    /// Wext -- contact wrench exerted at the support foot
+    ///
+    /// \param[out] doftorquecomponents A set of 3 torques:
+    ///    [M(dofvalues) * dofaccel,
+    ///     C(dofvalues,dofvel) * dofvel,
+    ///     G(dofvalues) - J(dofvalues)^T * Wext]
+    /// coordinates will be zero).
+    /// \param[in] dofaccelerations The dof accelerations of the current robot state.
+    void ComputeInverseDynamicsSingleSupport(boost::array<std::vector<dReal>, 3>&
+                                             doftorquecomponents, const std::vector<dReal>& dofaccelerations);
 };
 
 

@@ -1,9 +1,10 @@
+from numpy import *
 import bisect
 import pylab
 import StringIO
 
-from pylab import arange, array, double, plot, zeros
 
+from pylab import arange, array, double, plot, zeros
 
 class NoTrajectoryFound(Exception):
     pass
@@ -136,3 +137,51 @@ class PiecewisePolynomialTrajectory():
 
     def __str__(self):
         return '\n'.join([str(chunk) for chunk in self.chunkslist])
+
+
+def SimpleInterpolate(q0,q1,qd0,qd1,T):
+    a=((qd1-qd0)*T-2*(q1-q0-qd0*T))/T**3
+    b=(3*(q1-q0-qd0*T)-(qd1-qd0)*T)/T**2
+    c=qd0
+    d=q0
+    return [d,c,b,a]
+
+def MakeChunk(q0v,q1v,qd0v,qd1v,T):
+    polylist = []
+    for i in range(len(q0v)):
+        polylist.append(Polynomial(SimpleInterpolate(q0v[i],q1v[i],qd0v[i],qd1v[i],T)))
+    return Chunk(T,polylist)
+
+
+# Assumes that i0 < i1
+def InsertIntoTrajectory(traj,traj2,s0,s1):
+    i0,r0 = traj.FindChunkIndex(s0)
+    i1,r1 = traj.FindChunkIndex(s1)
+    c0 = traj.chunkslist[i0]
+    c1 = traj.chunkslist[i1]
+    chunk0 = MakeChunk(c0.Eval(0),c0.Eval(r0),c0.Evald(0),c0.Evald(r0),r0)
+    chunk1 = MakeChunk(c1.Eval(r1),c1.Eval(c1.duration),c1.Evald(r1),c1.Evald(c1.duration),c1.duration-r1)
+    tolerance = 0.05
+    if linalg.linalg.norm(traj2.Eval(0)-c0.Eval(r0))>=tolerance :
+        print "Position mismatch at s0 : ", linalg.linalg.norm(traj2.Eval(0)-c0.Eval(r0))
+        return None    
+    if linalg.linalg.norm(traj2.Eval(traj2.duration)-c1.Eval(r1))>=tolerance:
+        print "Position mismatch at s1 : ", linalg.linalg.norm(traj2.Eval(traj2.duration)-c1.Eval(r1))
+        return None
+    if linalg.linalg.norm(traj2.Evald(0)-c0.Evald(r0)) >= tolerance:
+        print "Velocity mismatch at s0 : ", linalg.linalg.norm(traj2.Evald(0)-c0.Evald(r0))
+        return None    
+    if linalg.linalg.norm(traj2.Evald(traj2.duration)-c1.Evald(r1)) >= tolerance:
+        print "Velocity mismatch at s1: ", linalg.linalg.norm(traj2.Evald(traj2.duration)-c1.Evald(r1))
+        return None    
+    newchunkslist = list(traj.chunkslist)
+    for i in range(i1-i0+1):
+        newchunkslist.pop(i0)
+    newchunkslist.insert(i0,chunk1)
+    traj2.chunkslist.reverse()
+    for chunk in traj2.chunkslist:
+        newchunkslist.insert(i0,chunk)
+    newchunkslist.insert(i0,chunk0)
+    return(PiecewisePolynomialTrajectory(newchunkslist))
+    
+    

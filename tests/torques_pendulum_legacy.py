@@ -50,10 +50,11 @@ robot.SetDOFVelocityLimits(100 * vel_lim)
 
 
 ############################ Tunings ############################
-discrtimestep = 0.001
-integrationtimestep = discrtimestep
+gridres = 50
+discrtimestep = 1./gridres
+integrationtimestep = 1e-3 #auto
 reparamtimestep = 0  # auto
-passswitchpointnsteps = 10
+passswitchpointnsteps = 0 #auto
 tuningsstring = "%f %f %f %d" % (discrtimestep, integrationtimestep,
                                  reparamtimestep, passswitchpointnsteps)
 

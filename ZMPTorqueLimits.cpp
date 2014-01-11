@@ -18,7 +18,18 @@
 
 #include "ZMPTorqueLimits.h"
 
-#define CLA_Nothing 0
+#include <boost/numeric/bindings/traits/ublas_matrix.hpp>
+#include <boost/numeric/bindings/traits/ublas_vector2.hpp>
+#include <boost/numeric/bindings/lapack/gels.hpp>
+#include <boost/numeric/ublas/matrix.hpp>
+namespace ublas = boost::numeric::ublas;
+namespace lapack = boost::numeric::bindings::lapack;
+
+#define CLA_Nothing 0 // no warning when setting DOF values or velocities
+
+// \brief Different in z-coordinate used to detect the support foot in the
+// single-support case.
+const dReal SINGLE_SUPPORT_Z_DIFF = 1e-2;
 
 using namespace OpenRAVE;
 
@@ -41,9 +52,12 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
     VectorFromString(std::string(buff),zmplimits);
     iss.getline(buff,buffsize);
     VectorFromString(std::string(buff),vmax);
-    hasvelocitylimits = VectorMax(vmax) > TINY;
-    maxrep = 1;
+    iss.getline(buff,buffsize);
+    VectorFromString(std::string(buff),qdefault);
 
+    maxrep = 5;
+
+    hasvelocitylimits = VectorMax(vmax) > TINY;
     probot = probot0;
     activelinks = activelinks0;
 
@@ -75,17 +89,20 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
     dReal ymin = zmplimits[2];
     dReal ymax = zmplimits[3];
 
-
     Vector g = probot->GetEnv()->GetPhysicsEngine()->GetGravity();
     std::vector<dReal> q(ndof), qd(ndof), qdd(ndof), qfilled, qdfilled, qddfilled;
-    probot->GetDOFValues(qfilled);
-    probot->GetDOFVelocities(qdfilled);
-    qddfilled.resize(probot->GetDOF());
+    int robotdofs = probot->GetDOF();
+    // Set the default values for dofs that are non active
+    for(int i=0; i<int(qdefault.size()); i++) {
+        qfilled.push_back(qdefault[i]);
+    }
+    qdfilled.resize(robotdofs);
+    qddfilled.resize(robotdofs);
 
     // Torque intermediate variables
-    std::vector<dReal> a,b,c, torquesimple;
-    boost::array<std::vector<dReal>,3> torquecomponents;
-    std::vector<dReal> torquesimpletrimmed(ndof), torquecomponents0trimmed(ndof), torquecomponents1trimmed(ndof), torquecomponents2trimmed(ndof);
+    std::vector<dReal> a,b,c;
+    std::vector<dReal> tmp0(robotdofs), tmp1(robotdofs), tmp2(robotdofs), tmp3(robotdofs), zero(robotdofs), Mqd(robotdofs), gq(robotdofs), Cqd(robotdofs), Mqdd(robotdofs), MqddplusCqd(robotdofs);
+    std::vector<dReal> Mqdtrimmed(ndof), MqddplusCqdtrimmed(ndof), gqtrimmed(ndof);
 
     // ZMP intermediate variables
     std::vector<std::pair<Vector,Vector> > linkaccelerations;
@@ -98,23 +115,12 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
     dReal delta = TINY2;
     Vector ci, ciVg, q1, ciVq1, q2, ciVq2, q3, ciVq3;
 
-    int ndiscrsteps = int((ptraj->duration+1e-10)/tunings.discrtimestep)+1;
-
-    // for(int t = 0; t<ndiscrsteps; t++) {
-    //     dReal s = t*tunings.discrtimestep;
-    //     ptraj->Eval(s,q);
-    //     ptraj->Evald(s,qd);
-    //     ptraj->Evaldd(s,qdd);
-    //     Fill(q,qfilled);
-    //     Fill(qd,qdfilled);
-    //     Fill(qdd,qddfilled);
-    //     std::cout << ZMP(qfilled,qdfilled,qddfilled) << "\n";
-    // }
-
+    int ndiscrsteps = int((ptraj->duration+1e-15)/tunings.discrtimestep)+1;
+    dReal dt = ptraj->duration/(ndiscrsteps-1);
     {
         EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex());
         for(int t = 0; t<ndiscrsteps; t++) {
-            dReal s = t*tunings.discrtimestep;
+            dReal s = t*dt;
             ptraj->Eval(s,q);
             ptraj->Evald(s,qd);
             ptraj->Evaldd(s,qdd);
@@ -128,25 +134,34 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
             c.resize(0);
 
             // Torque limits
-            probot->ComputeInverseDynamics(torquesimple,qdfilled);
-            probot->ComputeInverseDynamics(torquecomponents,qddfilled);
-            Trim(torquesimple,torquesimpletrimmed);
-            Trim(torquecomponents[0],torquecomponents0trimmed);
-            Trim(torquecomponents[1],torquecomponents1trimmed);
-            Trim(torquecomponents[2],torquecomponents2trimmed);
+            this->ComputeInverseDynamicsSingleSupport(tmp0, qdfilled); // Mqd + Cqd + gq
+            this->ComputeInverseDynamicsSingleSupport(tmp1, zero); // Cqd + gq
+            VectorAdd(tmp0,tmp1,Mqd,1,-1); // Mqd = tmp0 - tmp1
+            probot->SetDOFVelocities(zero,CLA_Nothing);
+            this->ComputeInverseDynamicsSingleSupport(gq, zero); // gq
+            VectorAdd(tmp1,gq,Cqd,1,-1); // Cqd = tmp1 - gq
+            this->ComputeInverseDynamicsSingleSupport(tmp2, qddfilled); // Mqdd + gq
+            VectorAdd(tmp2,gq,Mqdd,1,-1); // Mqdd = tmp2 - gq
+            VectorAdd(Mqdd,Cqd,MqddplusCqd,1,1); // MqddplusCqd = Mqdd + Cqd
+
+            Trim(Mqd,Mqdtrimmed);
+            Trim(MqddplusCqd,MqddplusCqdtrimmed);
+            Trim(gq,gqtrimmed);
+
             for(int j=0; j<ndof; j++) {
                 // Add inequalities only when taumax != 0
                 if(std::abs(taumax[j])>TINY2) {
-                    a.push_back(torquesimpletrimmed[j] - torquecomponents1trimmed[j] - torquecomponents2trimmed[j]);
+                    a.push_back(Mqdtrimmed[j]);
                     a.push_back(-a.back());
-                    b.push_back(torquecomponents0trimmed[j] + torquecomponents1trimmed[j]);
+                    b.push_back(MqddplusCqdtrimmed[j]);
                     b.push_back(-b.back());
-                    c.push_back(torquecomponents2trimmed[j] - taumax[j]);
-                    c.push_back(-torquecomponents2trimmed[j] + taumin[j]);
+                    c.push_back(gqtrimmed[j] - taumax[j]);
+                    c.push_back(-gqtrimmed[j] + taumin[j]);
                 }
             }
 
-            // ZMP limits (only processed when xmax>xmin)
+            // ZMP limits (processed only when xmax>xmin)
+            probot->SetDOFVelocities(qdfilled,CLA_Nothing);
             if(xmax-xmin>=TINY2) {
                 dReal norm_qd = VectorNorm(qd);
                 bool qdiszero = norm_qd<TINY;
@@ -301,12 +316,47 @@ void ZMPTorqueLimits::Fill(const std::vector<dReal>&q, std::vector<dReal>&qfille
     }
 }
 
+
 void ZMPTorqueLimits::Trim(const std::vector<dReal>&q, std::vector<dReal>&qtrimmed){
     for(int i=0; i<ndof; i++) {
         qtrimmed[i]=q[dofsvector[i]];
     }
 }
 
+
+void ZMPTorqueLimits::WriteExtra(std::stringstream& ss){
+    ss << std::setprecision(17) <<  trajectory.duration << "\n";
+    int ndiscrsteps = int((trajectory.duration+1e-15)/tunings.discrtimestep)+1;
+    dReal dt = trajectory.duration/(ndiscrsteps-1);
+    std::vector<dReal> q(ndof), qd(ndof), qdd(ndof), qfilled, qdfilled, qddfilled;
+    for(int i=0; i<int(qdefault.size()); i++) {
+        qfilled.push_back(qdefault[i]);
+    }
+    qdfilled.resize(probot->GetDOF());
+    qddfilled.resize(probot->GetDOF());
+    std::vector<dReal> torquesimple, torquesimpletrimmed(ndof);
+    {
+        EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex());
+        for(int t = 0; t<ndiscrsteps; t++) {
+            dReal s = t*dt;
+            trajectory.Eval(s,q);
+            trajectory.Evald(s,qd);
+            trajectory.Evaldd(s,qdd);
+            Fill(q,qfilled);
+            Fill(qd,qdfilled);
+            Fill(qdd,qddfilled);
+            probot->SetDOFValues(qfilled,CLA_Nothing);
+            probot->SetDOFVelocities(qdfilled,CLA_Nothing);
+            this->ComputeInverseDynamicsSingleSupport(torquesimple, qddfilled);
+            Trim(torquesimple,torquesimpletrimmed);
+            ss << s << "\n";
+            for(int j = 0; j<int(torquesimpletrimmed.size()); j++) {
+                ss << torquesimpletrimmed[j] << " ";
+            }
+            ss << "\n";
+        }
+    }
+}
 
 
 Vector ZMPTorqueLimits::MatrixMultVector(const boost::multi_array<dReal,2>& M, const std::vector<dReal>& v){
@@ -329,6 +379,89 @@ void MatrixAdd(const boost::multi_array<dReal,2>& A, const boost::multi_array<dR
         }
     }
 }
+
+
+void ZMPTorqueLimits::GetFootJacobianTranspose(const KinBody::LinkPtr foot,
+                                               boost::multi_array<dReal,2>& mjacobiantrans) {
+    int linkindex = foot->GetIndex();
+    Transform t = foot->GetTransform();
+
+    std::vector<dReal> transjacobian;
+    std::vector<dReal> rotjacobian;
+    probot->CalculateJacobian(linkindex, t.trans, transjacobian);
+    probot->CalculateRotationJacobian(linkindex, t.rot, rotjacobian);
+
+    int nbdof = probot->GetDOF();
+    mjacobiantrans.resize(boost::extents[nbdof][7]);
+    for (int dof = 0; dof < nbdof; dof++) {
+        mjacobiantrans[dof][0] = rotjacobian[0 * nbdof + dof];
+        mjacobiantrans[dof][1] = rotjacobian[1 * nbdof + dof];
+        mjacobiantrans[dof][2] = rotjacobian[2 * nbdof + dof];
+        mjacobiantrans[dof][3] = rotjacobian[3 * nbdof + dof];
+        mjacobiantrans[dof][4] = transjacobian[0 * nbdof + dof];
+        mjacobiantrans[dof][5] = transjacobian[1 * nbdof + dof];
+        mjacobiantrans[dof][6] = transjacobian[2 * nbdof + dof];
+    }
+}
+
+
+void ZMPTorqueLimits::ComputeInverseDynamicsSingleSupport(std::vector<dReal>& doftorques, const std::vector<dReal>& dofaccelerations) {
+    int nbdof = probot->GetDOF();
+    int nbactivedof = nbdof - 6;
+    int baselinkstart = nbactivedof;
+
+    // Detect the support foot
+    KinBody::LinkPtr leftfoot = probot->GetLink("L_FOOT_LINK");
+    KinBody::LinkPtr rightfoot = probot->GetLink("R_FOOT_LINK");
+    Transform lefttrans = leftfoot->GetTransform();
+    Transform righttrans = rightfoot->GetTransform();
+    dReal zdiff = lefttrans.trans.z - righttrans.trans.z;
+    assert(zdiff < -SINGLE_SUPPORT_Z_DIFF || zdiff > +SINGLE_SUPPORT_Z_DIFF);
+    KinBody::LinkPtr foot = (zdiff < 0) ? leftfoot : rightfoot;
+
+    // Compute the flying-base inverse dynamics
+    boost::multi_array<dReal,2> mjacobiantrans;
+    std::vector<dReal> taubaselink(6);
+
+    this->GetFootJacobianTranspose(foot, mjacobiantrans);
+    probot->ComputeInverseDynamics(doftorques, dofaccelerations);
+    for (int i = 0; i < 6; i++) {
+        int j = baselinkstart + i;
+        taubaselink[i] = doftorques[j];
+    }
+
+    // Compute the contact wrench from the (virtual) base link torques
+    ublas::matrix<dReal> mactuatedjacobiantrans(nbactivedof, 7);
+    ublas::matrix<dReal,ublas::column_major> U(6, 7);
+    for (int j = 0; j < 7; j++) {
+        for (int i = 0; i < nbactivedof; i++)
+            mactuatedjacobiantrans(i, j) = mjacobiantrans[i][j];
+        for (int i = 0; i < 6; i++)
+            U(i, j) = mjacobiantrans[baselinkstart + i][j];
+    }
+
+    ublas::vector<dReal> x(7);
+    for (int i = 0; i < 6; i++)
+        x(i) = taubaselink[i];
+    lapack::gels('N', U, x, lapack::optimal_workspace());
+    // now x is the LS solution to U * x = taubaselink
+
+    ublas::matrix<dReal> externalwrench(7, 1);
+    for (int i = 0; i < 7; i++)
+        externalwrench(i, 0) = x(i);
+
+    // Feed the contact wrench back into the free-flying torque components
+    // Vector backtorques = MatrixMultVector(mactuatedjacobiantrans, externalwrench);
+    ublas::matrix<dReal> backtorques = ublas::prod(mactuatedjacobiantrans, externalwrench);
+    for (int i = 0; i < nbactivedof; i++) {
+        //std::cout << i << ": " << backtorques(i, 0) << "\n";
+        doftorques[i] -= backtorques(i, 0);
+    }
+    for (int i = 0; i < 6; i++)
+        doftorques[baselinkstart + i] -= taubaselink[i];
+}
+
+
 
 
 }

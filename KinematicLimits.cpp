@@ -104,7 +104,7 @@ std::pair<dReal,dReal> KinematicLimits::SddLimits(dReal s, dReal sd){
     dReal alpha = -safetybound;
     dReal beta = safetybound;
     dReal sdsq = sd*sd;
-    dReal a_alpha_i, a_beta_i, alpha_i, beta_i;
+    dReal alpha_i, beta_i;
     std::vector<dReal> qd, qdd;
     InterpolateDynamics(s,qd,qdd);
     for(int i=0; i<trajectory.dimension; i++) {
@@ -112,20 +112,71 @@ std::pair<dReal,dReal> KinematicLimits::SddLimits(dReal s, dReal sd){
             continue;
         }
         if(qd[i]>0) {
-            a_alpha_i = -amax[i];
-            a_beta_i = amax[i];
+            alpha_i = (-amax[i]-sdsq*qdd[i])/qd[i];
+            beta_i = (amax[i]-sdsq*qdd[i])/qd[i];
+            alpha = std::max(alpha,alpha_i);
+            beta = std::min(beta,beta_i);
         }
         else{
-            a_alpha_i = amax[i];
-            a_beta_i = -amax[i];
+            alpha_i = (amax[i]-sdsq*qdd[i])/qd[i];
+            beta_i = (-amax[i]-sdsq*qdd[i])/qd[i];
+            alpha = std::max(alpha,alpha_i);
+            beta = std::min(beta,beta_i);
         }
-        alpha_i = (a_alpha_i-sdsq*qdd[i])/qd[i];
-        beta_i = (a_beta_i-sdsq*qdd[i])/qd[i];
-        alpha = std::max(alpha,alpha_i);
-        beta = std::min(beta,beta_i);
     }
     std::pair<dReal,dReal> res(alpha,beta);
     return res;
+}
+
+
+dReal KinematicLimits::SddLimitAlpha(dReal s, dReal sd){
+    dReal dtsq = tunings.integrationtimestep;
+    dtsq = dtsq*dtsq;
+    dReal safetybound = tunings.discrtimestep/dtsq;
+    dReal alpha = -safetybound;
+    dReal sdsq = sd*sd;
+    dReal alpha_i;
+    std::vector<dReal> qd, qdd;
+    InterpolateDynamics(s,qd,qdd);
+    for(int i=0; i<trajectory.dimension; i++) {
+        if(std::abs(qd[i])<=TINY) {
+            continue;
+        }
+        if(qd[i]>0) {
+            alpha_i = (-amax[i]-sdsq*qdd[i])/qd[i];
+            alpha = std::max(alpha,alpha_i);
+        }
+        else{
+            alpha_i = (amax[i]-sdsq*qdd[i])/qd[i];
+            alpha = std::max(alpha,alpha_i);
+        }
+    }
+    return alpha;
+}
+
+dReal KinematicLimits::SddLimitBeta(dReal s, dReal sd){
+    dReal dtsq = tunings.integrationtimestep;
+    dtsq = dtsq*dtsq;
+    dReal safetybound = tunings.discrtimestep/dtsq;
+    dReal beta = safetybound;
+    dReal sdsq = sd*sd;
+    dReal beta_i;
+    std::vector<dReal> qd, qdd;
+    InterpolateDynamics(s,qd,qdd);
+    for(int i=0; i<trajectory.dimension; i++) {
+        if(std::abs(qd[i])<=TINY) {
+            continue;
+        }
+        if(qd[i]>0) {
+            beta_i = (amax[i]-sdsq*qdd[i])/qd[i];
+            beta = std::min(beta,beta_i);
+        }
+        else{
+            beta_i = (-amax[i]-sdsq*qdd[i])/qd[i];
+            beta = std::min(beta,beta_i);
+        }
+    }
+    return beta;
 }
 
 
@@ -134,42 +185,58 @@ dReal KinematicLimits::SdLimitBobrowInit(dReal s){
     if(sddlimits.first > sddlimits.second) {
         return 0;
     }
-    std::vector<dReal> a_alpha(trajectory.dimension), a_beta(trajectory.dimension);
+    std::list<std::pair<dReal,dReal> > alpha_list, beta_list;
     std::vector<dReal> qd(trajectory.dimension), qdd(trajectory.dimension);
+    //std::chrono::time_point<std::chrono::system_clock> t0,t1,t2,t3;
+    //std::chrono::duration<double> d1,d2,d3;
+
+    dReal a,b;
+
+    //t0 = std::chrono::system_clock::now();
     trajectory.Evald(s, qd);
     trajectory.Evaldd(s, qdd);
+    //t1 = std::chrono::system_clock::now();
     for(int i=0; i<trajectory.dimension; i++) {
+        a = amax[i]/qd[i];
+        b = -qdd[i]/qd[i];
         if(qd[i] > 0) {
-            a_alpha[i] = -amax[i];
-            a_beta[i] = amax[i];
+            CheckInsert(alpha_list,std::pair<dReal,dReal>(-a,b));
+            CheckInsert(beta_list,std::pair<dReal,dReal>(a,b),true);
         }
         else{
-            a_alpha[i] = amax[i];
-            a_beta[i] = -amax[i];
+            CheckInsert(alpha_list,std::pair<dReal,dReal>(a,b));
+            CheckInsert(beta_list,std::pair<dReal,dReal>(-a,b),true);
         }
     }
+    //t2 = std::chrono::system_clock::now();
+    //std::cout << alpha_list.size() << " " << beta_list.size() << "\n";
     dReal sdmin = INF;
-    for(int k=0; k<trajectory.dimension; k++) {
-        for(int m=k+1; m<trajectory.dimension; m++) {
+    std::list<std::pair<dReal,dReal> >::iterator italpha = alpha_list.begin();
+    while(italpha != alpha_list.end()) {
+        std::list<std::pair<dReal,dReal> >::iterator itbeta = beta_list.begin();
+        while(itbeta != beta_list.end()) {
             dReal num, denum, r;
-            num = qd[m]*a_alpha[k]-qd[k]*a_beta[m];
-            denum = qd[m]*qdd[k]-qd[k]*qdd[m];
+            num = itbeta->first - italpha->first;
+            denum = italpha->second - itbeta->second;
             if(std::abs(denum) > TINY) {
                 r = num/denum;
                 if(r>=0) {
                     sdmin = std::min(sdmin,sqrt(r));
                 }
             }
-            num = qd[k]*a_alpha[m]-qd[m]*a_beta[k];
-            denum = -denum;
-            if(std::abs(denum) > TINY) {
-                r = num/denum;
-                if(r>=0) {
-                    sdmin = std::min(sdmin,sqrt(r));
-                }
-            }
+            itbeta++;
         }
+        italpha++;
     }
+    //t3 = std::chrono::system_clock::now();
+
+    //d1 = t1-t0;
+    //d2 = t2-t1;
+    //d3 = t3-t2;
+    //std::cout << d1.count() <<  " " << d2.count() << " " << d3.count() << "\n";
+
+
+
     return sdmin;
 }
 
@@ -179,16 +246,38 @@ void KinematicLimits::FindSingularSwitchPoints(){
         return;
     }
     int i = 0;
-    std::vector<dReal> qd(trajectory.dimension),qdprev(trajectory.dimension);
+    std::vector<dReal> qd(trajectory.dimension),qdprev(trajectory.dimension),qdd(trajectory.dimension);
+    std::vector<dReal> a_alpha(trajectory.dimension), a_beta(trajectory.dimension);
     trajectory.Evald(discrsvect[i],qdprev);
 
     for(int i=1; i<ndiscrsteps-1; i++) {
         trajectory.Evald(discrsvect[i],qd);
+        trajectory.Evaldd(discrsvect[i],qdd);
+        for(int j=0; j<trajectory.dimension; j++) {
+            if(qd[j] > 0) {
+                a_alpha[j] = -amax[j];
+                a_beta[j] = amax[j];
+            }
+            else{
+                a_alpha[j] = amax[j];
+                a_beta[j] = -amax[j];
+            }
+        }
+        dReal minsd = mvcbobrow[i];
+        bool found = false;
         for(int j=0; j<trajectory.dimension; j++) {
             if(qd[j]*qdprev[j]<0) {
-                AddSwitchPoint(i,SP_SINGULAR);
-                continue;
+                found = true;
+                if(a_beta[j]/qdd[j]<0) {
+                    minsd = std::min(minsd,sqrt(-a_beta[j]/qdd[j]));
+                }
+                else{
+                    minsd = std::min(minsd,sqrt(a_beta[j]/qdd[j]));
+                }
             }
+        }
+        if(found) {
+            AddSwitchPoint(i,SP_SINGULAR,minsd);
         }
         qdprev = qd;
     }

@@ -185,13 +185,16 @@ Trajectory::Trajectory(const std::string& trajectorystring) {
             iss.getline(buff, buffsize);
             polynomialsvector.push_back(Polynomial(std::string(buff)));
         }
-        chunkslist0.push_back(Chunk(duration,polynomialsvector));
+        if(duration>TINY) {
+            chunkslist0.push_back(Chunk(duration,polynomialsvector));
+        }
     }
     InitFromChunksList(chunkslist0);
 }
 
 
 void Trajectory::FindChunkIndex(dReal s, int& index, dReal& remainder) {
+
     std::list<dReal>::iterator it = chunkcumulateddurationslist.begin();
     if(s <= TINY) {
         index = 0;
@@ -317,7 +320,8 @@ void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
     // Process all chunks that have been overpassed
     while(currentchunkindex<chunkindex) {
         if(itcurrentchunk->duration-processedcursor>=TINY) {
-            assert(SolveQuadraticEquation(s-itcurrentchunk->send,sd,0.5*sdd,tnext,t,T));
+            bool res = SolveQuadraticEquation(s-itcurrentchunk->send,sd,0.5*sdd,tnext,t,T);
+            assert(res);
             ComputeChunk(t,tnext,s-itcurrentchunk->sbegin,sd,sdd,*itcurrentchunk,newchunk);
             chunkslist.push_back(newchunk);
             t = tnext;
@@ -328,7 +332,8 @@ void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
     }
 
     // Process current chunk
-    assert(SolveQuadraticEquation((s-itcurrentchunk->sbegin)-remainder,sd,0.5*sdd,tnext,t,T));
+    bool res = SolveQuadraticEquation((s-itcurrentchunk->sbegin)-remainder,sd,0.5*sdd,tnext,t,T);
+    assert(res);
     ComputeChunk(t,tnext,s-itcurrentchunk->sbegin,sd,sdd,*itcurrentchunk,newchunk);
     chunkslist.push_back(newchunk);
     processedcursor = remainder;
@@ -374,7 +379,7 @@ int Trajectory::Reparameterize(Constraints& constraints, Trajectory& restrajecto
         sdd = profile.Evaldd(tres);
         sdnext = sdcur + dt*sdd;
         snext = scur + dt*sdcur + 0.5*dtsq*sdd;
-        if(snext >= scur+TINY && FindLowestProfile(snext,profile,tres,constraints.resprofileslist)) {
+        if(snext >= scur+TINY && snext<= duration && FindLowestProfile(snext,profile,tres,constraints.resprofileslist)) {
             sdnext2 = profile.Evald(tres);
             dtmod = dt;
             // If discrepancy between integrated sd and profile's sd then

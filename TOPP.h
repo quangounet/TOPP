@@ -65,6 +65,8 @@ public:
     dReal integrationtimestep; // Time step to integrate the profiles, usually 0.01
     dReal reparamtimestep; // Time step for the reparameterization, usually 0.01. If 0, set reparamtimestep so as to keep the number of discretization points unchanged
     int passswitchpointnsteps; // Number of steps to integrate from the switch point when assessing whether it's addressable
+    dReal tangentstublength;
+    dReal singularstublength;
     dReal bisectionprecision; //Precision for the sd search, set to 0.01 by default
     dReal loweringcoef; //While addressing switchpoints, lower sd by loweringcoef. Set to 0.9
 };
@@ -169,6 +171,9 @@ public:
     // Write the MVC to stringstreams
     void WriteMVCBobrow(std::stringstream& ss, dReal dt=0.01);
     void WriteMVCDirect(std::stringstream& ss, dReal dt=0.01);
+    virtual void WriteExtra(std::stringstream& ss){
+        return;
+    }
 
     // Linear interpolation
     dReal Interpolate1D(dReal s, const std::vector<dReal>& v);
@@ -195,6 +200,12 @@ public:
         std::cout << "Virtual method not implemented\n";
         throw "Virtual method not implemented";
     }
+    virtual dReal SddLimitAlpha(dReal s, dReal sd){
+        return SddLimits(s, sd).first;
+    }
+    virtual dReal SddLimitBeta(dReal s, dReal sd){
+        return SddLimits(s, sd).second;
+    }
 
 
     ///////////////////////// Switch Points ///////////////////////
@@ -211,6 +222,14 @@ public:
         std::cout << "Virtual method not implemented\n";
         throw "Virtual method not implemented";
     }
+
+    virtual void FixStart(dReal& sstartnew,dReal& sdstartnew){
+        sstartnew = 0;
+    }
+    virtual void FixEnd(dReal& sendnew,dReal& sdendnew){
+        sendnew = trajectory.duration;
+    }
+
     virtual void FindSingularSwitchPoints(){
         std::cout << "Virtual method not implemented\n";
         throw "Virtual method not implemented";
@@ -245,6 +264,8 @@ public:
     int nconstraints;  // Number of constraints
     std::vector<std::vector<dReal> > avect, bvect, cvect;  // Dynamics coefficients
     void InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c);   // Linearly interpolate the dynamics coefficients a,b,c
+    void FixStart(dReal& sstartnew,dReal& sdstartnew);
+    void FixEnd(dReal& sendnew,dReal& sdendnew);
 
 };
 
@@ -310,11 +331,18 @@ void VectorFromString(const std::string& s,std::vector<dReal>&resvect);
 bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal& sol, dReal lowerbound=-INF, dReal upperbound=INF);
 
 // Check whether the point (s,sd) is above at least one profile in the list
-bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>& resprofileslist, bool searchbackward=false);
+bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>&resprofileslist, bool searchbackward=false, dReal softborder=TINY2);
 
 // Find the lowest profile at s
 // Return false if no profile covers s, true otherwise
 bool FindLowestProfile(dReal s, Profile& profile, dReal& tres, std::list<Profile>& resprofileslist);
+
+void CheckInsert(std::list<std::pair<dReal,dReal> >& reslist, std::pair<dReal,dReal> e, bool inverse = false);
+void FindMaxima(const std::list<std::pair<dReal,dReal> >& origlist, std::list<std::pair<dReal,dReal> >& reslist, bool inverse = false);
+
+Profile StraightProfile(dReal sbackward,dReal sforward,dReal sdbackward,dReal sdforward);
+
+
 
 }
 

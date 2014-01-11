@@ -66,6 +66,7 @@ public:
 
     Tunings tunings;
     std::string restrajectorystring;
+    std::string resextrastring;
     std::string resprofilesliststring;
     std::string switchpointsliststring;
     TOPP::dReal resduration;
@@ -120,12 +121,13 @@ public:
     void WriteProfilesList(){
         std::list<Profile>::iterator itprofile = pconstraints->resprofileslist.begin();
         std::stringstream ss;
-        pconstraints->WriteMVCBobrow(ss,tunings.discrtimestep);
+        TOPP::dReal dt = 1e-4;
+        pconstraints->WriteMVCBobrow(ss,dt);
         ss << "\n";
-        pconstraints->WriteMVCDirect(ss,tunings.discrtimestep);
+        pconstraints->WriteMVCDirect(ss,dt);
         ss << "\n";
         while(itprofile!=pconstraints->resprofileslist.end()) {
-            itprofile->Write(ss);
+            itprofile->Write(ss,dt);
             ss << "\n";
             itprofile++;
         }
@@ -141,6 +143,14 @@ public:
         }
         switchpointsliststring = ss.str();
     }
+
+    void WriteExtra(){
+        std::stringstream ss;
+        pconstraints->WriteExtra(ss);
+        resextrastring = ss.str();
+
+    }
+
 };
 
 
@@ -150,6 +160,7 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
                          init<std::string,std::string,std::string,std::string,object>())
     .def_readonly("restrajectorystring", &TOPPInstance::restrajectorystring)
     .def_readonly("resprofilesliststring", &TOPPInstance::resprofilesliststring)
+    .def_readonly("resextrastring", &TOPPInstance::resextrastring)
     .def_readonly("switchpointsliststring", &TOPPInstance::switchpointsliststring)
     .def_readonly("resduration", &TOPPInstance::resduration)
     .def_readonly("sdendmin", &TOPPInstance::sdendmin)
@@ -162,5 +173,6 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def("RunVIP",&TOPPInstance::RunVIP)
     .def("WriteResultTrajectory",&TOPPInstance::WriteResultTrajectory)
     .def("WriteProfilesList",&TOPPInstance::WriteProfilesList)
+    .def("WriteExtra",&TOPPInstance::WriteExtra)
     .def("WriteSwitchPointsList",&TOPPInstance::WriteSwitchPointsList);
 }
