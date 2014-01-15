@@ -18,13 +18,14 @@
 
 #include "FrictionLimits.h"
 #include <math.h>
+#include <cmath>
 
 #define CLA_Nothing 0
 
 using namespace OpenRAVE;
 
 namespace TOPP {
-
+  
   FrictionLimits::FrictionLimits(const std::string& constraintstring, Trajectory* ptraj, const Tunings& tunings, RobotBasePtr probot0) {
     int buffsize = BUFFSIZE;
     char buff[buffsize];
@@ -61,14 +62,11 @@ namespace TOPP {
     int traylinkindex = nlink - 2;
     
     mb = linksvector[bottlelinkindex]->GetMass();
-    mt = linksvector[traylinkindex]->GetMass();
     
     dReal dx = objspecs[0];
     dReal dy = objspecs[1];
     dReal bottleh = objspecs[2];
-
-    Vector basedim(dx, dy, 0);
-    
+     
     Vector g = probot->GetEnv()->GetPhysicsEngine()->GetGravity();
     Vector worldx(1, 0, 0), worldy(0, 1, 0), worldz(0, 0, 1);
     
@@ -107,7 +105,7 @@ namespace TOPP {
 	bool qdiszero = norm_qd < TINY;
 	
 	if(!qdiszero) {
-	  VectorAdd(q, qd, qplusdeltaqd, delta/norm_qd);
+	  VectorAdd(q, qd, qplusdeltaqd, 1, delta/norm_qd);
 	}
 	
 	RaveTransform<dReal> Htray = probot->GetLinks()[traylinkindex]->GetTransform();
@@ -128,7 +126,7 @@ namespace TOPP {
 	probot->CalculateJacobian(traylinkindex, Pt, jacobiant_p);
 	probot->CalculateAngularVelocityJacobian(traylinkindex, jacobiant_o);
 
-	if(~qdiszero) {
+	if(!qdiszero) {
 	  //******** Set new DOF values and compute derivatives of Jacobians **********
 	  probot->SetDOFValues(qplusdeltaqd, CLA_Nothing);
 	  
@@ -190,7 +188,7 @@ namespace TOPP {
 	a.push_back(ny.dot3(fs) - (mu/r2)*Ns);
 	b.push_back(ny.dot3(fss) - (mu/r2)*Nss);
 	c.push_back(ny.dot3(f0) - (mu/r2)*N0);
-
+	
 	a.push_back(-ny.dot3(fs) - (mu/r2)*Ns);
 	b.push_back(-ny.dot3(fss) - (mu/r2)*Nss);
 	c.push_back(-ny.dot3(f0) - (mu/r2)*N0);
@@ -250,6 +248,7 @@ namespace TOPP {
 	b.push_back(-nybottle.dot3(Kss) - dy*Nss);
 	c.push_back(-nybottle.dot3(K0) - dy*N0);
 	
+	//std::cout << Ns << "\t" << Nss << "\t" << N0 << "\t" << "\n";
 	avect.push_back(a);
 	bvect.push_back(b);
 	cvect.push_back(c);
@@ -329,9 +328,9 @@ namespace TOPP {
     resy = H.rotate(y);
     resz = H.rotate(z);
     
-    I[0][0] = resx[0]; I[1][0] = resx[1]; I[2][0] = resx[2];
-    I[0][1] = resy[0]; I[1][1] = resy[1]; I[2][1] = resy[2];
-    I[0][2] = resz[0]; I[1][2] = resz[1]; I[2][2] = resz[2];
+    I[0][0] = resx[0]; I[0][1] = resy[0]; I[0][2] = resz[0];
+    I[1][0] = resx[1]; I[1][1] = resy[1]; I[1][2] = resz[1];
+    I[2][0] = resx[2]; I[2][1] = resy[2]; I[2][2] = resz[2];
     return I;
   }
 
@@ -344,9 +343,9 @@ namespace TOPP {
     resy = H.rotate(y);
     resz = H.rotate(z);
     
-    R[0][0] = resx[0]; R[1][0] = resx[1]; R[2][0] = resx[2];
-    R[0][1] = resy[0]; R[1][1] = resy[1]; R[2][1] = resy[2];
-    R[0][2] = resz[0]; R[1][2] = resz[1]; R[2][2] = resz[2];
+    R[0][0] = resx[0]; R[0][1] = resy[0]; R[0][2] = resz[0]; 
+    R[1][0] = resx[1]; R[1][1] = resy[1]; R[1][2] = resz[1]; 
+    R[2][0] = resx[2]; R[2][1] = resy[2]; R[2][2] = resz[2];
     return R;
   }
   
