@@ -81,6 +81,7 @@ namespace TOPP {
     boost::multi_array<dReal, 2> jacobiant_p, jacobiant_o, jacobiant_pdelta, jacobiant_odelta,
       jacobiant_pdiff(boost::extents[3][ndof]), jacobiant_odiff(boost::extents[3][ndof]);
     
+    eps = 1e-10;
     dReal delta = TINY2;
     int ndiscrsteps = int((ptraj->duration + 1e-10)/tunings.discrtimestep) + 1;
 
@@ -164,7 +165,7 @@ namespace TOPP {
 	//**************** CONSTRAINT I : N >= 0 *****************
 	a.push_back(-Ns);
 	b.push_back(-Nss);
-	c.push_back(-N0);
+	c.push_back(eps - N0);
 	//********************************************************
 	
 	Vector fs, fss, f0;
@@ -195,7 +196,7 @@ namespace TOPP {
 	//********************************************************************
 	
 	//********************* Calculate the rate of change of the momentum ******************************
-	Vector Mbs, Mbss;
+	Vector Ms, Mss;
 	RaveTransformMatrix<dReal> matIb;
 	boost::multi_array<dReal, 2> localIb(boost::extents[3][3]), Ib(boost::extents[3][3]);
 	
@@ -209,14 +210,14 @@ namespace TOPP {
 	Vector temp1 = MatrixMultVector(jacobiant_o, qd);
 	Vector temp2 = MatrixMultVector(jacobiant_o, qdd) + MatrixMultVector(jacobiant_odiff, qd);
 	
-	Mbs = MatrixMultVector(Ib, temp1);
-	Mbss = MatrixMultVector(Ib, temp2) + temp1.cross(Mbs);
+	Ms = MatrixMultVector(Ib, temp1);
+	Mss = MatrixMultVector(Ib, temp2) + temp1.cross(Ms);
 	//*************************************************************************************************
 	
 	Vector Es, Ess, E0;
 	
-	Es = nz.cross(Mbs) + mb*bottleh*Pts;
-	Ess = nz.cross(Mbss) + mb*bottleh*Ptss;
+	Es = nz.cross(Ms) + mb*bottleh*Pts;
+	Ess = nz.cross(Mss) + mb*bottleh*Ptss;
 	E0 = -mb*bottleh*g;
 	
 	Vector nxbottle = Hbottle.rotate(worldx);

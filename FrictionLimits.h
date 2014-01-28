@@ -48,6 +48,7 @@ namespace TOPP {
     int nlink;
     dReal mb; // bottle's mass
     dReal mt; // tray's mass
+    dReal eps;
     std::vector<dReal> objspecs; // dx(half width), dy(hale depth), half height (of the bottle)
     std::vector<dReal> activelinks;
     std::vector<KinBody::LinkPtr> linksvector; // Vector of pointers to the links
