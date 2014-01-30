@@ -46,8 +46,8 @@ def AVP(robot, traj, sdbegmin, sdbegmax, activedofs, activelinks, taumin,
 
 
 def Reparameterize(robot, traj, sdbegmin, sdbegmax, activedofs, activelinks,
-                   taumin, taumax, zmplimits, vmax, **kwargs):
+                   taumin, taumax, zmplimits, vmax, qdefault, **kwargs):
     rave_instance = RaveInstance(
         robot, traj, activedofs, activelinks, taumin, taumax, zmplimits, vmax,
-        **kwargs)
+        qdefault, **kwargs)
     return rave_instance.GetTrajectory(sdbegmin, sdbegmax)
