@@ -23,7 +23,7 @@ class RaveInstance(TOPPpy.RaveInstance):
         constraintstring += "\n" + vect2str(vmax)
         constraintstring += "\n" + vect2str(qdefault)
 
-        print "tuningsstring = \"\"\"" + tuningsstring + "\"\"\"\n"
+        print "\ntuningsstring = \"\"\"" + tuningsstring + "\"\"\"\n"
         print "constraintstring = \"\"\"" + constraintstring + "\"\"\"\n"
         print "trajectorystring = \"\"\"" + str(traj) + "\"\"\"\n"
 

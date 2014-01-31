@@ -216,7 +216,7 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=1):
     axis([0, s_max, 0, sd_max])
     title('Maximum Velocity Curves and profiles',fontsize=20)
     xlabel('$s$',fontsize=22)
-    ylabel('$\dot s$',fontsize=22)    
+    ylabel('$\dot s$',fontsize=22)
     return s_max, sd_max  # return this for PlotPhase (yurk!)
 
 
@@ -268,7 +268,7 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
     traj1.Plot(dt)
     title('Joint values',fontsize=20)
     xlabel('Time (s)',fontsize=18)
-    ylabel('Joint values (rad)',fontsize=18)    
+    ylabel('Joint values (rad)',fontsize=18)
     # Velocity
     figure(figstart + 1)
     clf()
@@ -289,7 +289,7 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
         axis([0, Tmax, -Vmax, Vmax])
     title('Joint velocities',fontsize=20)
     xlabel('Time (s)',fontsize=18)
-    ylabel('Joint velocities (rad/s)',fontsize=18)    
+    ylabel('Joint velocities (rad/s)',fontsize=18)
     # Acceleration
     figure(figstart + 2)
     clf()
@@ -308,7 +308,7 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
         axis([0, Tmax, -Amax, Amax])
     title('Joint accelerations',fontsize=20)
     xlabel('Time (s)',fontsize=18)
-    ylabel('Joint accelerations (rad/s^2)',fontsize=18)    
+    ylabel('Joint accelerations (rad/s^2)',fontsize=18)
 
 
 def string2p(s):
