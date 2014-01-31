@@ -59,9 +59,9 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
     probot = probot0;
     activelinks = activelinks0;
 
-    //Check soundness
-    assert(int(activedofs.size()) == probot->GetDOF());
-    assert(int(qdefault.size()) == probot->GetDOF());
+    // Check soundness
+    assert(int(activedofs.size()) == probot->GetDOF());  // TODO: why casting an int???
+    assert(qdefault.size() == probot->GetDOF());
     assert(activelinks.size() == probot->GetLinks().size());
     assert(zmplimits.size() == 4);
 
