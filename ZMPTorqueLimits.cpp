@@ -55,14 +55,13 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
     iss.getline(buff,buffsize);
     VectorFromString(std::string(buff),qdefault);
 
-    maxrep = 5;
-
     hasvelocitylimits = VectorMax(vmax) > TINY;
     probot = probot0;
     activelinks = activelinks0;
 
     //Check soundness
     assert(int(activedofs.size()) == probot->GetDOF());
+    assert(int(qdefault.size()) == probot->GetDOF());
     assert(activelinks.size() == probot->GetLinks().size());
     assert(zmplimits.size() == 4);
 
@@ -171,9 +170,9 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
                 Vector tau,h;
                 Vector Atau, Btau, Ctau, Cisum, Ah, Bh, Ch;
                 for(int i=0; i < int(nlink0); i++) {
-                    if(activelinks[i]<=TINY) {
+                    if(activelinks[i]<=TINY)
                         continue;
-                    }
+
                     // Set DOFValues to q and extract jacobian
                     probot->SetDOFValues(qfilled,CLA_Nothing);
                     ci = linksvector[i]->GetGlobalCOM();
