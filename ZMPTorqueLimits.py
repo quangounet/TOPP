@@ -6,7 +6,7 @@ from TOPPpy import vect2str
 
 class RaveInstance(TOPPpy.RaveInstance):
     def __init__(self, robot, traj, activedofs, activelinks, taumin,
-                 taumax, zmplimits, vmax, qdefault, **kwargs):
+                 taumax, zmplimits, vmax, qdefault, support_foot, **kwargs):
         super(RaveInstance, self).__init__(robot, traj, taumin, taumax, vmax,
                                            **kwargs)
 
@@ -22,6 +22,7 @@ class RaveInstance(TOPPpy.RaveInstance):
         constraintstring += "\n" + vect2str(zmplimits)
         constraintstring += "\n" + vect2str(vmax)
         constraintstring += "\n" + vect2str(qdefault)
+        constraintstring += "\n" + support_foot
 
         print "\ntuningsstring = \"\"\"" + tuningsstring + "\"\"\"\n"
         print "constraintstring = \"\"\"" + constraintstring + "\"\"\"\n"
@@ -38,16 +39,17 @@ class RaveInstance(TOPPpy.RaveInstance):
 
 
 def AVP(robot, traj, sdbegmin, sdbegmax, activedofs, activelinks, taumin,
-        taumax, zmplimits, vmax, qdefault, **kwargs):
+        taumax, zmplimits, vmax, qdefault, support_foot, **kwargs):
     rave_instance = RaveInstance(
         robot, traj, activedofs, activelinks, taumin, taumax, zmplimits, vmax,
-        qdefault, **kwargs)
+        qdefault, support_foot, **kwargs)
     return rave_instance.GetAVP(sdbegmin, sdbegmax)
 
 
 def Reparameterize(robot, traj, sdbegmin, sdbegmax, activedofs, activelinks,
-                   taumin, taumax, zmplimits, vmax, qdefault, **kwargs):
+                   taumin, taumax, zmplimits, vmax, qdefault, support_foot,
+                   **kwargs):
     rave_instance = RaveInstance(
         robot, traj, activedofs, activelinks, taumin, taumax, zmplimits, vmax,
-        qdefault, **kwargs)
+        qdefault, support_foot, **kwargs)
     return rave_instance.GetTrajectory(sdbegmin, sdbegmax)

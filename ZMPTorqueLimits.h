@@ -55,6 +55,7 @@ public:
     std::vector<int> dofsvector; // Vector of indices of active dofs
     std::vector<dReal> mass;
     std::vector<dReal> qdefault;
+    std::string supportfootlinkname;
 
     Vector COM(std::vector<dReal>& qfilled);
     Vector ZMP(std::vector<dReal>& qfilled, std::vector<dReal>& qdfilled, std::vector<dReal>& qddfilled, bool withangularmomentum=false);

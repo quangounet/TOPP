@@ -54,6 +54,8 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
     VectorFromString(std::string(buff),vmax);
     iss.getline(buff,buffsize);
     VectorFromString(std::string(buff),qdefault);
+    iss.getline(buff,buffsize);
+    supportfootlinkname = std::string(buff);
 
     hasvelocitylimits = VectorMax(vmax) > TINY;
     probot = probot0;
@@ -61,7 +63,7 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
 
     // Check soundness
     assert(int(activedofs.size()) == probot->GetDOF());  // TODO: why casting an int???
-    assert(qdefault.size() == probot->GetDOF());
+    assert(int(qdefault.size()) == probot->GetDOF());
     assert(activelinks.size() == probot->GetLinks().size());
     assert(zmplimits.size() == 4);
 
@@ -408,15 +410,7 @@ void ZMPTorqueLimits::ComputeInverseDynamicsSingleSupport(std::vector<dReal>& do
     int nbdof = probot->GetDOF();
     int nbactivedof = nbdof - 6;
     int baselinkstart = nbactivedof;
-
-    // Detect the support foot
-    KinBody::LinkPtr leftfoot = probot->GetLink("L_FOOT_LINK");
-    KinBody::LinkPtr rightfoot = probot->GetLink("R_FOOT_LINK");
-    Transform lefttrans = leftfoot->GetTransform();
-    Transform righttrans = rightfoot->GetTransform();
-    dReal zdiff = lefttrans.trans.z - righttrans.trans.z;
-    assert(zdiff < -SINGLE_SUPPORT_Z_DIFF || zdiff > +SINGLE_SUPPORT_Z_DIFF);
-    KinBody::LinkPtr foot = (zdiff < 0) ? leftfoot : rightfoot;
+    KinBody::LinkPtr foot = probot->GetLink(supportfootlinkname);
 
     // Compute the flying-base inverse dynamics
     boost::multi_array<dReal,2> mjacobiantrans;
