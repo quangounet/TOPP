@@ -273,6 +273,7 @@ Vector ZMPTorqueLimits::COM(std::vector<dReal>& qfilled){
 
 
 Vector ZMPTorqueLimits::ZMP(std::vector<dReal>& qfilled, std::vector<dReal>& qdfilled, std::vector<dReal>& qddfilled, bool withangularmomentum){
+    assert(!withangularmomentum);  // not implemented
     Vector tau0;
     Vector g = probot->GetEnv()->GetPhysicsEngine()->GetGravity();
     dReal f02 = totalmass * g[2];
