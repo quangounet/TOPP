@@ -57,7 +57,7 @@ public:
         //else if (problemtype.compare("ZMPTorqueLimits")==0)
         //    pconstraints = new ZMPTorqueLimits(constraintsstring,ptrajectory,tunings,probot);
 	else if (problemtype.compare("FrictionLimits")==0)
-	  pconstraints = new FrictionLimits(constraintsstring, ptrajectory, tunings, probot);
+	    pconstraints = new FrictionLimits(constraintsstring, ptrajectory, tunings, probot);
     }
 
     Constraints* pconstraints;
@@ -70,7 +70,8 @@ public:
     std::string resprofilesliststring;
     std::string switchpointsliststring;
     TOPP::dReal resduration;
-    TOPP::dReal sdendmin,sdendmax;
+    TOPP::dReal sdendmin, sdendmax;
+    TOPP::dReal sdbegmin, sdbegmax;
 
 
     TOPP::dReal GetAlpha(TOPP::dReal s, TOPP::dReal sd) {
@@ -98,7 +99,9 @@ public:
     }
 
 
-    int RunVIP(TOPP::dReal sdbegmin, TOPP::dReal sdbegmax){
+    int RunVIP(TOPP::dReal sdbeg1, TOPP::dReal sdbeg2){
+	sdbegmin = sdbeg1;
+	sdbegmax = sdbeg2;
         int ret = VIP(*pconstraints, *ptrajectory, tunings, sdbegmin, sdbegmax,
                       sdendmin, sdendmax);
         if(ret == 0) {
@@ -106,6 +109,18 @@ public:
             sdendmax = -1;
         }
         return ret;
+    }
+
+    int RunVIPBackward(TOPP::dReal sdend1, TOPP::dReal sdend2){
+	sdendmin = sdend1;
+	sdendmax = sdend2;
+	int ret = VIPBackward(*pconstraints, *ptrajectory, tunings, sdbegmin, sdbegmax,
+			      sdendmin, sdendmax);
+	if(ret == 0) {
+	    sdbegmin = -1;
+	    sdbegmax = -1;
+	}
+	return ret;
     }
 
     void WriteResultTrajectory(){
@@ -163,6 +178,8 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def_readonly("resextrastring", &TOPPInstance::resextrastring)
     .def_readonly("switchpointsliststring", &TOPPInstance::switchpointsliststring)
     .def_readonly("resduration", &TOPPInstance::resduration)
+    .def_readonly("sdbegmin", &TOPPInstance::sdbegmin)
+    .def_readonly("sdbegmax", &TOPPInstance::sdbegmax)
     .def_readonly("sdendmin", &TOPPInstance::sdendmin)
     .def_readonly("sdendmax", &TOPPInstance::sdendmax)
     .def_readonly("pconstraints", &TOPPInstance::pconstraints)
@@ -171,6 +188,7 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def("RunComputeProfiles",&TOPPInstance::RunComputeProfiles)
     .def("ReparameterizeTrajectory",&TOPPInstance::ReparameterizeTrajectory)
     .def("RunVIP",&TOPPInstance::RunVIP)
+    .def("RunVIPBackward",&TOPPInstance::RunVIPBackward)
     .def("WriteResultTrajectory",&TOPPInstance::WriteResultTrajectory)
     .def("WriteProfilesList",&TOPPInstance::WriteProfilesList)
     .def("WriteExtra",&TOPPInstance::WriteExtra)

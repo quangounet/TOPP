@@ -1694,7 +1694,7 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
 
 
     if(!integrateprofilesstatus) {
-        std::cout << "[TOPP::ComputeProfiles] " << message << " \n ";
+        std::cout << "[TOPP::ComputeProfiles] " << message << "\n";
         return 0;
     }
 
@@ -1716,13 +1716,13 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
 
 int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbegmin, dReal sdbegmax, dReal& sdendmin, dReal& sdendmax){
     if (trajectory.duration <= 0) {
-        std::cout << "[TOPP::VIP] Warning : trajectory duration is <= 0 \n ";
+        std::cout << "[TOPP::VIP] Warning : trajectory duration is <= 0 \n";
         return 0;
     }
 
     constraints.Preprocess(trajectory,tunings);
     if(VectorMin(constraints.mvcbobrow) <= TINY) {
-        std::cout << "[TOPP::VIP] MVCBobrow hit 0 \n ";
+        std::cout << "[TOPP::VIP] MVCBobrow hit 0 \n";
         return 0;
     }
 
@@ -1733,7 +1733,7 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
     // Compute the limiting curves
     int resclc = ComputeLimitingCurves(constraints);
     if(resclc == CLC_SWITCH || resclc == CLC_BOTTOM) {
-        std::cout << "[TOPP::VIP] resclc == CLC_SWITCH or CLC_BOTTOM \n ";
+        std::cout << "[TOPP::VIP] resclc == CLC_SWITCH or CLC_BOTTOM \n";
         return 0;
     }
 
@@ -1745,7 +1745,7 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
         bound = constraints.mvccombined[0];
 
     if(sdbegmin>bound) {
-        std::cout << "[TOPP::VIP] sdbegmin is above the combined MVC \n ";
+        std::cout << "[TOPP::VIP] sdbegmin is above the combined MVC \n";
         return 0;
     }
 
@@ -1757,10 +1757,10 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
     int resintfw = IntegrateForward(constraints,0,sdbegmax,constraints.tunings.integrationtimestep,tmpprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
     constraints.resprofileslist.push_back(tmpprofile);
     if(resintfw == INT_BOTTOM) {
-        std::cout << "[TOPP::VIP] Forward integration hit sd=0 \n ";
+        std::cout << "[TOPP::VIP] Forward integration hit sd = 0 \n";
         return 0;
     }
-    else if (resintfw == INT_END && tmpprofile.Eval(tmpprofile.duration) <= constraints.mvccombined[constraints.mvccombined.size() - 1])
+    else if (resintfw == INT_END && tmpprofile.Evald(tmpprofile.duration) <= constraints.mvccombined[constraints.mvccombined.size() - 1])
         sdendmax = tmpprofile.Evald(tmpprofile.duration);
     else if (resintfw == INT_MVC || resintfw == INT_PROFILE) {
         // Look for the lowest profile at the end
@@ -1808,6 +1808,110 @@ int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dRea
             sdlower = sdtest;
     }
     sdendmin = sdupper;
+    constraints.resprofileslist.push_back(bestprofile);
+
+    return 1;
+}
+
+
+int VIPBackward(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal& sdbegmin, dReal& sdbegmax, dReal sdendmin, dReal sdendmax) {
+    if (trajectory.duration <= 0) {
+        std::cout << "[TOPP::VIPBackward] Warning : trajectory duration is <= 0 \n";
+        return 0;
+    }
+    
+    constraints.Preprocess(trajectory, tunings);
+    if(VectorMin(constraints.mvcbobrow) <= TINY) {
+        std::cout << "[TOPP::VIPBackward] MVCBobrow hit 0 \n";
+        return 0;
+    }
+
+    Profile tmpprofile;
+    dReal tres;
+    dReal smallincrement = constraints.tunings.integrationtimestep*2;
+
+    // Compute the limiting curves
+    int resclc = ComputeLimitingCurves(constraints);
+    if (resclc == CLC_SWITCH || resclc == CLC_BOTTOM) {
+        std::cout << "[TOPP::VIPBackward] resclc == CLC_SWITCH or CLC_BOTTOM \n";
+        return 0;
+    }
+
+    // Determine the lowest profile at send
+    dReal bound;
+    if (FindLowestProfile(trajectory.duration, tmpprofile, tres, constraints.resprofileslist))
+        bound = std::min(tmpprofile.Evald(tres), constraints.mvccombined[constraints.mvccombined.size() - 1]);
+    else // just to make sure the profile is below mvccombined
+        bound = constraints.mvccombined[constraints.mvccombined.size() - 1];
+
+    if (sdendmin > bound) {
+        std::cout << "[TOPP::VIPBackward] sdendmin is above the combined MVC \n";
+        return 0;
+    }
+
+    sdendmax = std::min(sdendmax, bound-tunings.bisectionprecision);
+
+    bool testaboveexistingprofiles = true, testmvc = true, zlajpah = true;
+    
+    // Compute sdbegmax by integrating backward from (send, sdendmax)
+    int resintbw = IntegrateBackward(constraints, trajectory.duration, sdendmax, constraints.tunings.integrationtimestep, tmpprofile, 1e5, testaboveexistingprofiles, testmvc, zlajpah);
+    constraints.resprofileslist.push_back(tmpprofile);
+    if (resintbw == INT_BOTTOM) {
+	std::cout << "[TOPP::VIPBackward] Backward integration hits sd = 0 \n";
+	return 0;
+    }
+    // Phi profile reaches s = 0
+    else if (resintbw == INT_END && tmpprofile.Evald(0) <= constraints.mvccombined[0]) {
+	// Phi profile reaches s = 0 and is below mvccombined
+	sdbegmax = tmpprofile.Evald(0);
+    }
+    // Phi profile hits MVC or CLC
+    else if (resintbw == INT_MVC || resintbw == INT_PROFILE) {
+	// Look for the lowest profile at s = 0
+	if (FindLowestProfile(smallincrement, tmpprofile, tres, constraints.resprofileslist) && tmpprofile.Evald(tres) <= constraints.mvccombined[0])
+	    sdbegmax = tmpprofile.Evald(tres);
+	else {
+	    // No profile reaches s = 0, consider the MVC instead
+	    sdbegmax = constraints.mvccombined[0] - smallincrement;
+	    int count = 0;
+	    int resintfw;
+	    dReal dint = constraints.tunings.integrationtimestep;
+	    // If integrating from sdbegmax fails with INT_BOTTOM or INT_MVC, then the trajectory is not traversable. However, since integrating forward from a high sdbegmax can be risky, we give three chances by decreasing the value of the integration step.
+	    while (count < 3) {
+		count++;
+		resintfw = IntegrateForward(constraints, 0, sdbegmax, dint, tmpprofile, 1e5);
+		if (resintfw != INT_BOTTOM && resintfw != INT_MVC) {
+		    break;
+		}
+		dint /= 3.3;
+	    }
+	    if (resintfw == INT_BOTTOM || resintbw == INT_MVC)
+		return 0;
+	}
+    }
+    
+    // Integrate from (0, 0). If succeeds, then sdbegmin = 0 and exit.
+    int resintfw = IntegrateForward(constraints, 0, 0, constraints.tunings.integrationtimestep, tmpprofile, 1e5);
+    if ((resintfw == INT_END && tmpprofile.Evald(tmpprofile.duration) >= sdendmin) || resintfw == INT_PROFILE) {
+	constraints.resprofileslist.push_back(tmpprofile);
+	sdbegmin = 0;
+	return 1;
+    }
+
+    // If sdbegmin != 0, determine sdbegmin by bisection
+    dReal sdupper = sdbegmax, sdlower = 0;
+    Profile bestprofile;
+    while (sdupper - sdlower > tunings.bisectionprecision) {
+	dReal sdtest = (sdupper + sdlower)/2;
+	int resintfw2 = IntegrateForward(constraints, 0, sdtest, constraints.tunings.integrationtimestep, tmpprofile, 1e5);
+	if ((resintfw2 == INT_END && tmpprofile.Evald(tmpprofile.duration) >= sdendmin) || resintfw2 == INT_PROFILE) {
+	    sdupper = sdtest;
+	    bestprofile = tmpprofile;
+	}
+	else
+	    sdlower = sdtest;
+    }
+    sdbegmin = sdupper;
     constraints.resprofileslist.push_back(bestprofile);
 
     return 1;

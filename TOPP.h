@@ -307,7 +307,8 @@ int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& t
 // Velocity Interval Propagation
 int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbegmin, dReal sdbegmax, dReal& sdendmin, dReal& sdendmax);
 
-
+// Velocity Interval Propagation (implemented backward)
+int VIPBackward(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal& sdbegmin, dReal& sdbegmax, dReal sdendmin, dReal sdendmax);
 
 
 //////// ////////////////////////////////////////////////////////////
