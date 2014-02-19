@@ -35,9 +35,22 @@ def ComputeTorquesConstraints(robot,traj,taumin,taumax,discrtimestep):
             robot.SetDOFVelocities(qd)
             tm,tc,tg = robot.ComputeInverseDynamics(qdd,None,returncomponents=True)
             to = robot.ComputeInverseDynamics(qd) - tc - tg
-            constraintstring += "\n" + string.join([str(x) for x in to]) + " " + string.join([str(x) for x in -to])
-            constraintstring += "\n" + string.join([str(x) for x in tm+tc]) + " " + string.join([str(x) for x in -tm-tc]) 
-            constraintstring += "\n" + string.join([str(x) for x in tg-taumax]) + " " + string.join([str(x) for x in -tg+taumin])
+            avect = []
+            bvect = []
+            cvect = []
+            for i in range(len(taumax)):
+                if abs(taumax[i]) > 1e-10:
+                    avect.append(to[i])
+                    bvect.append(tm[i]+tc[i])
+                    cvect.append(tg[i]-taumax[i])
+            for i in range(len(taumin)):
+                if abs(taumin[i]) > 1e-10:
+                    avect.append(-to[i])
+                    bvect.append(-tm[i]-tc[i])
+                    cvect.append(-tg[i]+taumin[i])
+            constraintstring += "\n" + string.join([str(a) for a in avect])
+            constraintstring += "\n" + string.join([str(b) for b in bvect])
+            constraintstring += "\n" + string.join([str(c) for c in cvect])
     return constraintstring
 
 
@@ -75,8 +88,10 @@ def PlotTorques(robot,traj0,traj1,dt=0.001,taumin=[],taumax=[],figstart=0):
     plot(tvect0,tauvect0,'--',linewidth=2)
     ax.set_color_cycle(colorcycle)
     plot(tvect1,tauvect1,linewidth=2)
+    ax.set_color_cycle(colorcycle)
     for a in taumax:
         plot([0,Tmax],[a,a],'-.')
+    ax.set_color_cycle(colorcycle)    
     for a in taumin:
         plot([0,Tmax],[a,a],'-.')
     if(len(taumax)>0):

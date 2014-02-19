@@ -18,78 +18,39 @@
 import sys
 sys.path.append('..')
 
-import TOPPbindings
-import TOPPpy
-import time
 import string
 from pylab import *
 from numpy import *
+import TOPPbindings
+import TOPPpy
 
-
-ion()
-
-############################ Tunings ############################
-discrtimestep = 0.005
-integrationtimestep = 0 #auto
-reparamtimestep = 0 #auto
-passswitchpointnsteps = 20
-tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
-
-
-############################ Trajectory ############################
-#------------------------------------------#
+# Trajectory
 trajectorystring = "2 \n 2\n 1 1 0 1\n 0 2 0 -1\n 3\n 2\n 11 13 6 0.1666666666666\n -4 -10 -6 0.5"
-#------------------------------------------#
-traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
+# Constraints
+discrtimestep = 0.01
+vmax = array([10,10]) # Velocity limits
+amax = array([15,10]) # Acceleration limits
+constraintstring = str(discrtimestep) + "\n";  # Discretization time step
+constraintstring += string.join([str(v) for v in vmax]) + "\n" 
+constraintstring += string.join([str(a) for a in amax])
 
-############################ Constraints ############################
-#------------------------------------------#
-amax = array([15,10])
-vmax = array([10,10])
-t0 = time.time()
-constraintstring = string.join([str(v) for v in amax]) + "\n"
-constraintstring += string.join([str(v) for v in vmax])
-#------------------------------------------#
-
-
-############################ Run TOPP ############################
-t1 = time.time()
-x = TOPPbindings.TOPPInstance("KinematicLimits",constraintstring,trajectorystring,tuningsstring,False);
-t2 = time.time()
+# Run TOPP
+x = TOPPbindings.TOPPInstance(None,"KinematicLimits",constraintstring,trajectorystring);
 ret = x.RunComputeProfiles(0,0)
-t3 = time.time()
+x.ReparameterizeTrajectory()
 
-if(ret == 1):
-    x.ReparameterizeTrajectory()
-
-t4 = time.time()
-
-################ Plotting the MVC and the profiles #################
+# Display results
+ion()
 x.WriteProfilesList()
 x.WriteSwitchPointsList()
 profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
 switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
 TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
-
-
-##################### Plotting the trajectories #####################
-if(ret == 1):
-    x.WriteResultTrajectory()
-    traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
-    dtplot = 0.01
-    TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax,amax)
-
-
-print "\n--------------"
-print "Python preprocessing: ", t1-t0
-print "Building TOPP Instance: ", t2-t1
-print "Compute profiles: ", t3-t2
-print "Reparameterize trajectory: ", t4-t3
-print "Total: ", t4-t0
-print "Trajectory duration (estimate): ", x.resduration
-if(ret == 1):
-    print "Trajectory duration: ", traj1.duration
-
-
-raw_input()
+x.WriteResultTrajectory()
+traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
+traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
+dtplot = 0.01
+TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax,amax)
+print "Trajectory duration before TOPP: ", traj0.duration
+print "Trajectory duration after TOPP: ", traj1.duration

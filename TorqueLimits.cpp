@@ -26,6 +26,8 @@ TorqueLimits::TorqueLimits(const std::string& constraintsstring){
     char buff[buffsize];
     std::istringstream iss(constraintsstring);
     iss.getline(buff,buffsize);
+    discrtimestep = atof(buff);
+    iss.getline(buff,buffsize);
     VectorFromString(std::string(buff),taumin);
     iss.getline(buff,buffsize);
     VectorFromString(std::string(buff),taumax);
@@ -43,7 +45,6 @@ TorqueLimits::TorqueLimits(const std::string& constraintsstring){
         cvect.push_back(tmpvect);
     }
     hasvelocitylimits = VectorMax(vmax) > TINY;
-    maxrep = 1;
 }
 
 
@@ -63,8 +64,8 @@ void TorqueLimits::InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vect
         }
         return;
     }
-    int n = int(s / tunings.discrtimestep);
-    dReal coef = (s - n * tunings.discrtimestep) / tunings.discrtimestep;
+    int n = int(s / discrtimestep);
+    dReal coef = (s - n * discrtimestep) / discrtimestep;
     for(int i = 0; i < trajectory.dimension; i++) {
         a[i] = (1-coef)*avect[n][i] + coef*avect[n+1][i];
         b[i] = (1-coef)*bvect[n][i] + coef*bvect[n+1][i];
@@ -93,9 +94,9 @@ void TorqueLimits::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector
 }
 
 std::pair<dReal,dReal> TorqueLimits::SddLimits(dReal s, dReal sd){
-    dReal dtsq = tunings.integrationtimestep;
+    dReal dtsq = integrationtimestep;
     dtsq = dtsq*dtsq;
-    dReal safetybound = tunings.discrtimestep/dtsq;
+    dReal safetybound = discrtimestep/dtsq;
     dReal alpha = -safetybound;
     dReal beta = safetybound;
     dReal sdsq = sd*sd;

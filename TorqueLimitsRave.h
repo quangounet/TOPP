@@ -37,7 +37,7 @@ namespace TOPP {
 
 class TorqueLimitsRave : public TorqueLimits {
 public:
-    TorqueLimitsRave(const std::string& constraintsstring, Trajectory* ptraj, const Tunings& tunings, RobotBasePtr probot);
+    TorqueLimitsRave(RobotBasePtr probot, std::string& constraintsstring, Trajectory* ptraj);
 
 };
 }
