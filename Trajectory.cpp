@@ -346,11 +346,11 @@ int Trajectory::Reparameterize(Constraints& constraints, Trajectory& restrajecto
         return -1;
 
     dReal scur, sdcur, snext, sdnext, sdnext2, sdd;
-    dReal dt = constraints.tunings.reparamtimestep;
+    dReal dt = constraints.reparamtimestep;
 
     // Set the reparam timestep automatically if it is initially set to 0
     if(dt == 0 && constraints.resduration>TINY) {
-        dt = constraints.tunings.discrtimestep*constraints.resduration/duration;
+        dt = constraints.discrtimestep*constraints.resduration/duration;
     }
 
     dReal dtsq = dt*dt;

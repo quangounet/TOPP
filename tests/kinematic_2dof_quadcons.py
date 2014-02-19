@@ -30,7 +30,7 @@ from numpy import *
 ion()
 
 ############################ Tunings ############################
-discrtimestep = 0.01
+discrtimestep = 0.1
 integrationtimestep = 0.01
 reparamtimestep = 0
 passswitchpointnsteps = 10

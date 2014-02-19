@@ -27,22 +27,23 @@ KinematicLimits::KinematicLimits(const std::string& constraintsstring){
     char buff[buffsize];
     std::istringstream iss(constraintsstring);
     iss.getline(buff,buffsize);
-    VectorFromString(std::string(buff),amax);
+    discrtimestep = atof(buff);
     iss.getline(buff,buffsize);
     VectorFromString(std::string(buff),vmax);
+    iss.getline(buff,buffsize);
+    VectorFromString(std::string(buff),amax);
     hasvelocitylimits =  VectorMax(vmax) > TINY;
-    maxrep = 5;
 }
 
 
 void KinematicLimits::Discretize(){
     dReal s;
     std::vector<dReal> qd(trajectory.dimension), qdd(trajectory.dimension);
-    ndiscrsteps = int((trajectory.duration+TINY)/tunings.discrtimestep);
+    ndiscrsteps = int((trajectory.duration+TINY)/discrtimestep);
     ndiscrsteps++;
     discrsvect.resize(0);
     for(int i=0; i<ndiscrsteps; i++) {
-        s = i*tunings.discrtimestep;
+        s = i*discrtimestep;
         trajectory.Evald(s,qd);
         trajectory.Evaldd(s,qdd);
         discrsvect.push_back(s);
@@ -67,8 +68,8 @@ void KinematicLimits::InterpolateDynamics(dReal s, std::vector<dReal>& qd, std::
         }
         return;
     }
-    int n = int(s/tunings.discrtimestep);
-    dReal coef = (s-n*tunings.discrtimestep)/tunings.discrtimestep;
+    int n = int(s/discrtimestep);
+    dReal coef = (s-n*discrtimestep)/discrtimestep;
     for(int i=0; i<trajectory.dimension; i++) {
         qd[i] = (1-coef)*qdvect[n][i] + coef*qdvect[n+1][i];
         qdd[i] = (1-coef)*qddvect[n][i] + coef*qddvect[n+1][i];
@@ -98,9 +99,9 @@ void KinematicLimits::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vec
 
 
 std::pair<dReal,dReal> KinematicLimits::SddLimits(dReal s, dReal sd){
-    dReal dtsq = tunings.integrationtimestep;
+    dReal dtsq = integrationtimestep;
     dtsq = dtsq*dtsq;
-    dReal safetybound = tunings.discrtimestep/dtsq;
+    dReal safetybound = discrtimestep/dtsq;
     dReal alpha = -safetybound;
     dReal beta = safetybound;
     dReal sdsq = sd*sd;
@@ -130,9 +131,9 @@ std::pair<dReal,dReal> KinematicLimits::SddLimits(dReal s, dReal sd){
 
 
 dReal KinematicLimits::SddLimitAlpha(dReal s, dReal sd){
-    dReal dtsq = tunings.integrationtimestep;
+    dReal dtsq = integrationtimestep;
     dtsq = dtsq*dtsq;
-    dReal safetybound = tunings.discrtimestep/dtsq;
+    dReal safetybound = discrtimestep/dtsq;
     dReal alpha = -safetybound;
     dReal sdsq = sd*sd;
     dReal alpha_i;
@@ -155,9 +156,9 @@ dReal KinematicLimits::SddLimitAlpha(dReal s, dReal sd){
 }
 
 dReal KinematicLimits::SddLimitBeta(dReal s, dReal sd){
-    dReal dtsq = tunings.integrationtimestep;
+    dReal dtsq = integrationtimestep;
     dtsq = dtsq*dtsq;
-    dReal safetybound = tunings.discrtimestep/dtsq;
+    dReal safetybound = discrtimestep/dtsq;
     dReal beta = safetybound;
     dReal sdsq = sd*sd;
     dReal beta_i;
