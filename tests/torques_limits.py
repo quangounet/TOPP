@@ -59,7 +59,7 @@ for i in range(ndof):
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 # Constraints
-discrtimestep = 0.005
+discrtimestep = 0.002
 vmax = array([5, 5])
 taumin = array([-25, -10])
 taumax = array([25, 10])
