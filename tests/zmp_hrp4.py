@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+4# -*- coding: utf-8 -*-
 # Copyright (C) 2013 Quang-Cuong Pham <cuong.pham@normalesup.org>
 #
 # This file is part of the Time-Optimal Path Parameterization (TOPP) library.
@@ -36,6 +36,7 @@ ion()
 env = Environment()
 robotfile = "../robots/hrp4r.dae"
 baselinkname = "BODY"
+supportfootlinkname = "L_FOOT_LINK"
 robot = TOPPopenravepy.LoadFloat(env,robotfile,baselinkname) #Load a robot with dummy joints that mimick floating base
 n=robot.GetDOF()
 dof_lim=robot.GetDOFLimits()
@@ -75,20 +76,6 @@ env.Add(pole,True)
 Tr = eye(4)
 Tr[0:3,3]=[0.15,-0.25,0.6]
 pole.SetTransform(Tr)
-
-
-############################ Tunings ############################
-discrtimestep = 1e-2
-integrationtimestep = 1e-3
-reparamtimestep = 1e-3
-passswitchpointnsteps = 5
-tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
-
-discrtimestep = 2e-2
-integrationtimestep = 1e-3
-reparamtimestep = 1e-2
-passswitchpointnsteps = 5
-tuningsstring2 = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
 
 
 ############################ Trajectory ############################
@@ -188,9 +175,10 @@ robot.activelinks = activelinks
 
 ############################ Constraints ############################
 
+discrtimestep = 1e-2
 taumin = -ones(ndof)*60
 taumax = ones(ndof)*60
-baseaabb = robot.GetLink("L_FOOT_LINK").ComputeAABB()
+baseaabb = robot.GetLink(supportfootlinkname).ComputeAABB()
 border2 = 0
 xmax2 = baseaabb.pos()[0]+baseaabb.extents()[0]-border2
 xmin2 = baseaabb.pos()[0]-baseaabb.extents()[0]+border2
@@ -198,7 +186,7 @@ ymax2 = baseaabb.pos()[1]+baseaabb.extents()[1]-border2
 ymin2 = baseaabb.pos()[1]-baseaabb.extents()[1]+border2
 zmplimits = [xmin2,xmax2,ymin2,ymax2]
 vmax = ones(ndof)*4
-constraintstring = string.join([str(x) for x in activedofs]) + "\n" + string.join([str(x) for x in activelinks]) + "\n" + string.join([str(x) for x in taumin]) + "\n" + string.join([str(a) for a in taumax]) + "\n" +  string.join([str(a) for a in zmplimits]) + "\n" + string.join([str(a) for a in vmax]) + "\n" + string.join([str(a) for a in robot.qdefault])
+constraintstring = str(discrtimestep) + "\n" + string.join([str(x) for x in activedofs]) + "\n" + string.join([str(x) for x in activelinks]) + "\n" + string.join([str(x) for x in vmax]) + "\n" + string.join([str(x) for x in taumin]) + "\n" + string.join([str(x) for x in taumax]) + "\n" +  string.join([str(x) for x in zmplimits]) + "\n" + string.join([str(x) for x in robot.qdefault]) + "\n" + supportfootlinkname
 
 
 
@@ -296,11 +284,11 @@ for p in path:
 ############################ TOPP ############################
 
 t0 = time.time()
-traj0 =  MotionPlanning.MakeParabolicTrajectory(path2,robot,constraintstring,tuningsstring)
+traj0 =  MotionPlanning.MakeParabolicTrajectory(path2,robot,constraintstring)
 dt0 = time.time() - t0
 
 
-x = TOPPbindings.TOPPInstance("ZMPTorqueLimits",constraintstring,str(traj0),tuningsstring,robot)
+x = TOPPbindings.TOPPInstance(robot,"ZMPTorqueLimits",constraintstring,str(traj0))
 ret = x.RunComputeProfiles(0,0)
 x.WriteExtra()
 tvect0,torques0 = TOPPpy.ExtraFromString(x.resextrastring)
@@ -310,13 +298,13 @@ tvect0,torques0 = TOPPpy.ExtraFromString(x.resextrastring)
 #TOPPopenravepy.PlotTorques(robot,traj0,traj0,0.01,taumin,taumax,3)
 
 t1 = time.time()
-nshortcuts = 200
-reps = 5
+nshortcuts = 40
+reps = 1
 
 tmin = 1000;
 
 for i in range(reps):
-    traj1 = MotionPlanning.RepeatParabolicShortcut(rrtrobot,constraintstring,tuningsstring2,traj0,nshortcuts)
+    traj1 = MotionPlanning.RepeatParabolicShortcut(rrtrobot,constraintstring,traj0,nshortcuts)
     if traj1.duration < tmin:
         trajmin = traj1
         tmin = trajmin.duration
@@ -332,7 +320,7 @@ dt1 = time.time() - t1
 TOPPpy.PlotKinematics(traj0,traj1,0.01,vmax=4*ones(traj0.dimension))
 TOPPopenravepy.PlotZMP(robot,traj0,traj1,zmplimits,0.01,4,border=0)
 
-x = TOPPbindings.TOPPInstance("ZMPTorqueLimits",constraintstring,str(traj1),tuningsstring,robot)
+x = TOPPbindings.TOPPInstance(robot,"ZMPTorqueLimits",constraintstring,str(traj1))
 ret = x.RunComputeProfiles(0,0)
 x.WriteExtra()
 tvect1,torques1 = TOPPpy.ExtraFromString(x.resextrastring)

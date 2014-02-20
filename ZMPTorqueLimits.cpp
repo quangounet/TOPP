@@ -35,15 +35,23 @@ using namespace OpenRAVE;
 
 namespace TOPP {
 
-ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajectory* ptraj, const Tunings& tunings, RobotBasePtr probot0){
+ZMPTorqueLimits::ZMPTorqueLimits(RobotBasePtr probot0, std::string& constraintsstring, Trajectory* ptraj){
+
+    trajectory = *ptraj;
+    probot = probot0;
+
     int buffsize = BUFFSIZE;  // TODO: remove this dirty string interface!
     std::vector<dReal> tmpvect, activedofs, activelinks0;
     char buff[buffsize];
     std::istringstream iss(constraintsstring);
     iss.getline(buff,buffsize);
+    discrtimestep = atof(buff);
+    iss.getline(buff,buffsize);
     VectorFromString(std::string(buff),activedofs);
     iss.getline(buff,buffsize);
     VectorFromString(std::string(buff),activelinks0);
+    iss.getline(buff,buffsize);
+    VectorFromString(std::string(buff),vmax);
     iss.getline(buff,buffsize);
     VectorFromString(std::string(buff),taumin);
     iss.getline(buff,buffsize);
@@ -51,14 +59,11 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
     iss.getline(buff,buffsize);
     VectorFromString(std::string(buff),zmplimits);
     iss.getline(buff,buffsize);
-    VectorFromString(std::string(buff),vmax);
-    iss.getline(buff,buffsize);
     VectorFromString(std::string(buff),qdefault);
     iss.getline(buff,buffsize);
     supportfootlinkname = std::string(buff);
 
     hasvelocitylimits = VectorMax(vmax) > TINY;
-    probot = probot0;
     activelinks = activelinks0;
 
     // Check soundness
@@ -79,6 +84,7 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
     // Links
     nlink0 = int(activelinks.size());
     linksvector = probot->GetLinks();
+
     for(int i=0; i < nlink0; i++) {
         mass.push_back(linksvector[i]->GetMass());
         totalmass += mass[i];
@@ -116,7 +122,7 @@ ZMPTorqueLimits::ZMPTorqueLimits(const std::string& constraintsstring, Trajector
     dReal delta = TINY2;
     Vector ci, ciVg, q1, ciVq1, q2, ciVq2, q3, ciVq3;
 
-    int ndiscrsteps = int((ptraj->duration+1e-15)/tunings.discrtimestep)+1;
+    int ndiscrsteps = int((ptraj->duration+1e-15)/discrtimestep)+1;
     dReal dt = ptraj->duration/(ndiscrsteps-1);
     {
         EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex());
@@ -328,7 +334,7 @@ void ZMPTorqueLimits::Trim(const std::vector<dReal>&q, std::vector<dReal>&qtrimm
 
 void ZMPTorqueLimits::WriteExtra(std::stringstream& ss){
     ss << std::setprecision(17) <<  trajectory.duration << "\n";
-    int ndiscrsteps = int((trajectory.duration+1e-15)/tunings.discrtimestep)+1;
+    int ndiscrsteps = int((trajectory.duration+1e-15)/discrtimestep)+1;
     dReal dt = trajectory.duration/(ndiscrsteps-1);
     std::vector<dReal> q(ndof), qd(ndof), qdd(ndof), qfilled, qdfilled, qddfilled;
     for(int i=0; i<int(qdefault.size()); i++) {
@@ -454,8 +460,5 @@ void ZMPTorqueLimits::ComputeInverseDynamicsSingleSupport(std::vector<dReal>& do
     for (int i = 0; i < 6; i++)
         doftorques[baselinkstart + i] -= taubaselink[i];
 }
-
-
-
 
 }

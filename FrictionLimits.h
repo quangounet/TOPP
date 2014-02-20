@@ -39,11 +39,10 @@ using namespace OpenRAVE;
 
 namespace TOPP {
 
-  class FrictionLimits : public QuadraticConstraints {
-  public:
-    FrictionLimits(const std::string& constraintsstring, Trajectory* ptraj, const Tunings& tunings, RobotBasePtr probot0);
-    
-    RobotBasePtr probot;
+class FrictionLimits : public QuadraticConstraints {
+public:
+    FrictionLimits(RobotBasePtr probot, std::string& constraintsstring, Trajectory* ptraj);
+
     int ndof;
     int nlink;
     dReal mb; // bottle's mass
@@ -54,12 +53,12 @@ namespace TOPP {
     std::vector<KinBody::LinkPtr> linksvector; // Vector of pointers to the links
     std::vector<int> dofsvector;
     std::vector<dReal> mass;
-    
+
     Vector ZMP(std::vector<dReal>& qfilled, std::vector<dReal>& qdfilled, std::vector<dReal>& qddfilled, bool withangularmomentum=false);
     // C = Mv
     Vector MatrixMultVector(const boost::multi_array<dReal, 2>& M, const std::vector<dReal>& v);
     Vector MatrixMultVector(const boost::multi_array<dReal, 2>& M, const Vector& v);
-    
+
     boost::multi_array<dReal, 2> ExtractI(const RaveTransformMatrix<dReal>& H);
     boost::multi_array<dReal, 2> ExtractR(const RaveTransform<dReal>& H);
     Vector ExtractT(const RaveTransform<dReal>& H);
@@ -68,8 +67,8 @@ namespace TOPP {
     void MatrixAdd(const boost::multi_array<dReal, 2>& A, const boost::multi_array<dReal, 2>& B, boost::multi_array<dReal, 2>& C, dReal coefA, dReal coefB);
     boost::multi_array<dReal, 2> MatrixTrans(const boost::multi_array<dReal, 2>& A);
     boost::multi_array<dReal, 2> MatricesMult3(const boost::multi_array<dReal, 2>& A, const boost::multi_array<dReal, 2>& B);
-  };
+};
 
-  
+
 
 }

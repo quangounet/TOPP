@@ -187,17 +187,17 @@ def RepeatLinearShortcut(robot,path,nshortcuts):
         LinearShortcut(robot,path)
 
 
-def MakeParabolicTrajectory(path,robot=None,constraintstring=None,tuningstring=None):
+def MakeParabolicTrajectory(path,robot=None,constraintstring=None):
     chunkslist = []
     for i in range(len(path)-1):
-        print i, len(path)
+        print "MakeParabolic:", i+1, "/", len(path)-1
         q0 = path[i]
         q1 = path[i+1]
         qd0 = 0 * q0
         qd1 = 0 * q1
         traj = Trajectory.PiecewisePolynomialTrajectory([Trajectory.MakeChunk(q0,q1,qd0,qd1,norm(q1-q0))])
         if robot:
-            x = TOPPbindings.TOPPInstance("ZMPTorqueLimits",constraintstring,str(traj),tuningstring,robot)
+            x = TOPPbindings.TOPPInstance(robot,"ZMPTorqueLimits",constraintstring,str(traj))
             ret = x.RunComputeProfiles(0.5,0.5)
             if(ret == 0):
                 print "Failed reparameterizing segment: ", i
@@ -222,7 +222,7 @@ def MakeParabolicTrajectory(path,robot=None,constraintstring=None,tuningstring=N
     return Trajectory.PiecewisePolynomialTrajectory(chunkslist)
 
 
-def ParabolicShortcut(rrtrobot,constraintstring,tuningstring,orig_traj):
+def ParabolicShortcut(rrtrobot,constraintstring,orig_traj):
     s0 = orig_traj.duration*rand()
     s1 = orig_traj.duration*rand()
     if s0>s1:
@@ -241,7 +241,7 @@ def ParabolicShortcut(rrtrobot,constraintstring,tuningstring,orig_traj):
     if(d<0.1):
         return None
     traj = Trajectory.PiecewisePolynomialTrajectory([Trajectory.MakeChunk(q0,q1,qd0,qd1,d)])
-    x = TOPPbindings.TOPPInstance("ZMPTorqueLimits",constraintstring,str(traj),tuningstring,rrtrobot.robot)
+    x = TOPPbindings.TOPPInstance(rrtrobot.robot,"ZMPTorqueLimits",constraintstring,str(traj))
     ret = x.RunComputeProfiles(1,1)
     #x.WriteProfilesList()
     #x.WriteSwitchPointsList()
@@ -272,13 +272,13 @@ def ParabolicShortcut(rrtrobot,constraintstring,tuningstring,orig_traj):
 
 
 
-def RepeatParabolicShortcut(rrtrobot,constraintstring,tuningstring,orig_traj,nshortcuts):
+def RepeatParabolicShortcut(rrtrobot,constraintstring,orig_traj,nshortcuts):
     nsuccess = 0
     cur_traj = orig_traj
     print "Original duration: ", orig_traj.duration
     for i in range(nshortcuts):
         print i
-        new_traj = ParabolicShortcut(rrtrobot,constraintstring,tuningstring,cur_traj)
+        new_traj = ParabolicShortcut(rrtrobot,constraintstring,cur_traj)
         if new_traj:
             nsuccess += 1
             cur_traj = new_traj

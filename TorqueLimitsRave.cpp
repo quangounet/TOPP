@@ -25,6 +25,9 @@ using namespace OpenRAVE;
 namespace TOPP {
 
 TorqueLimitsRave::TorqueLimitsRave(RobotBasePtr probot, std::string& constraintsstring, Trajectory* ptraj){
+
+    trajectory = *ptraj;
+
     int buffsize = BUFFSIZE;  // TODO: remove this dirty string interface!
     std::vector<dReal> tmpvect;
     char buff[buffsize];

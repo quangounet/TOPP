@@ -147,7 +147,7 @@ void Trajectory::InitFromChunksList(const std::list<Chunk>&chunkslist0) {
     chunkcumulateddurationslist.resize(0);
     std::list<Chunk>::iterator itchunk = chunkslist.begin();
     while(itchunk != chunkslist.end()) {
-        assert(degree == itchunk->degree);
+        //assert(degree == itchunk->degree);
         dReal chunkduration = itchunk->duration;
         if(chunkduration > TINY) {
             chunkdurationslist.push_back(chunkduration);

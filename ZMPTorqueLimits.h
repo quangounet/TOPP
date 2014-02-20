@@ -42,7 +42,7 @@ namespace TOPP {
 
 class ZMPTorqueLimits : public QuadraticConstraints {
 public:
-    ZMPTorqueLimits(const std::string& constraintsstring, Trajectory* ptraj, const Tunings &tunings, RobotBasePtr probot0);
+    ZMPTorqueLimits(RobotBasePtr probot0, std::string& constraintsstring, Trajectory* ptraj);
 
     RobotBasePtr probot;
     int ndof; // number of active DOFs
