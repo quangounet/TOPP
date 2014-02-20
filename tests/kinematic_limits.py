@@ -25,12 +25,27 @@ import TOPPbindings
 import TOPPpy
 
 # Trajectory
-trajectorystring = "2 \n 2\n 1 1 0 1\n 0 2 0 -1\n 3\n 2\n 11 13 6 0.1666666666666\n -4 -10 -6 0.5"
+ndof = 5
+trajectorystring = """1.0
+5
+-0.495010 1.748820 -2.857899 1.965396
+0.008319 0.004494 1.357524 -1.289918
+-0.354081 1.801074 -1.820616 0.560944
+0.221734 -1.320792 3.297177 -2.669786
+-0.137741 0.105246 0.118968 -0.051712
+1.0
+5
+0.361307 1.929207 -4.349490 2.275776
+0.080419 -1.150212 2.511645 -1.835906
+0.187321 -0.157326 -0.355785 0.111770
+-0.471667 -2.735793 7.490559 -4.501124
+0.034761 0.188049 -1.298730 1.553443"""
+
 
 # Constraints
-discrtimestep = 0.01
-vmax = array([10,10]) # Velocity limits
-amax = array([15,10]) # Acceleration limits
+discrtimestep = 0.001
+vmax = 2*ones(ndof)  # Velocity limits
+amax = 10*ones(ndof) # Acceleration limits
 constraintstring = str(discrtimestep) + "\n";  # Discretization time step
 constraintstring += string.join([str(v) for v in vmax]) + "\n" 
 constraintstring += string.join([str(a) for a in amax])

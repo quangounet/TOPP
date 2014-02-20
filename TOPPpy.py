@@ -161,6 +161,26 @@ def VectorFromString(s):
     return array([double(x) for x in s.split(' ')])
 
 
+def GenerateRandomTrajectory(ncurve,ndof,bound):    
+    p0a = vector2string(rand(ndof)*2*bound-bound)
+    p0b = vector2string(rand(ndof)*2*bound-bound)
+    p1a = vector2string(rand(ndof)*2*bound-bound)
+    p1b = vector2string(rand(ndof)*2*bound-bound)
+    s = '%d'%ncurve
+    s+= '\n1.0 ' + p0a + ' ' + p0b
+    for k in range(ncurve-1):    
+        a = rand(ndof)*2*bound-bound
+        b = rand(ndof)*2*bound-bound
+        c = 2*b-a
+        pa = vector2string(a)
+        pb = vector2string(b)
+        pc = vector2string(c)
+        s+= ' ' + pa + ' ' + pb + '\n1.0 ' + pb + ' ' + pc
+    s+= ' ' + p1a + ' ' + p1b
+    Tv,p0v,p1v,p2v,p3v = string2p(s)
+    return BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v)
+
+
 ################# Compute constraints #####################
 
 def ComputeKinematicConstraints(traj, amax, discrtimestep):
