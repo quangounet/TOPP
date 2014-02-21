@@ -25,16 +25,17 @@ From the top folder:
   
     ./configure
 
-To make the standalone version of the library:
+Then, either:
 
     make standalone
 
-For the full version:
+for the standalone verison, or:
 
     make full
 
-Both approaches compile a shared-object file TOPPbindings.so in the current
-folder.
+for the full version. Finally, install with:
+
+    sudo make install
 
 Notes on OpenRAVE integration
 -----------------------------

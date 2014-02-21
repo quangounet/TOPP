@@ -1,5 +1,7 @@
 SHELL=/bin/bash
-TARGET=TOPPbindings.so
+prefix=@prefix@
+SOFILE=TOPPbindings.so
+INST_PATH=$(prefix)/lib/python2.7/dist-packages/TOPP
 
 # Common
 #
@@ -49,6 +51,10 @@ help:
 	@echo '    make standalone -- standalone version (no OpenRAVE integration) '
 	@echo '    make full -- full version (with OpenRAVE integration)           '
 	@echo '                                                                    '
+	@echo 'Installation to $(prefix):                                          '
+	@echo '                                                                    '
+	@echo '    make install                                                    '
+	@echo '                                                                    '
 #	@echo 'Other rules:                                                        '
 #	@echo '                                                                    '
 #	@echo '    make debug -- full version with debug symbols                   '
@@ -67,13 +73,18 @@ help:
 	$(DEBUG_CC) -c $< -o $@
 
 standalone: $(SALONE_OBJECTS)
-	$(SALONE_CC) $(SALONE_OBJECTS) $(SALONE_LDFLAGS) -shared -o $(TARGET)
+	$(SALONE_CC) $(SALONE_OBJECTS) $(SALONE_LDFLAGS) -shared -o $(SOFILE)
 
 full: $(FULL_OBJECTS)
-	$(FULL_CC) $(FULL_OBJECTS) $(FULL_LDFLAGS) -shared -o $(TARGET)
+	$(FULL_CC) $(FULL_OBJECTS) $(FULL_LDFLAGS) -shared -o $(SOFILE)
 
 debug: $(DEBUG_OBJECTS)
-	$(DEBUG_CC) $(DEBUG_OBJECTS) $(DEBUG_LDFLAGS) -shared -o $(TARGET)
+	$(DEBUG_CC) $(DEBUG_OBJECTS) $(DEBUG_LDFLAGS) -shared -o $(SOFILE)
+
+install:
+	rm -rf $(INST_PATH)
+	cp -r -f src/python $(INST_PATH)
+	cp -f $(SOFILE) $(INST_PATH)/$(SOFILE)
 
 clean:
 	find . -name '*.pyc' -delete
@@ -81,7 +92,6 @@ clean:
 	find . -name '*~' -delete
 
 distclean: clean
-	rm -f $(TARGET)
+	rm -f $(SOFILE)
 
-
-.PHONY: standalone full debug clean distclean
+.PHONY: standalone full debug install clean distclean

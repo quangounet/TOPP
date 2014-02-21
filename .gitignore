@@ -6,7 +6,7 @@
 autom4te.cache
 autoscan.log
 config.log
-config.h*
+config.h
 config.status
 Makefile
 timeopt
