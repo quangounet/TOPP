@@ -17,18 +17,16 @@ robot = env.GetRobots()[0]
 RaveSetDebugLevel(DebugLevel.Debug)
 ndof = robot.GetDOF()
 
-# Finding a trajectory using OpenRAVE RRT with constraintparabolicsmooting
+# Finding a trajectory using OpenRAVE RRT with constraintparabolicsmoothing
 vmax = 2 * ones(ndof)
 amax = 10* ones(ndof)
 robot.SetDOFVelocityLimits(vmax)
 robot.SetDOFAccelerationLimits(amax)
 robot.SetDOFValues(zeros(ndof))
-robot.SetActiveDOFs(range(4)) # set joints the first 4 dofs
+robot.SetActiveDOFs(range(4)) # set the shoulder and elbow joints to be the only active joints
 params = Planner.PlannerParameters()
 params.SetRobotActiveJoints(robot)
 params.SetGoalConfig([0.1,pi/2,pi/3,pi/2.1])
-# forces parabolic planning with 40 iterations
-#params.SetExtraParameters("""<_postprocessing planner="parabolicsmoother">
 params.SetExtraParameters("""<_postprocessing planner="constraintparabolicsmoother">
     <_fStepLength>0</_fStepLength>
     <minswitchtime>0.5</minswitchtime>

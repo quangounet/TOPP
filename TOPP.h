@@ -140,7 +140,7 @@ public:
 
     Constraints(){
     }
-    virtual void Preprocess();
+    virtual bool Preprocess();
 
     // Discretize the time interval
     virtual void Discretize();
