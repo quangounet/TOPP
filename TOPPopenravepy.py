@@ -19,7 +19,64 @@ import string
 from numpy import *
 from pylab import *
 from openravepy import *
+import Trajectory
 import time
+
+
+def ToRaveTraj(robot,spec,traj):
+    ndof = traj.dimension
+    nchunks = len(traj.chunkslist)
+    if nchunks<1:
+        print "TOPP trajectory has less than 1 chunk"
+        return None
+    timespec = ConfigurationSpecification()
+    timespec.AddGroup('deltatime',1,'linear')
+    posspec = robot.GetActiveConfigurationSpecification()
+    velspec = posspec.ConvertToVelocitySpecification()
+    ravetraj = RaveCreateTrajectory(robot.GetEnv(),'')
+    ravetraj.Init(spec)
+    ravetraj.Insert(0,array([0]),timespec)
+    ravetraj.Insert(0,traj.Eval(0),posspec,True)
+    ravetraj.Insert(0,traj.Evald(0),velspec,True)
+    for i in range(nchunks):
+        c = traj.chunkslist[i]
+        ravetraj.Insert(i+1,array([c.duration]),timespec)
+        ravetraj.Insert(i+1,c.Eval(c.duration),posspec,True)
+        ravetraj.Insert(i+1,c.Evald(c.duration),velspec,True)
+    return ravetraj
+
+
+def FromRaveTraj(robot,traj):
+    T = traj.GetDuration()
+    N = traj.GetNumWaypoints()
+    if N<2:
+        print "RAVE trajectory has less than 2 waypoints"
+        return None
+    timespec = ConfigurationSpecification()
+    timespec.AddGroup('deltatime',1,'linear')
+    posspec = robot.GetActiveConfigurationSpecification()
+    velspec = posspec.ConvertToVelocitySpecification()
+    chunkslist = []
+    vel = traj.GetWaypoint(0,velspec)
+    ndof = len(vel)
+    for i in range(N-1):
+        pos = traj.GetWaypoint(i,posspec)
+        deltatime = traj.GetWaypoint(i+1,timespec)[0]
+        if deltatime < 1e-5:
+            continue
+        nextvel = traj.GetWaypoint(i+1,velspec)
+        polynomialslist = []
+        for j in range(ndof):
+            x = pos[j]
+            v = vel[j]
+            a = (nextvel[j]-vel[j])/deltatime
+            polynomialslist.append(Trajectory.Polynomial([x,v,a/2]))
+        chunkslist.append(Trajectory.Chunk(deltatime,polynomialslist))
+        vel = nextvel
+    return Trajectory.PiecewisePolynomialTrajectory(chunkslist)
+
+
+
 
 def ComputeTorquesConstraints(robot,traj,taumin,taumax,discrtimestep):
     # Sample the dynamics constraints
@@ -29,12 +86,16 @@ def ComputeTorquesConstraints(robot,traj,taumin,taumax,discrtimestep):
         t = i*discrtimestep
         q = traj.Eval(t)
         qd = traj.Evald(t)
+        qd2 = zeros(robot.GetDOF())
+        qd2[robot.GetActiveDOFIndices()] = qd
         qdd = traj.Evaldd(t)
+        qdd2 = zeros(robot.GetDOF())
+        qdd2[robot.GetActiveDOFIndices()] = qdd
         with robot:
-            robot.SetDOFValues(q)
-            robot.SetDOFVelocities(qd)
-            tm,tc,tg = robot.ComputeInverseDynamics(qdd,None,returncomponents=True)
-            to = robot.ComputeInverseDynamics(qd) - tc - tg
+            robot.SetActiveDOFValues(q)
+            robot.SetActiveDOFVelocities(qd)
+            tm,tc,tg = robot.ComputeInverseDynamics(qdd2,None,returncomponents=True)
+            to = robot.ComputeInverseDynamics(qd2) - tc - tg
             avect = []
             bvect = []
             cvect = []
@@ -209,9 +270,11 @@ def ComputeTorques(traj,robot,dt):
             q = traj.Eval(t)
             qd = traj.Evald(t)
             qdd = traj.Evaldd(t)
-            robot.SetDOFValues(Fill(robot,q))
-            robot.SetDOFVelocities(Fill(robot,qd))
-            tau = robot.ComputeInverseDynamics(Fill(robot,qdd),None,returncomponents=False)
+            qdd2 = zeros(robot.GetDOF())
+            qdd2[robot.GetActiveDOFIndices()] = qdd
+            robot.SetActiveDOFValues(Fill(robot,q))
+            robot.SetActiveDOFVelocities(Fill(robot,qd))
+            tau = robot.ComputeInverseDynamics(Fill(robot,qdd2),None,returncomponents=False)
             tauvect.append(Trim(robot,tau))
     return tvect,array(tauvect)
 
