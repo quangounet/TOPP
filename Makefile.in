@@ -14,7 +14,7 @@ SALONE_HEADERS=$(SALONE_PATTERN:.zz=.h)
 SALONE_OBJECTS=$(SALONE_SOURCE:.cpp=.standalone.o)
 SALONE_NDEBUG=-DNDEBUG -DBOOST_UBLAS_NDEBUG
 SALONE_INC_PATH=$(shell python-config --includes)
-SALONE_CFLAGS=$(COMMON_CFLAGS) $(SALONE_NDEBUG SALONE_INC_PATH)
+SALONE_CFLAGS=$(COMMON_CFLAGS) $(SALONE_NDEBUG) $(SALONE_INC_PATH)
 SALONE_LDFLAGS=$(COMMON_LIBS)
 SALONE_CC=g++ $(SALONE_CFLAGS) -O2
 
@@ -44,17 +44,17 @@ help:
 	@echo 'TOPP: the Time-Optimal Path Parameterization library                '
 	@echo '----------------------------------------------------                '
 	@echo '                                                                    '
-	@echo 'Common usage:                                                       '
+	@echo 'Installation:                                                       '
 	@echo '                                                                    '
 	@echo '    make standalone -- standalone version (no OpenRAVE integration) '
 	@echo '    make full -- full version (with OpenRAVE integration)           '
 	@echo '                                                                    '
-	@echo 'Other Makefile rules:                                               '
-	@echo '                                                                    '
-	@echo '    make debug -- full version with debug symbols                   '
-	@echo '    make clean -- clean temporary files                             '
-	@echo '    make distclean -- clean all generated files                     '
-	@echo '                                                                    '
+#	@echo 'Other rules:                                                        '
+#	@echo '                                                                    '
+#	@echo '    make debug -- full version with debug symbols                   '
+#	@echo '    make clean -- clean temporary files                             '
+#	@echo '    make distclean -- clean all generated files                     '
+#	@echo '                                                                    '
 
 
 %.standalone.o: %.cpp $(HEADERS)
