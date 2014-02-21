@@ -1,37 +1,43 @@
 SHELL=/bin/bash
-SOURCE=$(wildcard *.cpp)
-HEADERS=$(wildcard *.h)
 TARGET=TOPPbindings.so
 
 # Common
 #
-CFLAGS=-Wall -fPIC -std=c++0x
-CC=g++ $(CFLAGS) $(FULL_CFLAGS) -O2
-CCG=g++ $(CFLAGS) $(DEBUG_CFLAGS) -g
-LIBS=-lboost_python -llapack
+COMMON_CFLAGS=-Wall -fPIC -std=c++0x
+COMMON_LIBS=-lboost_python -llapack
 
 # Standalone
 # 
-SALONE_OBJECTS=$(SOURCE:.cpp=.o)
-SALONE_CFLAGS_KRON=-DNDEBUG -DBOOST_UBLAS_NDEBUG
+SALONE_PATTERN=src/KinematicLimits.zz src/TOPP.zz src/TorqueLimits.zz src/Trajectory.zz
+SALONE_SOURCE=$(SALONE_PATTERN:.zz=.cpp)
+SALONE_HEADERS=$(SALONE_PATTERN:.zz=.h)
+SALONE_OBJECTS=$(SALONE_SOURCE:.cpp=.standalone.o)
+SALONE_NDEBUG=-DNDEBUG -DBOOST_UBLAS_NDEBUG
 SALONE_INC_PATH=$(shell python-config --includes)
-SALONE_CFLAGS=$(CFLAGS) $(SALONE_CFLAGS_KRON SALONE_INC_PATH)
-SALONE_LDFLAGS=$(LIBS)
+SALONE_CFLAGS=$(COMMON_CFLAGS) $(SALONE_NDEBUG SALONE_INC_PATH)
+SALONE_LDFLAGS=$(COMMON_LIBS)
+SALONE_CC=g++ $(SALONE_CFLAGS) -O2
 
 # Full 
 #
-FULL_OBJECTS=$(SOURCE:.cpp=.o)
-FULL_CFLAGS_KRON=-DNDEBUG -DBOOST_UBLAS_NDEBUG
+FULL_SOURCE=$(wildcard src/*.cpp)
+FULL_HEADERS=$(wildcard src/*.h)
+FULL_OBJECTS=$(FULL_SOURCE:.cpp=.full.o)
+FULL_NDEBUG=-DNDEBUG -DBOOST_UBLAS_NDEBUG
 FULL_INC_PATH=$(shell python-config --includes) $(shell openrave-config --cflags-only-I)
-FULL_CFLAGS=$(CFLAGS) $(FULL_CFLAGS_KRON) $(FULL_INC_PATH)
+FULL_CFLAGS=$(COMMON_CFLAGS) $(FULL_NDEBUG) $(FULL_INC_PATH)
 FULL_SO=$(shell openrave-config --python-dir)/openravepy/_openravepy_/openravepy_int.so
-FULL_LDFLAGS=$(LIBS) $(FULL_SO) -lopenrave0.9-core 
+FULL_LDFLAGS=$(COMMON_LIBS) $(FULL_SO) -lopenrave0.9-core 
+FULL_CC=g++ $(FULL_CFLAGS) -O2
 
 # Debug
 # 
-DEBUG_OBJECTS=$(SOURCE:.cpp=.gdb.o)
-DEBUG_CFLAGS=$(CFLAGS) 
-DEBUG_LDFLAGS=$(LIBS)
+DEBUG_SOURCE=$(FULL_SOURCE)
+DEBUG_HEADERS=$(FULL_HEADERS)
+DEBUG_OBJECTS=$(DEBUG_SOURCE:.cpp=.debug.o)
+DEBUG_CFLAGS=$(COMMON_CFLAGS) $(FULL_INC_PATH)
+DEBUG_LDFLAGS=$(FULL_LDFLAGS)
+DEBUG_CC=g++ $(DEBUG_CFLAGS) -g
 
 
 help:
@@ -52,25 +58,27 @@ help:
 
 
 %.standalone.o: %.cpp $(HEADERS)
-	$(CC) $(STANDALONE_CFLAGS) -c $< 
+	$(SALONE_CC) -c $< -o $@
 
 %.full.o: %.cpp $(HEADERS)
-	$(CC) $(FULL_CFLAGS) -c $< 
+	$(FULL_CC) -c $< -o $@
 
 %.debug.o: %.cpp $(HEADERS)
-	$(CCG) $(DEBUG_CFLAGS) -c $< -o $@
+	$(DEBUG_CC) -c $< -o $@
 
 standalone: $(SALONE_OBJECTS)
-	$(CC) $(SALONE_OBJECTS) $(SALONE_LDFLAGS) -shared -o $(TARGET)
+	$(SALONE_CC) $(SALONE_OBJECTS) $(SALONE_LDFLAGS) -shared -o $(TARGET)
 
 full: $(FULL_OBJECTS)
-	$(CC) $(FULL_OBJECTS) $(FULL_LDFLAGS) -shared -o $(TARGET)
+	$(FULL_CC) $(FULL_OBJECTS) $(FULL_LDFLAGS) -shared -o $(TARGET)
 
 debug: $(DEBUG_OBJECTS)
-	$(CCG) $(DEBUG_OBJECTS) $(DEBUG_LDFLAGS) -shared -o $(TARGET)
+	$(DEBUG_CC) $(DEBUG_OBJECTS) $(DEBUG_LDFLAGS) -shared -o $(TARGET)
 
 clean:
-	rm -f $(FULL_OBJECTS) $(DEBUG_OBJECTS) *~
+	find . -name '*.pyc' -delete
+	find . -name '*.o' -delete
+	find . -name '*~' -delete
 
 distclean: clean
 	rm -f $(TARGET)

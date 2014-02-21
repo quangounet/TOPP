@@ -1,0 +1,26 @@
+AC_PREREQ([2.68])
+AC_INIT(TOPP, 1.0, caron@ynl.t.u-tokyo.ac.jp)
+AC_CONFIG_SRCDIR([config.h.in])
+AC_CONFIG_HEADERS([config.h])
+
+# Checks for programs.
+AC_PROG_CXX
+AC_PROG_CC
+AC_PROG_MAKE_SET
+
+# Checks for libraries.
+AC_CHECK_LIB([boost_python], [_init], [], 
+             [AC_MSG_ERROR([Boost.Python is required to compile TOPP.])])
+AC_CHECK_LIB([lapack], [cgels_], [],
+             [AC_MSG_WARN([LAPACK is required to compute contact forces.])])
+
+# Checks for header files.
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_HEADER_STDBOOL
+
+# Checks for library functions.
+AC_CHECK_FUNCS([sqrt])
+
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

@@ -1,7 +1,13 @@
-TOPPbindings.so
-.*.swp
+*~
 *.pyc
 *.o
-*~
-timeopt
 .ropeproject
+.*.swp
+autom4te.cache
+autoscan.log
+config.log
+config.h*
+config.status
+Makefile
+timeopt
+TOPPbindings.so
