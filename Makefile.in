@@ -41,10 +41,10 @@ DEBUG_CC=g++ $(DEBUG_CFLAGS) -g
 
 
 help:
-	@echo 'TOPP: the Time-Optimal Path Parameterization library                '
-	@echo '----------------------------------------------------                '
-	@echo '                                                                    '
-	@echo 'Installation:                                                       '
+#	@echo 'TOPP: the Time-Optimal Path Parameterization library                '
+#	@echo '----------------------------------------------------                '
+#	@echo '                                                                    '
+	@echo 'Usage:                                                              '
 	@echo '                                                                    '
 	@echo '    make standalone -- standalone version (no OpenRAVE integration) '
 	@echo '    make full -- full version (with OpenRAVE integration)           '
