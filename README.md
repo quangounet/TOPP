@@ -7,22 +7,40 @@ Pham (cuong.pham@normalesup.org)
 Requirements 
 ------------
 
-- Boost library
-- Python
-- OpenRAVE (for TOPP with Torque Limits only)
+The library comes in two versions: "standalone" and "full". Both version need
+the following software:
+
+- Boost (1.47 or above) with Boost.Python
+- Python (2.7 or above)
+
+The full version furthermore requires:
+
+- OpenRAVE (0.9 or above) with Python bindings
+- LAPACK (3.5.0 or above)
 
 Installation
 ------------
 
 From the top folder:
   
-    make release
+    ./configure
 
-will compile TOPPbindings.so in the current folder.
+To make the standalone version of the library:
 
-**OpenRAVE integration**
+    make standalone
 
-Let OPENRAVE_DIR denote your OpenRAVE source folder, for instance:
+For the full version:
+
+    make full
+
+Both approaches compile a shared-object file TOPPbindings.so in the current
+folder.
+
+Notes on OpenRAVE integration
+-----------------------------
+
+We will suppose here that you are installing OpenRAVE from source. Let
+OPENRAVE_DIR denote your OpenRAVE source folder, for instance:
     
     export OPENRAVE_DIR=~/openrave
     git clone https://github.com/rdiankov/openrave.git OPENRAVE_DIR
@@ -30,7 +48,7 @@ Let OPENRAVE_DIR denote your OpenRAVE source folder, for instance:
 Install OpenRAVE (Linux instructions here:
 http://openrave.org/docs/latest_stable/coreapihtml/installation_linux.html).
 Supposing you kept the default installation path (i.e. /usr/local/), make
-a symbolic link
+a symbolic link:
 
     /usr/local/include/openrave-0.9/openrave/python -> OPENRAVE_DIR/python
 
@@ -39,15 +57,3 @@ LD_LIBRARY_PATH (you can put the following line in your .bashrc or .zshrc for
 persistence):
 
     export LD_LIBRARY_PATH=$(openrave-config --python-dir)/openravepy/_openravepy_:$LD_LIBRARY_PATH
-
-You will also need to patch file
-/home/cuong/git/openrave/python/bindings/bindings.h (ask Stephane) to support
-compilation with C++11 (-std=c++0x).
-
-Testing
--------
-
-From TOPP's top directory:
-  
-    python test_kinematic.py  # test with kinematic constraints
-    python test_torques.py    # test with torque limits
