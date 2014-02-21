@@ -279,7 +279,7 @@ Vector ZMPTorqueLimits::ZMP(std::vector<dReal>& qfilled, std::vector<dReal>& qdf
     dReal f02 = totalmass * g[2];
     std::vector<std::pair<Vector,Vector> > linkvelocities, linkaccelerations;
     std::vector<dReal> zeros(4);
-    Vector ci, cid, cidd, localcom, linvel, angvel, linacc, angacc, ri;
+    Vector ci, cidd, localcom, angvel, linacc, angacc, ri;
     Transform T;
     {
         EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex());
@@ -293,11 +293,11 @@ Vector ZMPTorqueLimits::ZMP(std::vector<dReal>& qfilled, std::vector<dReal>& qdf
             }
             ri = linksvector[i]->GetTransform().rotate(linksvector[i]->GetLocalCOM());
             ci = linksvector[i]->GetGlobalCOM();
-            linvel = linkvelocities[i].first;
+            //linvel = linkvelocities[i].first;
             angvel = linkvelocities[i].second;
             linacc = linkaccelerations[i].first;
             angacc = linkaccelerations[i].second;
-            cid = linvel + angvel.cross(ri);
+            //cid = linvel + angvel.cross(ri);
             cidd = linacc + angvel.cross(angvel.cross(ri))+angacc.cross(ri);
             tau0 +=  mass[i]*ci.cross(g-cidd);
             f02 -= mass[i]*cidd[2];
