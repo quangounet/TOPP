@@ -52,28 +52,6 @@ const int BUFFSIZE = 300000;
 
 
 ////////////////////////////////////////////////////////////////////
-/////////////////////////// Tunings ////////////////////////////////
-////////////////////////////////////////////////////////////////////
-
-// Some tunings parameters
-class Tunings {
-public:
-    Tunings(){
-    }
-    Tunings(const std::string& tuningsstring);
-    dReal discrtimestep; // Time step to discretize the trajectory, usually 0.01
-    dReal integrationtimestep; // Time step to integrate the profiles, usually 0.01
-    dReal reparamtimestep; // Time step for the reparameterization, usually 0.01. If 0, set reparamtimestep so as to keep the number of discretization points unchanged
-    int passswitchpointnsteps; // Number of steps to integrate from the switch point when assessing whether it's addressable
-    dReal tangentstublength;
-    dReal singularstublength;
-    dReal bisectionprecision; //Precision for the sd search, set to 0.01 by default
-    dReal loweringcoef; //While addressing switchpoints, lower sd by loweringcoef. Set to 0.9
-};
-
-
-
-////////////////////////////////////////////////////////////////////
 /////////////////////////// Switch Point ///////////////////////////
 ////////////////////////////////////////////////////////////////////
 
@@ -137,13 +115,18 @@ class Constraints {
 public:
 
     Trajectory trajectory;
-    Tunings tunings;
+
+    // Tuning parameters
+    dReal discrtimestep, integrationtimestep, reparamtimestep;
+    int passswitchpointnsteps, extrareps;
+    dReal bisectionprecision, loweringcoef;
+
+    // Maximum Velocity Curves
     int ndiscrsteps;
     std::vector<dReal> discrsvect;
     std::vector<dReal> mvcbobrow;
     std::vector<dReal> mvccombined;
     bool hasvelocitylimits;
-    int maxrep; // Max number of reps to try integrating profiles (reduce integrationtimestep at each rep). Set to 1.
     std::vector<dReal> vmax;
 
     std::list<SwitchPoint> switchpointslist; // list of switch points
@@ -157,7 +140,7 @@ public:
 
     Constraints(){
     }
-    virtual void Preprocess(Trajectory& trajectory, Tunings &tunings);
+    virtual void Preprocess();
 
     // Discretize the time interval
     virtual void Discretize();
@@ -302,12 +285,13 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
 int ComputeLimitingCurves(Constraints& constraints);
 
 // Compute all the profiles (CLC, forward from 0, backward from send)
-int ComputeProfiles(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbeg, dReal sdend);
+int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend);
 
 // Velocity Interval Propagation
-int VIP(Constraints& constraints, Trajectory& trajectory, Tunings& tunings, dReal sdbegmin, dReal sdbegmax, dReal& sdendmin, dReal& sdendmax);
+int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmin, dReal& sdendmax);
 
-
+// Velocity Interval Propagation (implemented backward)
+int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dReal sdendmin, dReal sdendmax);
 
 
 //////// ////////////////////////////////////////////////////////////

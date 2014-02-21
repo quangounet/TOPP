@@ -18,105 +18,79 @@
 import sys
 sys.path.append('..')
 
-import TOPPbindings
-import TOPPpy
-import TOPPopenravepy
-import time
 import string
 from pylab import *
 from numpy import *
 from openravepy import *
+import TOPPbindings
+import TOPPpy
+import TOPPopenravepy
 
-
-
-ion()
-
-########################### Robot ################################
-env = Environment() # create openrave environment
-#------------------------------------------#
-robotfile = "../robots/arm.robot.xml"
-env.Load(robotfile)
+# Robot (OpenRAVE)
+env = Environment()
+env.Load("robots/barrettwam.robot.xml")
+env.SetViewer('qtcoin')
+env.GetViewer().SetCamera(array([[ 0.92038107,  0.00847738, -0.39093071,  0.69997793],
+       [ 0.39101295, -0.02698477,  0.91998951, -1.71402919],
+       [-0.00275007, -0.9995999 , -0.02815103,  0.40470174],
+       [ 0.        ,  0.        ,  0.        ,  1.        ]]))
 robot=env.GetRobots()[0]
-#------------------------------------------#
 grav=[0,0,-9.8]
-n=robot.GetDOF()
+ndof=robot.GetDOF()
 dof_lim=robot.GetDOFLimits()
 vel_lim=robot.GetDOFVelocityLimits()
-robot.SetDOFLimits(-10*ones(n),10*ones(n))
-robot.SetDOFVelocityLimits(100*vel_lim)
+robot.SetDOFLimits(-10*ones(ndof),10*ones(ndof)) # Overrides robot joint limits
+robot.SetDOFVelocityLimits(100*vel_lim) # Override robot velocity limits
 
-
-############################ Tunings ############################
-discrtimestep = 0.01
-integrationtimestep = 0.01
-reparamtimestep = 0.01
-passswitchpointnsteps = 5
-tuningsstring = "%f %f %f %d"%(discrtimestep,integrationtimestep,reparamtimestep,passswitchpointnsteps)
-
-
-############################ Trajectory ############################
-#------------------------------------------#
-q0=[0,0,0,0]
-q1=[ 2.32883,  1.61082,  0.97706,  1.94169]
-v=1
-qd0=[v,v,v,v]
-qd1=[v,v,v,v]
+# Trajectory
+q0 = zeros(ndof)
+q1 = zeros(ndof)
+qd0 = zeros(ndof)
+qd1 = zeros(ndof)
+q1[0:4] = [2.32883,  1.61082,  0.97706,  1.94169] #Target DOF values for the shoulder and elbow joints
 T = 1.5
-trajectorystring = "%f\n%d"%(T,4)
-for i in range(4):
+trajectorystring = "%f\n%d"%(T,ndof)
+for i in range(ndof):
     a,b,c,d = TOPPpy.Interpolate3rdDegree(q0[i],q1[i],qd0[i],qd1[i],T)
     trajectorystring += "\n%f %f %f %f"%(d,c,b,a)
-#------------------------------------------#
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
-
-############################ Constraints ############################
-#------------------------------------------#
-taumin = array([-6,-15,-5,-4])
-taumax = array([6,15,5,4])
-vmax = [3,3,3,3]
-t0 = time.time()
-constraintstring = string.join([str(v) for v in vmax])
+# Constraints
+discrtimestep = 0.005
+vmax = zeros(ndof)
+taumin = zeros(ndof)
+taumax = zeros(ndof)
+vmax[0:4] = [2,2,2,2]  # Velocity limits, only for the shoulder and elbow joints
+taumin[0:4] = [-30,-50,-25,-15] # Torque limits, only for the shoulder and elbow joints
+taumax[0:4] = [30,50,25,15]
+constraintstring = str(discrtimestep) + "\n";
+constraintstring += string.join([str(v) for v in vmax])
 constraintstring += TOPPopenravepy.ComputeTorquesConstraints(robot,traj0,taumin,taumax,discrtimestep)
-#------------------------------------------#
 
-
-############################ Run TOPP ############################
-t1 = time.time()
-x = TOPPbindings.TOPPInstance("QuadraticConstraints",constraintstring,trajectorystring,tuningsstring,False);
-t2 = time.time()
+# Run TOPP
+x = TOPPbindings.TOPPInstance(None,"QuadraticConstraints",constraintstring,trajectorystring);
 ret = x.RunComputeProfiles(0,0)
-t3 = time.time()
-
 if(ret == 1):
     x.ReparameterizeTrajectory()
 
-t4 = time.time()
-
-################ Plotting the MVC and the profiles #################
+# Display results
+ion()    
 x.WriteProfilesList()
 x.WriteSwitchPointsList()
 profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
 switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
 TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
-
-
-##################### Plotting the trajectories #####################
 if(ret == 1):
     x.WriteResultTrajectory()
     traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
     dtplot = 0.01
     TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax)
     TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)
+    print "Trajectory duration before TOPP: ", traj0.duration
+    print "Trajectory duration after TOPP: ", traj1.duration
+else:
+    print "Trajectory is not time-parameterizable"
 
-
-print "\n--------------"
-print "Python preprocessing: ", t1-t0
-print "Building TOPP Instance: ", t2-t1
-print "Compute profiles: ", t3-t2
-print "Reparameterize trajectory: ", t4-t3
-print "Total: ", t4-t0
-print "Trajectory duration (estimate): ", x.resduration
-print "Trajectory duration: ", traj1.duration
-
-raw_input()
+# Execute trajectory
+if(ret == 1):
+    TOPPopenravepy.Execute(robot,traj1)

@@ -24,33 +24,39 @@ using namespace OpenRAVE;
 
 namespace TOPP {
 
-TorqueLimitsRave::TorqueLimitsRave(const std::string& constraintsstring, Trajectory* ptraj, const Tunings& tunings, RobotBasePtr probot){
+TorqueLimitsRave::TorqueLimitsRave(RobotBasePtr probot, std::string& constraintsstring, Trajectory* ptraj){
+
+    trajectory = *ptraj;
+
     int buffsize = BUFFSIZE;  // TODO: remove this dirty string interface!
     std::vector<dReal> tmpvect;
     char buff[buffsize];
     std::istringstream iss(constraintsstring);
     iss.getline(buff,buffsize);
+    discrtimestep = atof(buff);
+    iss.getline(buff,buffsize);
+    VectorFromString(std::string(buff),vmax);
+    iss.getline(buff,buffsize);
     VectorFromString(std::string(buff),taumin);
     iss.getline(buff,buffsize);
     VectorFromString(std::string(buff),taumax);
-    iss.getline(buff,buffsize);
-    VectorFromString(std::string(buff),vmax);
     hasvelocitylimits = VectorMax(vmax) > TINY;
-    maxrep = 1;
 
-    int ndof = ptraj->dimension;
+    trajectory = *ptraj;
+
+    int ndof = trajectory.dimension;
 
     // Define the avect, bvect, cvect
-    int ndiscrsteps = int((ptraj->duration+1e-10)/tunings.discrtimestep)+1;
+    int ndiscrsteps = int((trajectory.duration+1e-10)/discrtimestep)+1;
     std::vector<dReal> q(ndof), qd(ndof), qdd(ndof), tmp0(ndof), tmp1(ndof), torquesimple;
     boost::array< std::vector< dReal >, 3 > torquecomponents;
     {
         EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex()); // lock environment
         for(int i = 0; i<ndiscrsteps; i++) {
-            dReal s = i*tunings.discrtimestep;
-            ptraj->Eval(s,q);
-            ptraj->Evald(s,qd);
-            ptraj->Evaldd(s,qdd);
+            dReal s = i*discrtimestep;
+            trajectory.Eval(s,q);
+            trajectory.Evald(s,qd);
+            trajectory.Evaldd(s,qdd);
             probot->SetDOFValues(q,CLA_Nothing);
             probot->SetDOFVelocities(qd,CLA_Nothing);
             probot->ComputeInverseDynamics(torquesimple,qd);

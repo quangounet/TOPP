@@ -21,6 +21,7 @@
 #include "TorqueLimits.h"
 #include "TorqueLimitsRave.h"
 #include "ZMPTorqueLimits.h"
+#include "FrictionLimits.h"
 
 
 #include <boost/python.hpp>
@@ -38,36 +39,64 @@ using namespace TOPP;
 
 class TOPPInstance {
 public:
-    TOPPInstance(std::string problemtype, std::string
-                 constraintsstring, std::string trajectorystring,
-                 std::string tuningsstring, object o) {
-        ptrajectory = new TOPP::Trajectory(trajectorystring);
-        RobotBasePtr probot = GetRobot(o);
+    TOPPInstance(object o, std::string problemtype, std::string constraintsstring, std::string trajectorystring){
 
-        tunings = Tunings(tuningsstring);
-        if (problemtype.compare("KinematicLimits")==0)
+        TOPP::Trajectory* ptrajectory = new TOPP::Trajectory(trajectorystring);
+
+        if (problemtype.compare("KinematicLimits")==0) {
             pconstraints = new KinematicLimits(constraintsstring);
-        else if (problemtype.compare("TorqueLimits")==0)
+            pconstraints->trajectory = *ptrajectory;
+        }
+        else if (problemtype.compare("TorqueLimits")==0) {
             pconstraints = new TorqueLimits(constraintsstring);
-        else if (problemtype.compare("QuadraticConstraints")==0)
+            pconstraints->trajectory = *ptrajectory;
+        }
+        else if (problemtype.compare("QuadraticConstraints")==0) {
             pconstraints = new QuadraticConstraints(constraintsstring);
-        else if (problemtype.compare("TorqueLimitsRave")==0)
-            pconstraints = new TorqueLimitsRave(constraintsstring,ptrajectory,tunings,probot);
-        else if (problemtype.compare("ZMPTorqueLimits")==0)
-            pconstraints = new ZMPTorqueLimits(constraintsstring,ptrajectory,tunings,probot);
+            pconstraints->trajectory = *ptrajectory;
+        }
+        else if (problemtype.compare("TorqueLimitsRave")==0) {
+            RobotBasePtr probot = GetRobot(o);
+            pconstraints = new TorqueLimitsRave(probot,constraintsstring,ptrajectory);
+        }
+        else if (problemtype.compare("FrictionLimits")==0) {
+            RobotBasePtr probot = GetRobot(o);
+            pconstraints = new FrictionLimits(probot,constraintsstring,ptrajectory);
+        }
+        else if (problemtype.compare("ZMPTorqueLimits")==0) {
+            RobotBasePtr probot = GetRobot(o);
+            pconstraints = new ZMPTorqueLimits(probot,constraintsstring,ptrajectory);
+        }
+
+
+        // Set default public tuning parameters
+        integrationtimestep = 0;
+        reparamtimestep = 0;
+        passswitchpointnsteps = 5;
+        extrareps = 0;
+
+        // Set default private tuning parameters
+        pconstraints->bisectionprecision = 0.01;
+        pconstraints->loweringcoef = 0.95;
+
+        //else if (problemtype.compare("ZMPTorqueLimits")==0)
+        //    pconstraints = new ZMPTorqueLimits(constraintsstring,ptrajectory,tunings,probot);
     }
 
     Constraints* pconstraints;
-    TOPP::Trajectory* ptrajectory;
     TOPP::Trajectory restrajectory;
 
-    Tunings tunings;
     std::string restrajectorystring;
     std::string resextrastring;
     std::string resprofilesliststring;
     std::string switchpointsliststring;
     TOPP::dReal resduration;
-    TOPP::dReal sdendmin,sdendmax;
+    TOPP::dReal sdendmin, sdendmax;
+    TOPP::dReal sdbegmin, sdbegmax;
+
+    // Tuning parameters
+    dReal integrationtimestep, reparamtimestep;
+    int passswitchpointnsteps, extrareps;
 
 
     TOPP::dReal GetAlpha(TOPP::dReal s, TOPP::dReal sd) {
@@ -83,24 +112,56 @@ public:
 
 
     int RunComputeProfiles(TOPP::dReal sdbeg, TOPP::dReal sdend){
-        int res = ComputeProfiles(*pconstraints,*ptrajectory,tunings,sdbeg,sdend);
+        // Set tuning parameters
+        pconstraints->integrationtimestep = integrationtimestep;
+        pconstraints->passswitchpointnsteps = passswitchpointnsteps;
+        pconstraints->extrareps = extrareps;
+
+        int res = ComputeProfiles(*pconstraints,sdbeg,sdend);
         resduration = pconstraints->resduration;
         return res;
     }
 
 
     int ReparameterizeTrajectory(){
-        int ret = ptrajectory->Reparameterize(*pconstraints, restrajectory);
+        // Set tuning parameters
+        pconstraints->reparamtimestep = reparamtimestep;
+
+        int ret = pconstraints->trajectory.Reparameterize(*pconstraints, restrajectory);
         return ret;
     }
 
 
-    int RunVIP(TOPP::dReal sdbegmin, TOPP::dReal sdbegmax){
-        int ret = VIP(*pconstraints, *ptrajectory, tunings, sdbegmin, sdbegmax,
+    int RunVIP(TOPP::dReal sdbeg1, TOPP::dReal sdbeg2){
+        // Set tuning parameters
+        pconstraints->integrationtimestep = integrationtimestep;
+        pconstraints->passswitchpointnsteps = passswitchpointnsteps;
+        pconstraints->extrareps = extrareps;
+
+        sdbegmin = sdbeg1;
+        sdbegmax = sdbeg2;
+        int ret = VIP(*pconstraints, sdbegmin, sdbegmax,
                       sdendmin, sdendmax);
         if(ret == 0) {
             sdendmin = -1;
             sdendmax = -1;
+        }
+        return ret;
+    }
+
+    int RunVIPBackward(TOPP::dReal sdend1, TOPP::dReal sdend2){
+        // Set tuning parameters
+        pconstraints->integrationtimestep = integrationtimestep;
+        pconstraints->passswitchpointnsteps = passswitchpointnsteps;
+        pconstraints->extrareps = extrareps;
+
+        sdendmin = sdend1;
+        sdendmax = sdend2;
+        int ret = VIPBackward(*pconstraints, sdbegmin, sdbegmax,
+                              sdendmin, sdendmax);
+        if(ret == 0) {
+            sdbegmin = -1;
+            sdbegmax = -1;
         }
         return ret;
     }
@@ -153,13 +214,18 @@ public:
 
 BOOST_PYTHON_MODULE(TOPPbindings) {
     using namespace boost::python;
-    class_<TOPPInstance>("TOPPInstance",
-                         init<std::string,std::string,std::string,std::string,object>())
+    class_<TOPPInstance>("TOPPInstance", init<object,std::string,std::string,std::string>())
+    .def_readwrite("integrationtimestep", &TOPPInstance::integrationtimestep)
+    .def_readwrite("reparamtimestep", &TOPPInstance::reparamtimestep)
+    .def_readwrite("passswitchpointnsteps", &TOPPInstance::passswitchpointnsteps)
+    .def_readwrite("extrareps", &TOPPInstance::extrareps)
     .def_readonly("restrajectorystring", &TOPPInstance::restrajectorystring)
     .def_readonly("resprofilesliststring", &TOPPInstance::resprofilesliststring)
     .def_readonly("resextrastring", &TOPPInstance::resextrastring)
     .def_readonly("switchpointsliststring", &TOPPInstance::switchpointsliststring)
     .def_readonly("resduration", &TOPPInstance::resduration)
+    .def_readonly("sdbegmin", &TOPPInstance::sdbegmin)
+    .def_readonly("sdbegmax", &TOPPInstance::sdbegmax)
     .def_readonly("sdendmin", &TOPPInstance::sdendmin)
     .def_readonly("sdendmax", &TOPPInstance::sdendmax)
     .def_readonly("pconstraints", &TOPPInstance::pconstraints)
@@ -168,6 +234,7 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def("RunComputeProfiles",&TOPPInstance::RunComputeProfiles)
     .def("ReparameterizeTrajectory",&TOPPInstance::ReparameterizeTrajectory)
     .def("RunVIP",&TOPPInstance::RunVIP)
+    .def("RunVIPBackward",&TOPPInstance::RunVIPBackward)
     .def("WriteResultTrajectory",&TOPPInstance::WriteResultTrajectory)
     .def("WriteProfilesList",&TOPPInstance::WriteProfilesList)
     .def("WriteExtra",&TOPPInstance::WriteExtra)

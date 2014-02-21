@@ -25,16 +25,20 @@
 using namespace OpenRAVE;
 
 namespace TOPP {
-  
-  FrictionLimits::FrictionLimits(const std::string& constraintstring, Trajectory* ptraj, const Tunings& tunings, RobotBasePtr probot0) {
+
+FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstring, Trajectory* ptraj){
+
+    trajectory = *ptraj;
+
     int buffsize = BUFFSIZE;
     char buff[buffsize];
     std::vector<dReal> activedofs, activelinks;
-    std::istringstream iss(constraintstring);
-    
+    std::istringstream iss(constraintsstring);
+    iss.getline(buff,buffsize);
+    discrtimestep = atof(buff);
     iss.getline(buff, buffsize);
     ndof = atoi(buff);
-    
+
     //************************************TASK :: to be revised
     iss.getline(buff, buffsize);
     VectorFromString(std::string(buff), objspecs);
@@ -45,282 +49,279 @@ namespace TOPP {
 
     iss.getline(buff, buffsize);
     VectorFromString(std::string(buff), vmax);
-    
-    hasvelocitylimits = VectorMax(vmax) > TINY;
-    maxrep = 1;
 
-    probot = probot0;
+    hasvelocitylimits = VectorMax(vmax) > TINY;
 
     //Check Soundness
     assert(ndof == ptraj->dimension);
-    
+
     //Links
     linksvector = probot->GetLinks();
     nlink = linksvector.size();
-    
+
     int bottlelinkindex = nlink - 1;
     int traylinkindex = nlink - 2;
-    
+
     mb = linksvector[bottlelinkindex]->GetMass();
-    
+
     dReal dx = objspecs[0];
     dReal dy = objspecs[1];
     dReal bottleh = objspecs[2];
-     
+
     Vector g = probot->GetEnv()->GetPhysicsEngine()->GetGravity();
     Vector worldx(1, 0, 0), worldy(0, 1, 0), worldz(0, 0, 1);
-    
+
     std::vector<dReal> q(ndof), qd(ndof), qdd(ndof);
     std::vector<dReal> a, b, c;
-    
+
     //intermediate variables
     std::vector<dReal> qplusdeltaqd(ndof);
     std::vector<std::pair<Vector, Vector> > linkaccelerations;
     boost::multi_array<dReal, 2> jacobianb_p, jacobianb_o, jacobianb_pdelta, jacobianb_odelta,
-      jacobianb_pdiff(boost::extents[3][ndof]), jacobianb_odiff(boost::extents[3][ndof]);
+    jacobianb_pdiff(boost::extents[3][ndof]), jacobianb_odiff(boost::extents[3][ndof]);
     boost::multi_array<dReal, 2> jacobiant_p, jacobiant_o, jacobiant_pdelta, jacobiant_odelta,
-      jacobiant_pdiff(boost::extents[3][ndof]), jacobiant_odiff(boost::extents[3][ndof]);
-    
+    jacobiant_pdiff(boost::extents[3][ndof]), jacobiant_odiff(boost::extents[3][ndof]);
+
     eps = 1e-10;
     dReal delta = TINY2;
-    int ndiscrsteps = int((ptraj->duration + 1e-10)/tunings.discrtimestep) + 1;
+    int ndiscrsteps = int((ptraj->duration + 1e-10)/discrtimestep) + 1;
 
     {
-      EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex());
-      for(int t = 0; t < ndiscrsteps; t++) {
-	dReal s = t*tunings.discrtimestep;
-	
-	ptraj->Eval(s, q);
-	ptraj->Evald(s, qd);
-	ptraj->Evaldd(s, qdd);
-	
-	probot->SetDOFValues(q, CLA_Nothing);
-	probot->SetDOFVelocities(qd, CLA_Nothing);
-	
-	a.resize(0);
-	b.resize(0);
-	c.resize(0);
+        EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex());
+        for(int t = 0; t < ndiscrsteps; t++) {
+            dReal s = t*discrtimestep;
 
-	//intermediate variables for Jacobian derivatives
-	dReal norm_qd = VectorNorm(qd);
-	bool qdiszero = norm_qd < TINY;
-	
-	if(!qdiszero) {
-	  VectorAdd(q, qd, qplusdeltaqd, 1, delta/norm_qd);
-	}
-	
-	RaveTransform<dReal> Htray = probot->GetLinks()[traylinkindex]->GetTransform();
-	Vector nx = Htray.rotate(worldx);
-	Vector ny = Htray.rotate(worldy);
-	Vector nz = Htray.rotate(worldz); //normal vector of the tray described in world's frame
-	
-	RaveTransform<dReal> Hbottle = probot->GetLinks()[bottlelinkindex]->GetTransform();
-	
-	Vector Pb = probot->GetLinks()[bottlelinkindex]->GetGlobalCOM();
-	Vector Pt = probot->GetLinks()[traylinkindex]->GetGlobalCOM();
+            ptraj->Eval(s, q);
+            ptraj->Evald(s, qd);
+            ptraj->Evaldd(s, qdd);
 
-	//Calculate Jacobians of the bottle
-	probot->CalculateJacobian(bottlelinkindex, Pb, jacobianb_p);
-	probot->CalculateAngularVelocityJacobian(bottlelinkindex, jacobianb_o);
+            probot->SetDOFValues(q, CLA_Nothing);
+            probot->SetDOFVelocities(qd, CLA_Nothing);
 
-	//Calculate Jacobians of the tray
-	probot->CalculateJacobian(traylinkindex, Pt, jacobiant_p);
-	probot->CalculateAngularVelocityJacobian(traylinkindex, jacobiant_o);
+            a.resize(0);
+            b.resize(0);
+            c.resize(0);
 
-	if(!qdiszero) {
-	  //******** Set new DOF values and compute derivatives of Jacobians **********
-	  probot->SetDOFValues(qplusdeltaqd, CLA_Nothing);
-	  
-	  //*** bottle ***
-	  probot->CalculateJacobian(bottlelinkindex, linksvector[bottlelinkindex]->GetGlobalCOM(), jacobianb_pdelta);
-	  probot->CalculateAngularVelocityJacobian(bottlelinkindex, jacobianb_odelta);	  
-	  MatrixAdd(jacobianb_pdelta, jacobianb_p, jacobianb_pdiff, norm_qd/delta, -norm_qd/delta);
-	  MatrixAdd(jacobianb_odelta, jacobianb_o, jacobianb_odiff, norm_qd/delta, -norm_qd/delta);
-	  
-	  //*** tray ***
-	  probot->CalculateJacobian(traylinkindex, linksvector[traylinkindex]->GetGlobalCOM(), jacobiant_pdelta);
-	  probot->CalculateAngularVelocityJacobian(traylinkindex, jacobiant_odelta);
-	  MatrixAdd(jacobiant_pdelta, jacobiant_p, jacobiant_pdiff, norm_qd/delta, -norm_qd/delta);
-	  MatrixAdd(jacobiant_odelta, jacobiant_o, jacobiant_odiff, norm_qd/delta, -norm_qd/delta);
+            //intermediate variables for Jacobian derivatives
+            dReal norm_qd = VectorNorm(qd);
+            bool qdiszero = norm_qd < TINY;
 
-	}
+            if(!qdiszero) {
+                VectorAdd(q, qd, qplusdeltaqd, 1, delta/norm_qd);
+            }
 
-	//******** Set DOF Values back ********
-	probot->SetDOFValues(q, CLA_Nothing);
-	
-	Vector Pbs, Pbss, Pts, Ptss;
-	dReal Ns, Nss, N0;
-	
-	Pbs = MatrixMultVector(jacobianb_p, qd);
-	Pbss = MatrixMultVector(jacobianb_p, qdd) + MatrixMultVector(jacobianb_pdiff, qd);
-	
-	Pts = MatrixMultVector(jacobiant_p, qd);
-	Ptss = MatrixMultVector(jacobiant_p, qdd) + MatrixMultVector(jacobiant_pdiff, qd);
-	
-	
-	Ns = mb*nz.dot3(Pts);
-	Nss = mb*nz.dot3(Ptss);
-	N0 = -mb*nz.dot3(g);
-	
-	//**************** CONSTRAINT I : N >= 0 *****************
-	a.push_back(-Ns);
-	b.push_back(-Nss);
-	c.push_back(eps - N0);
-	//********************************************************
-	
-	Vector fs, fss, f0;
-	dReal r2 = sqrt(2);
-	
-	fs = mb*Pts - Ns*nz;
-	fss = mb*Ptss - Nss*nz;
-	f0 = -mb*g - N0*nz;
-	
-	//*************** relaxed conditions of friction cone ****************
-	//************************* CONSTAINT II/I ***************************
-	a.push_back(nx.dot3(fs) - (mu/r2)*Ns);
-	b.push_back(nx.dot3(fss) - (mu/r2)*Nss);
-	c.push_back(nx.dot3(f0) - (mu/r2)*N0);
-	
-	a.push_back(-nx.dot3(fs) - (mu/r2)*Ns);
-	b.push_back(-nx.dot3(fss) - (mu/r2)*Nss);
-	c.push_back(-nx.dot3(f0) - (mu/r2)*N0);
-	
-	//************************ CONSTRAINT II/II **************************
-	a.push_back(ny.dot3(fs) - (mu/r2)*Ns);
-	b.push_back(ny.dot3(fss) - (mu/r2)*Nss);
-	c.push_back(ny.dot3(f0) - (mu/r2)*N0);
-	
-	a.push_back(-ny.dot3(fs) - (mu/r2)*Ns);
-	b.push_back(-ny.dot3(fss) - (mu/r2)*Nss);
-	c.push_back(-ny.dot3(f0) - (mu/r2)*N0);
-	//********************************************************************
-	
-	//********************* Calculate the rate of change of the momentum ******************************
-	Vector Ms, Mss;
-	RaveTransformMatrix<dReal> matIb;
-	boost::multi_array<dReal, 2> localIb(boost::extents[3][3]), Ib(boost::extents[3][3]);
-	
-	matIb = linksvector[bottlelinkindex]->GetLocalInertia();
-	localIb = ExtractI(matIb); // bottle's inertia tensor in its own frame
-	
-	boost::multi_array<dReal, 2> Rb(boost::extents[3][3]);
-	Rb = ExtractR(Hbottle); // rotation matrix of the bottle
-	Ib = MatricesMult3(Rb, MatricesMult3(localIb, MatrixTrans(Rb))); // bottle's inertia tensor in the world's frame
-	
-	Vector temp1 = MatrixMultVector(jacobiant_o, qd);
-	Vector temp2 = MatrixMultVector(jacobiant_o, qdd) + MatrixMultVector(jacobiant_odiff, qd);
-	
-	Ms = MatrixMultVector(Ib, temp1);
-	Mss = MatrixMultVector(Ib, temp2) + temp1.cross(Ms);
-	//*************************************************************************************************
-	
-	Vector Es, Ess, E0;
-	
-	Es = nz.cross(Ms) + mb*bottleh*Pts;
-	Ess = nz.cross(Mss) + mb*bottleh*Ptss;
-	E0 = -mb*bottleh*g;
-	
-	Vector nxbottle = Hbottle.rotate(worldx);
-	Vector nybottle = Hbottle.rotate(worldy);
-	
-	Vector Ks, Kss, K0;
-	
-	Ks = bottleh*Ns*nz - Es;
-	Kss = bottleh*Nss*nz - Ess;
-	K0 = bottleh*N0*nz - E0;
-	
-	//X
-	//************************* CONSTAINT III/I ***************************
-	a.push_back(nxbottle.dot3(Ks) - dx*Ns);
-	b.push_back(nxbottle.dot3(Kss) - dx*Nss);
-	c.push_back(nxbottle.dot3(K0) - dx*N0);
-	
-	a.push_back(-nxbottle.dot3(Ks) - dx*Ns);
-	b.push_back(-nxbottle.dot3(Kss) - dx*Nss);
-	c.push_back(-nxbottle.dot3(K0) - dx*N0);
-	
-	//Y
-	//************************ CONSTRAINT III/II **************************
-	a.push_back(nybottle.dot3(Ks) - dy*Ns);
-	b.push_back(nybottle.dot3(Kss) - dy*Nss);
-	c.push_back(nybottle.dot3(K0) - dy*N0);
-	
-	a.push_back(-nybottle.dot3(Ks) - dy*Ns);
-	b.push_back(-nybottle.dot3(Kss) - dy*Nss);
-	c.push_back(-nybottle.dot3(K0) - dy*N0);
-	
-	//std::cout << Ns << "\t" << Nss << "\t" << N0 << "\t" << "\n";
-	avect.push_back(a);
-	bvect.push_back(b);
-	cvect.push_back(c);
-	
-      }
+            RaveTransform<dReal> Htray = probot->GetLinks()[traylinkindex]->GetTransform();
+            Vector nx = Htray.rotate(worldx);
+            Vector ny = Htray.rotate(worldy);
+            Vector nz = Htray.rotate(worldz); //normal vector of the tray described in world's frame
+
+            RaveTransform<dReal> Hbottle = probot->GetLinks()[bottlelinkindex]->GetTransform();
+
+            Vector Pb = probot->GetLinks()[bottlelinkindex]->GetGlobalCOM();
+            Vector Pt = probot->GetLinks()[traylinkindex]->GetGlobalCOM();
+
+            //Calculate Jacobians of the bottle
+            probot->CalculateJacobian(bottlelinkindex, Pb, jacobianb_p);
+            probot->CalculateAngularVelocityJacobian(bottlelinkindex, jacobianb_o);
+
+            //Calculate Jacobians of the tray
+            probot->CalculateJacobian(traylinkindex, Pt, jacobiant_p);
+            probot->CalculateAngularVelocityJacobian(traylinkindex, jacobiant_o);
+
+            if(!qdiszero) {
+                //******** Set new DOF values and compute derivatives of Jacobians **********
+                probot->SetDOFValues(qplusdeltaqd, CLA_Nothing);
+
+                //*** bottle ***
+                probot->CalculateJacobian(bottlelinkindex, linksvector[bottlelinkindex]->GetGlobalCOM(), jacobianb_pdelta);
+                probot->CalculateAngularVelocityJacobian(bottlelinkindex, jacobianb_odelta);
+                MatrixAdd(jacobianb_pdelta, jacobianb_p, jacobianb_pdiff, norm_qd/delta, -norm_qd/delta);
+                MatrixAdd(jacobianb_odelta, jacobianb_o, jacobianb_odiff, norm_qd/delta, -norm_qd/delta);
+
+                //*** tray ***
+                probot->CalculateJacobian(traylinkindex, linksvector[traylinkindex]->GetGlobalCOM(), jacobiant_pdelta);
+                probot->CalculateAngularVelocityJacobian(traylinkindex, jacobiant_odelta);
+                MatrixAdd(jacobiant_pdelta, jacobiant_p, jacobiant_pdiff, norm_qd/delta, -norm_qd/delta);
+                MatrixAdd(jacobiant_odelta, jacobiant_o, jacobiant_odiff, norm_qd/delta, -norm_qd/delta);
+
+            }
+
+            //******** Set DOF Values back ********
+            probot->SetDOFValues(q, CLA_Nothing);
+
+            Vector Pbs, Pbss, Pts, Ptss;
+            dReal Ns, Nss, N0;
+
+            Pbs = MatrixMultVector(jacobianb_p, qd);
+            Pbss = MatrixMultVector(jacobianb_p, qdd) + MatrixMultVector(jacobianb_pdiff, qd);
+
+            Pts = MatrixMultVector(jacobiant_p, qd);
+            Ptss = MatrixMultVector(jacobiant_p, qdd) + MatrixMultVector(jacobiant_pdiff, qd);
+
+
+            Ns = mb*nz.dot3(Pts);
+            Nss = mb*nz.dot3(Ptss);
+            N0 = -mb*nz.dot3(g);
+
+            //**************** CONSTRAINT I : N >= 0 *****************
+            a.push_back(-Ns);
+            b.push_back(-Nss);
+            c.push_back(eps - N0);
+            //********************************************************
+
+            Vector fs, fss, f0;
+            dReal r2 = sqrt(2);
+
+            fs = mb*Pts - Ns*nz;
+            fss = mb*Ptss - Nss*nz;
+            f0 = -mb*g - N0*nz;
+
+            //*************** relaxed conditions of friction cone ****************
+            //************************* CONSTAINT II/I ***************************
+            a.push_back(nx.dot3(fs) - (mu/r2)*Ns);
+            b.push_back(nx.dot3(fss) - (mu/r2)*Nss);
+            c.push_back(nx.dot3(f0) - (mu/r2)*N0);
+
+            a.push_back(-nx.dot3(fs) - (mu/r2)*Ns);
+            b.push_back(-nx.dot3(fss) - (mu/r2)*Nss);
+            c.push_back(-nx.dot3(f0) - (mu/r2)*N0);
+
+            //************************ CONSTRAINT II/II **************************
+            a.push_back(ny.dot3(fs) - (mu/r2)*Ns);
+            b.push_back(ny.dot3(fss) - (mu/r2)*Nss);
+            c.push_back(ny.dot3(f0) - (mu/r2)*N0);
+
+            a.push_back(-ny.dot3(fs) - (mu/r2)*Ns);
+            b.push_back(-ny.dot3(fss) - (mu/r2)*Nss);
+            c.push_back(-ny.dot3(f0) - (mu/r2)*N0);
+            //********************************************************************
+
+            //********************* Calculate the rate of change of the momentum ******************************
+            Vector Ms, Mss;
+            RaveTransformMatrix<dReal> matIb;
+            boost::multi_array<dReal, 2> localIb(boost::extents[3][3]), Ib(boost::extents[3][3]);
+
+            matIb = linksvector[bottlelinkindex]->GetLocalInertia();
+            localIb = ExtractI(matIb); // bottle's inertia tensor in its own frame
+
+            boost::multi_array<dReal, 2> Rb(boost::extents[3][3]);
+            Rb = ExtractR(Hbottle); // rotation matrix of the bottle
+            Ib = MatricesMult3(Rb, MatricesMult3(localIb, MatrixTrans(Rb))); // bottle's inertia tensor in the world's frame
+
+            Vector temp1 = MatrixMultVector(jacobiant_o, qd);
+            Vector temp2 = MatrixMultVector(jacobiant_o, qdd) + MatrixMultVector(jacobiant_odiff, qd);
+
+            Ms = MatrixMultVector(Ib, temp1);
+            Mss = MatrixMultVector(Ib, temp2) + temp1.cross(Ms);
+            //*************************************************************************************************
+
+            Vector Es, Ess, E0;
+
+            Es = nz.cross(Ms) + mb*bottleh*Pts;
+            Ess = nz.cross(Mss) + mb*bottleh*Ptss;
+            E0 = -mb*bottleh*g;
+
+            Vector nxbottle = Hbottle.rotate(worldx);
+            Vector nybottle = Hbottle.rotate(worldy);
+
+            Vector Ks, Kss, K0;
+
+            Ks = bottleh*Ns*nz - Es;
+            Kss = bottleh*Nss*nz - Ess;
+            K0 = bottleh*N0*nz - E0;
+
+            //X
+            //************************* CONSTAINT III/I ***************************
+            a.push_back(nxbottle.dot3(Ks) - dx*Ns);
+            b.push_back(nxbottle.dot3(Kss) - dx*Nss);
+            c.push_back(nxbottle.dot3(K0) - dx*N0);
+
+            a.push_back(-nxbottle.dot3(Ks) - dx*Ns);
+            b.push_back(-nxbottle.dot3(Kss) - dx*Nss);
+            c.push_back(-nxbottle.dot3(K0) - dx*N0);
+
+            //Y
+            //************************ CONSTRAINT III/II **************************
+            a.push_back(nybottle.dot3(Ks) - dy*Ns);
+            b.push_back(nybottle.dot3(Kss) - dy*Nss);
+            c.push_back(nybottle.dot3(K0) - dy*N0);
+
+            a.push_back(-nybottle.dot3(Ks) - dy*Ns);
+            b.push_back(-nybottle.dot3(Kss) - dy*Nss);
+            c.push_back(-nybottle.dot3(K0) - dy*N0);
+
+            //std::cout << Ns << "\t" << Nss << "\t" << N0 << "\t" << "\n";
+            avect.push_back(a);
+            bvect.push_back(b);
+            cvect.push_back(c);
+
+        }
     }
     nconstraints = int(avect.front().size());
-  }
-  
-    
-  void FrictionLimits::MatrixAdd(const boost::multi_array<dReal, 2>& A, const boost::multi_array<dReal, 2>& B, boost::multi_array<dReal, 2>& C, dReal coefA, dReal coefB) {
-    for(int i = 0; i < int(A.shape()[0]); i++) {
-      for(int j = 0; j < int(A.shape()[1]); j++) {
-	C[i][j] = coefA*A[i][j] + coefB*B[i][j];
-      }
-    }
-  }
+}
 
-  boost::multi_array<dReal, 2> FrictionLimits::MatrixTrans(const boost::multi_array<dReal, 2>& A) {      
+
+void FrictionLimits::MatrixAdd(const boost::multi_array<dReal, 2>& A, const boost::multi_array<dReal, 2>& B, boost::multi_array<dReal, 2>& C, dReal coefA, dReal coefB) {
+    for(int i = 0; i < int(A.shape()[0]); i++) {
+        for(int j = 0; j < int(A.shape()[1]); j++) {
+            C[i][j] = coefA*A[i][j] + coefB*B[i][j];
+        }
+    }
+}
+
+boost::multi_array<dReal, 2> FrictionLimits::MatrixTrans(const boost::multi_array<dReal, 2>& A) {
     boost::multi_array<dReal, 2> At(boost::extents[int(A.shape()[1])][int(A.shape()[0])]);
     for(int i = 0; i < int(A.shape()[1]); i++) {
-      for(int j = 0; j < int(A.shape()[0]); j++) {
-	  At[i][j] = A[j][i];
-      }
+        for(int j = 0; j < int(A.shape()[0]); j++) {
+            At[i][j] = A[j][i];
+        }
     }
     return At;
-  }
+}
 
-  boost::multi_array<dReal, 2> FrictionLimits::MatricesMult3(const boost::multi_array<dReal, 2>& A, const boost::multi_array<dReal, 2>& B) {
+boost::multi_array<dReal, 2> FrictionLimits::MatricesMult3(const boost::multi_array<dReal, 2>& A, const boost::multi_array<dReal, 2>& B) {
     assert(int(A.shape()[0] == 3));
     assert(int(A.shape()[1] == 3));
     assert(int(B.shape()[0] == 3));
     assert(int(B.shape()[1] == 3));
     boost::multi_array<dReal, 2> C(boost::extents[3][3]);
     for(int i = 0; i < 3; i++) {
-      for(int j = 0; j < 3; j++) {
-	C[i][j] = A[i][0]*B[0][j] + A[i][1]*B[1][j] + A[i][2]*B[2][j];
-      }
+        for(int j = 0; j < 3; j++) {
+            C[i][j] = A[i][0]*B[0][j] + A[i][1]*B[1][j] + A[i][2]*B[2][j];
+        }
     }
     return C;
-  }  
+}
 
 
 
-  
-  Vector FrictionLimits::MatrixMultVector(const boost::multi_array<dReal, 2>& M, const std::vector<dReal>& v) {
+
+Vector FrictionLimits::MatrixMultVector(const boost::multi_array<dReal, 2>& M, const std::vector<dReal>& v) {
     assert(M.shape()[1] == v.size());
     Vector res;
-    
+
     for(int i = 0; i < int(M.shape()[0]); i++) {
-      res[i] = 0;
-      for(int j = 0; j < int(v.size()); j++) {
-	res[i] += M[i][j]*v[j];
-      }
+        res[i] = 0;
+        for(int j = 0; j < int(v.size()); j++) {
+            res[i] += M[i][j]*v[j];
+        }
     }
     return res;
-  }
+}
 
-  Vector FrictionLimits::MatrixMultVector(const boost::multi_array<dReal, 2>& M, const Vector& v) {
+Vector FrictionLimits::MatrixMultVector(const boost::multi_array<dReal, 2>& M, const Vector& v) {
     Vector res;
-    
+
     for(int i = 0; i < int(M.shape()[0]); i++) {
-      res[i] = 0;
-      for(int j = 0; j < 3; j++) {
-	res[i] += M[i][j]*v[j];
-      }
+        res[i] = 0;
+        for(int j = 0; j < 3; j++) {
+            res[i] += M[i][j]*v[j];
+        }
     }
     return res;
-  }
+}
 
-  boost::multi_array<dReal, 2> FrictionLimits::ExtractI(const RaveTransformMatrix<dReal>& H) {
+boost::multi_array<dReal, 2> FrictionLimits::ExtractI(const RaveTransformMatrix<dReal>& H) {
     boost::multi_array<dReal, 2> I(boost::extents[3][3]);
     Vector x(1, 0, 0), y(0, 1, 0), z(0, 0, 1);
     Vector resx, resy, resz;
@@ -328,32 +329,32 @@ namespace TOPP {
     resx = H.rotate(x);
     resy = H.rotate(y);
     resz = H.rotate(z);
-    
+
     I[0][0] = resx[0]; I[0][1] = resy[0]; I[0][2] = resz[0];
     I[1][0] = resx[1]; I[1][1] = resy[1]; I[1][2] = resz[1];
     I[2][0] = resx[2]; I[2][1] = resy[2]; I[2][2] = resz[2];
     return I;
-  }
+}
 
-  boost::multi_array<dReal, 2> FrictionLimits::ExtractR(const RaveTransform<dReal>& H) {
+boost::multi_array<dReal, 2> FrictionLimits::ExtractR(const RaveTransform<dReal>& H) {
     boost::multi_array<dReal, 2> R(boost::extents[3][3]);
     Vector x(1, 0, 0), y(0, 1, 0), z(0, 0, 1);
     Vector resx, resy, resz;
-    
+
     resx = H.rotate(x);
     resy = H.rotate(y);
     resz = H.rotate(z);
-    
-    R[0][0] = resx[0]; R[0][1] = resy[0]; R[0][2] = resz[0]; 
-    R[1][0] = resx[1]; R[1][1] = resy[1]; R[1][2] = resz[1]; 
+
+    R[0][0] = resx[0]; R[0][1] = resy[0]; R[0][2] = resz[0];
+    R[1][0] = resx[1]; R[1][1] = resy[1]; R[1][2] = resz[1];
     R[2][0] = resx[2]; R[2][1] = resy[2]; R[2][2] = resz[2];
     return R;
-  }
-  
-  Vector FrictionLimits::ExtractT(const RaveTransform<dReal>& H) {
+}
+
+Vector FrictionLimits::ExtractT(const RaveTransform<dReal>& H) {
     Vector T;
     T = H.trans;
     return T;
-  }
+}
 
 }
