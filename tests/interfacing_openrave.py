@@ -1,6 +1,3 @@
-import sys
-sys.path.append('..')
-
 import string
 from pylab import *
 from numpy import *
