@@ -1,12 +1,10 @@
 SHELL=/bin/bash
-VPATH = @srcdir@
-
-CFLAGS = @CFLAGS@
+EXTRA_FLAGS=@EXTRA_FLAGS@
 prefix = @prefix@
 target = @target@
 srcdir = @srcdir@
 
-COMMON_CFLAGS=-Wall -fPIC -std=c++0x $(CFLAGS)
+COMMON_CFLAGS=-Wall -fPIC -std=c++0x $(EXTRA_FLAGS)
 COMMON_LIBS=-lboost_python -llapack
 INSTALL_PATH=$(prefix)/lib/python2.7/dist-packages/TOPP
 SOFILE=TOPPbindings.so

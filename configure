@@ -607,6 +607,7 @@ LIBOBJS
 EGREP
 GREP
 CXXCPP
+EXTRA_FLAGS
 target
 SET_MAKE
 ac_ct_CC
@@ -3312,8 +3313,9 @@ fi
 
 if test "$with_openrave" != ""
 then
-    CFLAGS="$CFLAGS -DWITH_OPENRAVE"
     target="full"
+
+    EXTRA_FLAGS="-DWITH_OPENRAVE"
 
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for _ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE in -lopenrave0.9" >&5

@@ -12,8 +12,8 @@ AC_ARG_WITH(openrave, [  --with-openrave           build TOPP with OpenRAVE inte
 
 if test "$with_openrave" != ""
 then
-    CFLAGS="$CFLAGS -DWITH_OPENRAVE"
     AC_SUBST(target, "full")
+    AC_SUBST(EXTRA_FLAGS, "-DWITH_OPENRAVE")
     AC_CHECK_LIB([openrave0.9], 
                  [_ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE], 
                  [],
