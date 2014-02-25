@@ -192,6 +192,7 @@ public:
         switchpointsliststring = ss.str();
     }
 
+    // Extra string, such as the coordinates of the ZMP (depending on the application)
     void WriteExtra(){
         std::stringstream ss;
         pconstraints->WriteExtra(ss);

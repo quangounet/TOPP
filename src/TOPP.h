@@ -117,13 +117,17 @@ public:
     Trajectory trajectory;
 
     // Tuning parameters
-    dReal discrtimestep, integrationtimestep, reparamtimestep;
-    int passswitchpointnsteps, extrareps;
-    dReal bisectionprecision, loweringcoef;
+    dReal discrtimestep; // Time step to discretize the trajectory when computing the MVC
+    dReal integrationtimestep; // Time step to integrate the profiles
+    dReal reparamtimestep; // Time step to reparameterize the trajectory based on the optimal profile
+    int passswitchpointnsteps; // Number of steps to integrate around a switch point
+    int extrareps; // Number of reps to lower the integrationtimestep when integration fails
+    dReal bisectionprecision; // Precision when determining the sd for tangent switch point
+    dReal loweringcoef; // Lowerbound that multiplies sd when searching sd for tangent switch point
 
     // Maximum Velocity Curves
-    int ndiscrsteps;
-    std::vector<dReal> discrsvect;
+    int ndiscrsteps; // Number of discretization steps, around trajectory.duration/discrtimestep
+    std::vector<dReal> discrsvect; // Discretization points on the s axis
     std::vector<dReal> mvcbobrow;
     std::vector<dReal> mvccombined;
     bool hasvelocitylimits;
@@ -140,6 +144,8 @@ public:
 
     Constraints(){
     }
+
+    // Compute the MVCs and the switchpoints and other initializations
     virtual bool Preprocess();
 
     // Discretize the time interval
@@ -197,7 +203,9 @@ public:
     void FindSwitchPoints();
     void FindTangentSwitchPoints();
     void FindDiscontinuousSwitchPoints();
-    // Trim nearby switch points, priority is given to singular switch points
+
+    // Switch points that are close to each other will be replaced by a single swtich point
+    // Modifies switchpointslist
     void TrimSwitchPoints();
 
     // Compute the slope of the profiles near a dynamic singularity
@@ -206,13 +214,22 @@ public:
         throw "Virtual method not implemented";
     }
 
+    // Fix the integration at s=0 when there is a singularity there
+    // If there's nothing to do then sstartnew = 0
+    // Else sstartnew > 0 and sdstartnew will be the value that allows going through the singularity
     virtual void FixStart(dReal& sstartnew,dReal& sdstartnew){
         sstartnew = 0;
     }
+
+    // Fix the integration at s=send when there is a singularity there
+    // If there's nothing to do then sendnew = send
+    // Else sendnew < send and sdendnew will be the value that allows going through the singularity
     virtual void FixEnd(dReal& sendnew,dReal& sdendnew){
         sendnew = trajectory.duration;
     }
 
+    // Find all the singular switch points
+    // Add them to switchpointslist
     virtual void FindSingularSwitchPoints(){
         std::cout << "Virtual method not implemented\n";
         throw "Virtual method not implemented";
@@ -231,6 +248,7 @@ public:
 ////////////////////////////////////////////////////////////////////
 
 // Constraints of the form a(s)sdd + b(s)sd^2 + c(s) <= 0
+// See our article http://arxiv.org/abs/1312.6533 for more details
 class QuadraticConstraints : public Constraints {
 public:
     QuadraticConstraints() : Constraints(){
@@ -290,7 +308,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend);
 // Velocity Interval Propagation
 int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmin, dReal& sdendmax);
 
-// Velocity Interval Propagation (implemented backward)
+// Velocity Interval Propagation from sdend backwards
 int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dReal sdendmin, dReal sdendmax);
 
 
@@ -298,7 +316,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
 ///////////////////////// Utilities ////////////////////////////////
 ////////////////////////////////////////////////////////////////////
 
-// Find the smallest and largest element of a vector
+// Various operations on Vectors
 dReal VectorMin(const std::vector<dReal>& v);
 dReal VectorMax(const std::vector<dReal>& v);
 void VectorAdd(const std::vector<dReal>&a, const std::vector<dReal>&b,  std::vector<dReal>& res, dReal coefa=1, dReal coefb=1);
