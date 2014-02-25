@@ -21,8 +21,8 @@ sys.path.append('..')
 import string
 from pylab import *
 from numpy import *
-import TOPPbindings
-import TOPPpy
+from TOPP import TOPPbindings
+from TOPP import TOPPpy
 
 # Trajectory
 ndof = 5
@@ -47,7 +47,7 @@ discrtimestep = 0.001
 vmax = 2*ones(ndof)  # Velocity limits
 amax = 10*ones(ndof) # Acceleration limits
 constraintstring = str(discrtimestep) + "\n";  # Discretization time step
-constraintstring += string.join([str(v) for v in vmax]) + "\n" 
+constraintstring += string.join([str(v) for v in vmax]) + "\n"
 constraintstring += string.join([str(a) for a in amax])
 
 # Run TOPP

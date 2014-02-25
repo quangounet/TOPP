@@ -19,18 +19,20 @@
 #include "TOPP.h"
 #include "KinematicLimits.h"
 #include "TorqueLimits.h"
-#include "TorqueLimitsRave.h"
 
 #include <boost/python.hpp>
 #include <boost/python/module.hpp>
 #include <boost/python/def.hpp>
 
+#ifdef WITH_OPENRAVE
 #include <openrave-core.h>
 #include "openrave/python/bindings/openravepy_int.h"
+#include "TorqueLimitsRave.h"
 
+using namespace openravepy;
+#endif
 
 using namespace boost::python;
-using namespace openravepy;
 using namespace TOPP;
 
 
@@ -52,10 +54,13 @@ public:
             pconstraints = new QuadraticConstraints(constraintsstring);
             pconstraints->trajectory = *ptrajectory;
         }
+
+#ifdef WITH_OPENRAVE
         else if (problemtype.compare("TorqueLimitsRave")==0) {
             RobotBasePtr probot = GetRobot(o);
             pconstraints = new TorqueLimitsRave(probot,constraintsstring,ptrajectory);
         }
+#endif
 
         // Set default public tuning parameters
         integrationtimestep = 0;

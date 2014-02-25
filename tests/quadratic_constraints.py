@@ -22,9 +22,9 @@ import string
 from pylab import *
 from numpy import *
 from openravepy import *
-import TOPPbindings
-import TOPPpy
-import TOPPopenravepy
+from TOPP import TOPPbindings
+from TOPP import TOPPpy
+from TOPP import TOPPopenravepy
 
 # Robot (OpenRAVE)
 env = Environment()
@@ -74,7 +74,7 @@ if(ret == 1):
     x.ReparameterizeTrajectory()
 
 # Display results
-ion()    
+ion()
 x.WriteProfilesList()
 x.WriteSwitchPointsList()
 profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
