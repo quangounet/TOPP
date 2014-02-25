@@ -14,6 +14,13 @@ if test "$with_openrave" != ""
 then
     CFLAGS="$CFLAGS -DWITH_OPENRAVE"
     AC_SUBST(target, "full")
+    AC_CHECK_LIB([openrave0.9], 
+                 [_ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE], 
+                 [],
+                 [AC_MSG_ERROR([
+
+OpenRAVE was not found on your system.
+])])
 else
     AC_SUBST(target, "standalone")
 fi
@@ -35,15 +42,6 @@ AC_CHECK_LIB([lapack],
 
 LAPACK was not found on your system. It is required to compute contact forces
 in ZMPTorqueLimits (full version only).
-])])
-
-AC_CHECK_LIB([openrave0.9], 
-             [_ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE], 
-             [],
-             [AC_MSG_WARN([
-
-OpenRAVE was not found on your system. It is required if you want to compile
-the full version of TOPP. You don't need it for the standalone version.
 ])])
 
 # Checks for header files.
