@@ -7,13 +7,12 @@ Pham (cuong.pham@normalesup.org)
 Requirements 
 ------------
 
-The library comes in two versions: "standalone" and "full". Both version need
-the following software:
+The following software is required to run TOPP:
 
 - Boost (1.47 or above) with Boost.Python
 - Python (2.7 or above)
 
-The full version furthermore requires:
+To integrate with OpenRAVE, you will also need:
 
 - OpenRAVE (0.9 or above) with Python bindings
 - LAPACK (3.5.0 or above)
@@ -21,20 +20,16 @@ The full version furthermore requires:
 Installation
 ------------
 
-From the top folder:
+Follow the standard installation procedure:
   
     ./configure
+    make
+    sudo make install
 
-Then, either:
+To build with OpenRAVE support:
 
-    make standalone
-
-for the standalone verison, or:
-
-    make full
-
-for the full version. Finally, install with:
-
+    ./configure --with-openrave
+    make
     sudo make install
 
 Notes on OpenRAVE integration
