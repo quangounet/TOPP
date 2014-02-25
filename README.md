@@ -14,7 +14,7 @@ The following software is required to run TOPP:
 
 To integrate with OpenRAVE, you will also need:
 
-- OpenRAVE (0.9 or above) with Python bindings
+- OpenRAVE (0.9 or above) with Python bindings (see "Notes on OpenRAVE integration" below for more details) 
 - LAPACK (3.5.0 or above)
 
 Installation
@@ -31,6 +31,14 @@ To build with OpenRAVE support:
     ./configure --with-openrave
     make
     sudo make install
+
+See "Notes on OpenRAVE integration" below for more details.
+
+Examples, tutorials, reference manual
+-------------------------------------
+
+See the wiki https://github.com/quangounet/TOPP/wiki
+
 
 Notes on OpenRAVE integration
 -----------------------------
