@@ -8,6 +8,16 @@ AC_PROG_CXX
 AC_PROG_CC
 AC_PROG_MAKE_SET
 
+AC_ARG_WITH(openrave, [  --with-openrave           build TOPP with OpenRAVE integration])
+
+if test "$with_openrave" != ""
+then
+    CFLAGS="$CFLAGS -DWITH_OPENRAVE"
+    AC_SUBST(target, "full")
+else
+    AC_SUBST(target, "standalone")
+fi
+
 # Checks for libraries.
 
 AC_CHECK_LIB([boost_python], 

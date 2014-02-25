@@ -1,17 +1,20 @@
 SHELL=/bin/bash
-prefix=@prefix@
-SOFILE=TOPPbindings.so
-INST_PATH=$(prefix)/lib/python2.7/dist-packages/TOPP
+VPATH = @srcdir@
 
-# Common
-#
-COMMON_CFLAGS=-Wall -fPIC -std=c++0x
+CFLAGS = @CFLAGS@
+prefix = @prefix@
+target = @target@
+srcdir = @srcdir@
+
+COMMON_CFLAGS=-Wall -fPIC -std=c++0x $(CFLAGS)
 COMMON_LIBS=-lboost_python -llapack
+INSTALL_PATH=$(prefix)/lib/python2.7/dist-packages/TOPP
+SOFILE=TOPPbindings.so
 
 # Standalone
 # 
-SALONE_PATTERN=src/KinematicLimits.zz src/TOPP.zz src/TorqueLimits.zz src/Trajectory.zz
-SALONE_SOURCE=$(SALONE_PATTERN:.zz=.cpp)
+SALONE_PATTERN=src/KinematicLimits.zz src/TOPP.zz src/TorqueLimits.zz src/Trajectory.zz 
+SALONE_SOURCE=$(SALONE_PATTERN:.zz=.cpp) src/TOPPbindings.cpp
 SALONE_HEADERS=$(SALONE_PATTERN:.zz=.h)
 SALONE_OBJECTS=$(SALONE_SOURCE:.cpp=.standalone.o)
 SALONE_NDEBUG=-DNDEBUG -DBOOST_UBLAS_NDEBUG
@@ -42,26 +45,7 @@ DEBUG_LDFLAGS=$(FULL_LDFLAGS)
 DEBUG_CC=g++ $(DEBUG_CFLAGS) -g
 
 
-help:
-#	@echo 'TOPP: the Time-Optimal Path Parameterization library                '
-#	@echo '----------------------------------------------------                '
-#	@echo '                                                                    '
-	@echo 'Usage:                                                              '
-	@echo '                                                                    '
-	@echo '    make standalone -- standalone version (no OpenRAVE integration) '
-	@echo '    make full -- full version (with OpenRAVE integration)           '
-	@echo '                                                                    '
-	@echo 'Installation to $(prefix):                                          '
-	@echo '                                                                    '
-	@echo '    make install                                                    '
-	@echo '                                                                    '
-#	@echo 'Other rules:                                                        '
-#	@echo '                                                                    '
-#	@echo '    make debug -- full version with debug symbols                   '
-#	@echo '    make clean -- clean temporary files                             '
-#	@echo '    make distclean -- clean all generated files                     '
-#	@echo '                                                                    '
-
+all: $(target)
 
 %.standalone.o: %.cpp $(HEADERS)
 	$(SALONE_CC) -c $< -o $@
@@ -82,9 +66,9 @@ debug: $(DEBUG_OBJECTS)
 	$(DEBUG_CC) $(DEBUG_OBJECTS) $(DEBUG_LDFLAGS) -shared -o $(SOFILE)
 
 install:
-	rm -rf $(INST_PATH)
-	cp -r -f src/python $(INST_PATH)
-	cp -f $(SOFILE) $(INST_PATH)/$(SOFILE)
+	rm -rf $(INSTALL_PATH)
+	cp -r -f src/python $(INSTALL_PATH)
+	cp -f $(SOFILE) $(INSTALL_PATH)/$(SOFILE)
 
 clean:
 	find . -name '*.pyc' -delete
@@ -93,5 +77,22 @@ clean:
 
 distclean: clean
 	rm -f $(SOFILE)
+
+help:
+	@echo 'Usage:                                                              '
+	@echo '                                                                    '
+	@echo '    make standalone -- standalone version (no OpenRAVE integration) '
+	@echo '    make full -- full version (with OpenRAVE integration)           '
+	@echo '                                                                    '
+	@echo 'Installation to $(prefix):                                          '
+	@echo '                                                                    '
+	@echo '    make install                                                    '
+	@echo '                                                                    '
+	@echo 'Other rules:                                                        '
+	@echo '                                                                    '
+	@echo '    make debug -- full version with debug symbols                   '
+	@echo '    make clean -- clean temporary files                             '
+	@echo '    make distclean -- clean all generated files                     '
+	@echo '                                                                    '
 
 .PHONY: standalone full debug install clean distclean
