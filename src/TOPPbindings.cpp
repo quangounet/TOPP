@@ -24,18 +24,16 @@
 #include <boost/python/module.hpp>
 #include <boost/python/def.hpp>
 
-using namespace boost::python;
-using namespace TOPP;
-
-
 #ifdef WITH_OPENRAVE
 #include <openrave-core.h>
 #include "openrave/python/bindings/openravepy_int.h"
+#include "TorqueLimitsRave.h"
 
 using namespace openravepy;
-
-#include "TorqueLimitsRave.h"
 #endif
+
+using namespace boost::python;
+using namespace TOPP;
 
 
 class TOPPInstance {
