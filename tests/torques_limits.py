@@ -15,16 +15,13 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys
-sys.path.append('..')
-
 import string
 from pylab import *
 from numpy import *
 from openravepy import *
-import TOPPbindings
-import TOPPpy
-import TOPPopenravepy
+from TOPP import TOPPbindings
+from TOPP import TOPPpy
+from TOPP import TOPPopenravepy
 
 # Robot (OpenRAVE)
 env = Environment()
@@ -59,7 +56,7 @@ for i in range(ndof):
 traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 # Constraints
-discrtimestep = 0.005
+discrtimestep = 0.002
 vmax = array([5, 5])
 taumin = array([-25, -10])
 taumax = array([25, 10])
@@ -74,7 +71,7 @@ if(ret == 1):
     x.ReparameterizeTrajectory()
 
 # Display results
-ion()    
+ion()
 x.WriteProfilesList()
 x.WriteSwitchPointsList()
 profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)

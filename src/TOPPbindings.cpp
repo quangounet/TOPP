@@ -23,17 +23,19 @@
 #include "ZMPTorqueLimits.h"
 #include "FrictionLimits.h"
 
-
 #include <boost/python.hpp>
 #include <boost/python/module.hpp>
 #include <boost/python/def.hpp>
 
+#ifdef WITH_OPENRAVE
 #include <openrave-core.h>
 #include "openrave/python/bindings/openravepy_int.h"
+#include "TorqueLimitsRave.h"
 
+using namespace openravepy;
+#endif
 
 using namespace boost::python;
-using namespace openravepy;
 using namespace TOPP;
 
 
@@ -55,6 +57,8 @@ public:
             pconstraints = new QuadraticConstraints(constraintsstring);
             pconstraints->trajectory = *ptrajectory;
         }
+
+#ifdef WITH_OPENRAVE
         else if (problemtype.compare("TorqueLimitsRave")==0) {
             RobotBasePtr probot = GetRobot(o);
             pconstraints = new TorqueLimitsRave(probot,constraintsstring,ptrajectory);
@@ -67,7 +71,7 @@ public:
             RobotBasePtr probot = GetRobot(o);
             pconstraints = new ZMPTorqueLimits(probot,constraintsstring,ptrajectory);
         }
-
+#endif
 
         // Set default public tuning parameters
         integrationtimestep = 0;
@@ -78,9 +82,6 @@ public:
         // Set default private tuning parameters
         pconstraints->bisectionprecision = 0.01;
         pconstraints->loweringcoef = 0.95;
-
-        //else if (problemtype.compare("ZMPTorqueLimits")==0)
-        //    pconstraints = new ZMPTorqueLimits(constraintsstring,ptrajectory,tunings,probot);
     }
 
     Constraints* pconstraints;
@@ -202,6 +203,7 @@ public:
         switchpointsliststring = ss.str();
     }
 
+    // Extra string, such as the coordinates of the ZMP (depending on the application)
     void WriteExtra(){
         std::stringstream ss;
         pconstraints->WriteExtra(ss);

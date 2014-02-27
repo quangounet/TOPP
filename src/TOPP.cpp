@@ -27,10 +27,14 @@ namespace TOPP {
 ////////////////////////////////////////////////////////////////////
 
 
-void Constraints::Preprocess() {
+bool Constraints::Preprocess() {
     resprofileslist.resize(0);
     // Change discrtimestep so as it becomes a divisor of trajectory duration
     int ndiscrsteps = int((trajectory.duration+1e-10)/discrtimestep);
+    if(ndiscrsteps<1) {
+        return false;
+    }
+
     discrtimestep = trajectory.duration/ndiscrsteps;
     Discretize();
 
@@ -66,6 +70,8 @@ void Constraints::Preprocess() {
         integrationtimestep = discrtimestep/meanmvc;
         //std::cout << "\n--------------\nIntegration timestep: " << integrationtimestep << "\n";
     }
+
+    return true;
 }
 
 
@@ -1504,7 +1510,12 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
 
     t0 = std::chrono::system_clock::now();
 
-    constraints.Preprocess();
+    bool retprocess = constraints.Preprocess();
+    if(!retprocess) {
+        std::cout << "Trajectory duration too short\n";
+        return 0;
+    }
+
     if(VectorMin(constraints.mvcbobrow) <= TINY) {
         //std::cout << "[TOPP] MVCBobrow hit 0\n";
         return 0;
@@ -1689,7 +1700,12 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
         return 0;
     }
 
-    constraints.Preprocess();
+    bool retprocess = constraints.Preprocess();
+    if(!retprocess) {
+        std::cout << "Trajectory duration too short\n";
+        return 0;
+    }
+
     if(VectorMin(constraints.mvcbobrow) <= TINY) {
         std::cout << "[TOPP::VIP] MVCBobrow hit 0 \n";
         return 0;
@@ -1789,7 +1805,12 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
         return 0;
     }
 
-    constraints.Preprocess();
+    bool retprocess = constraints.Preprocess();
+    if(!retprocess) {
+        std::cout << "Trajectory duration too short\n";
+        return 0;
+    }
+
     if(VectorMin(constraints.mvcbobrow) <= TINY) {
         std::cout << "[TOPP::VIPBackward] MVCBobrow hit 0 \n";
         return 0;

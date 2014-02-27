@@ -607,6 +607,8 @@ LIBOBJS
 EGREP
 GREP
 CXXCPP
+EXTRA_FLAGS
+target
 SET_MAKE
 ac_ct_CC
 CFLAGS
@@ -659,6 +661,7 @@ SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
+with_openrave
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1278,6 +1281,11 @@ if test -n "$ac_init_help"; then
      short | recursive ) echo "Configuration of TOPP 1.0:";;
    esac
   cat <<\_ACEOF
+
+Optional Packages:
+  --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
+  --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-openrave           build TOPP with OpenRAVE integration
 
 Some influential environment variables:
   CXX         C++ compiler command
@@ -3296,8 +3304,75 @@ $as_echo "no" >&6; }
 fi
 
 
-# Checks for libraries.
+# Check whether --with-openrave was given.
+if test "${with_openrave+set}" = set; then :
+  withval=$with_openrave;
+fi
 
+
+if test "$with_openrave" != ""
+then
+    target="full"
+
+    EXTRA_FLAGS="-DWITH_OPENRAVE"
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for _ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE in -lopenrave0.9" >&5
+$as_echo_n "checking for _ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE in -lopenrave0.9... " >&6; }
+if ${ac_cv_lib_openrave0_9__ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lopenrave0.9  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char _ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE ();
+int
+main ()
+{
+return _ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_openrave0_9__ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE=yes
+else
+  ac_cv_lib_openrave0_9__ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_openrave0_9__ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE" >&5
+$as_echo "$ac_cv_lib_openrave0_9__ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE" >&6; }
+if test "x$ac_cv_lib_openrave0_9__ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBOPENRAVE0_9 1
+_ACEOF
+
+  LIBS="-lopenrave0.9 $LIBS"
+
+else
+  as_fn_error $? "
+
+OpenRAVE was not found on your system.
+" "$LINENO" 5
+fi
+
+else
+    target="standalone"
+
+fi
+
+# Checks for libraries.
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for _init in -lboost_python" >&5
 $as_echo_n "checking for _init in -lboost_python... " >&6; }
@@ -3403,63 +3478,6 @@ $as_echo "$as_me: WARNING:
 
 LAPACK was not found on your system. It is required to compute contact forces
 in ZMPTorqueLimits (full version only).
-" >&2;}
-fi
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for _ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE in -lopenrave0.9" >&5
-$as_echo_n "checking for _ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE in -lopenrave0.9... " >&6; }
-if ${ac_cv_lib_openrave0_9__ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lopenrave0.9  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char _ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE ();
-int
-main ()
-{
-return _ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_openrave0_9__ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE=yes
-else
-  ac_cv_lib_openrave0_9__ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_openrave0_9__ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE" >&5
-$as_echo "$ac_cv_lib_openrave0_9__ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE" >&6; }
-if test "x$ac_cv_lib_openrave0_9__ZNK8OpenRAVE7KinBody12GetDOFValuesERSt6vectorIdSaIdEERKS1_IiSaIiEE" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBOPENRAVE0_9 1
-_ACEOF
-
-  LIBS="-lopenrave0.9 $LIBS"
-
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
-
-OpenRAVE was not found on your system. It is required if you want to compile
-the full version of TOPP. You don't need it for the standalone version.
-" >&5
-$as_echo "$as_me: WARNING:
-
-OpenRAVE was not found on your system. It is required if you want to compile
-the full version of TOPP. You don't need it for the standalone version.
 " >&2;}
 fi
 

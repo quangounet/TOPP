@@ -16,6 +16,7 @@ public:
     }
     void InitFromCoefficientsVector(const std::vector<dReal>&coefficientsvector);
     int degree;
+    // Weak coefficients first
     std::vector<dReal> coefficientsvector;
     std::vector<dReal> coefficientsvectord;
     std::vector<dReal> coefficientsvectordd;
