@@ -19,7 +19,6 @@
 #include "TOPP.h"
 #include "KinematicLimits.h"
 #include "TorqueLimits.h"
-#include "TorqueLimitsRave.h"
 #include "ZMPTorqueLimits.h"
 #include "FrictionLimits.h"
 
