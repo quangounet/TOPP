@@ -184,4 +184,25 @@ def InsertIntoTrajectory(traj,traj2,s0,s1):
     newchunkslist.insert(i0,chunk0)
     return(PiecewisePolynomialTrajectory(newchunkslist))
     
-    
+
+def SubTraj(traj,s0,s1=-1):
+    newchunkslist = []
+    if s1 == -1:
+        s1 = traj.duration
+    i0,r0 = traj.FindChunkIndex(s0)
+    i1,r1 = traj.FindChunkIndex(s1)
+    c0 = traj.chunkslist[i0]
+    c1 = traj.chunkslist[i1]
+    if i0 == i1 :
+        newchunkslist.append(MakeChunk(c0.Eval(r0),c0.Eval(r1),c0.Evald(r0),c0.Evald(r1),r1-r0))
+    else:
+        newchunkslist.append(MakeChunk(c0.Eval(r0),c0.Eval(c0.duration),c0.Evald(r0),c0.Evald(c0.duration),c0.duration-r0))
+        i = i0+1
+        while i < i1:
+            newchunkslist.append(traj.chunkslist[i])
+            i = i+1
+        newchunkslist.append(MakeChunk(c1.Eval(0),c1.Eval(r1),c0.Evald(0),c0.Evald(r1),r1))
+    return(PiecewisePolynomialTrajectory(newchunkslist))
+
+
+        

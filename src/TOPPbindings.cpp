@@ -166,6 +166,20 @@ public:
         return ret;
     }
 
+    dReal RunEmergencyStop(TOPP::dReal sdbeg){
+        // Set tuning parameters
+        pconstraints->integrationtimestep = integrationtimestep;
+        pconstraints->passswitchpointnsteps = passswitchpointnsteps;
+        pconstraints->reparamtimestep = reparamtimestep;
+        pconstraints->extrareps = extrareps;
+
+        dReal res = EmergencyStop(*pconstraints, sdbeg, restrajectory);
+        return res;
+
+    }
+
+
+
     void WriteResultTrajectory(){
         std::stringstream ss;
         // printf("WriteResultTrajectory: %d %f %d blah\n",
@@ -236,6 +250,7 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def("ReparameterizeTrajectory",&TOPPInstance::ReparameterizeTrajectory)
     .def("RunVIP",&TOPPInstance::RunVIP)
     .def("RunVIPBackward",&TOPPInstance::RunVIPBackward)
+    .def("RunEmergencyStop",&TOPPInstance::RunEmergencyStop)
     .def("WriteResultTrajectory",&TOPPInstance::WriteResultTrajectory)
     .def("WriteProfilesList",&TOPPInstance::WriteProfilesList)
     .def("WriteExtra",&TOPPInstance::WriteExtra)
