@@ -45,16 +45,16 @@ public:
 
     int ndof;
     int nlink;
-    dReal mb; // bottle's mass
+    int nbottle;
     dReal mt; // tray's mass
+    dReal mu;
     dReal eps;
+    
+    std::vector<dReal> mbvect; // bottles' masses
+    std::vector<dReal> dxvect, dyvect, bottlehvect;
     std::vector<dReal> objspecs; // dx(half width), dy(hale depth), half height (of the bottle)
-    std::vector<dReal> activelinks;
     std::vector<KinBody::LinkPtr> linksvector; // Vector of pointers to the links
-    std::vector<int> dofsvector;
-    std::vector<dReal> mass;
 
-    Vector ZMP(std::vector<dReal>& qfilled, std::vector<dReal>& qdfilled, std::vector<dReal>& qddfilled, bool withangularmomentum=false);
     // C = Mv
     Vector MatrixMultVector(const boost::multi_array<dReal, 2>& M, const std::vector<dReal>& v);
     Vector MatrixMultVector(const boost::multi_array<dReal, 2>& M, const Vector& v);
