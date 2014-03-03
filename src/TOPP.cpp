@@ -1926,7 +1926,7 @@ dReal EmergencyStop(Constraints& constraints, dReal sdbeg, Trajectory& restrajec
 
     dReal dtsq = dt*dt;
 
-    dReal scur = 0, sdcur = sdbeg, snext, sdnext, alpha, beta, sprev;
+    dReal scur = 0, sdcur = sdbeg, snext, sdnext, alpha, beta, sprev = 0;
     std::list<dReal> slist, sdlist, sddlist;
     std::pair<dReal,dReal> sddlimits;
     std::vector<dReal> qd(constraints.trajectory.dimension);
@@ -2000,7 +2000,12 @@ dReal EmergencyStop(Constraints& constraints, dReal sdbeg, Trajectory& restrajec
         constraints.resprofileslist.resize(0);
         constraints.resprofileslist.push_back(resprofile);
         int ret = constraints.trajectory.Reparameterize(constraints, restrajectory, sprev);
-        return sprev;
+        if(ret > 0) {
+            return sprev;
+        }
+        else{
+            return 0;
+        }
     }
     else{
         return 0;

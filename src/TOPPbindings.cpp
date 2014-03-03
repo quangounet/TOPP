@@ -19,8 +19,6 @@
 #include "TOPP.h"
 #include "KinematicLimits.h"
 #include "TorqueLimits.h"
-#include "ZMPTorqueLimits.h"
-#include "FrictionLimits.h"
 
 #include <boost/python.hpp>
 #include <boost/python/module.hpp>
@@ -30,6 +28,8 @@
 #include <openrave-core.h>
 #include "openrave/python/bindings/openravepy_int.h"
 #include "TorqueLimitsRave.h"
+#include "ZMPTorqueLimits.h"
+#include "FrictionLimits.h"
 
 using namespace openravepy;
 #endif
