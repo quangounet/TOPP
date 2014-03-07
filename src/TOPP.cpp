@@ -214,17 +214,19 @@ void Constraints::FindTangentSwitchPoints(){
     if(ndiscrsteps<3)
         return;
     int i = 1;
-    dReal s,sd,snext,sdnext,alpha,diff,diffprev;
+    dReal s,sd,snext,sdnext,alpha,diff,diffprev,tangent,prevtangent;
     std::pair<dReal,dReal> sddlimits;
 
     s = discrsvect[i];
     snext = discrsvect[i+1];
     sd = SdLimitBobrow(s);
     sdnext = SdLimitBobrow(snext);
+    tangent = (sdnext-sd)/discrtimestep;
+    prevtangent = (sd - SdLimitBobrow(discrsvect[i-1]))/discrtimestep;
     sddlimits = SddLimits(s,sd);
     alpha = sddlimits.first;
     //beta = sddlimits.second;
-    diffprev = alpha/sd - (sdnext-sd)/discrtimestep;
+    diffprev = alpha/sd - tangent;
 
     for(int i=2; i<ndiscrsteps-1; i++) {
         s = discrsvect[i];
@@ -233,9 +235,14 @@ void Constraints::FindTangentSwitchPoints(){
         sdnext = SdLimitBobrow(snext);
         sddlimits = SddLimits(s,sd);
         alpha = sddlimits.first;
+        prevtangent = tangent;
+        tangent = (sdnext-sd)/discrtimestep;
+        if(std::abs(tangent-prevtangent)>1.) {
+            continue;
+        }
         //beta = sddlimits.second;
-        diff = alpha/sd - (sdnext-sd)/discrtimestep;
-        if(diffprev*diff<0) {
+        diff = alpha/sd - tangent;
+        if(diffprev*diff<0 && std::abs(diff)<1) {
             AddSwitchPoint(i,SP_TANGENT);
         }
         diffprev = diff;
@@ -1923,7 +1930,6 @@ dReal EmergencyStop(Constraints& constraints, dReal sdbeg, Trajectory& restrajec
     constraints.discrtimestep = constraints.trajectory.duration/ndiscrsteps;
     constraints.Discretize();
 
-
     dReal dtsq = dt*dt;
 
     dReal scur = 0, sdcur = sdbeg, snext, sdnext, alpha, beta, sprev = 0;
@@ -1959,21 +1965,24 @@ dReal EmergencyStop(Constraints& constraints, dReal sdbeg, Trajectory& restrajec
             constraints.trajectory.Evald(scur, qd);
             for(int i=0; i<constraints.trajectory.dimension; i++) {
                 // Violated velocity constraint
-                if(std::abs(qd[i])>TINY && sdcur > constraints.vmax[i]/std::abs(qd[i])) {
+                if(std::abs(qd[i])>TINY && sdcur > 1e-2 + constraints.vmax[i]/std::abs(qd[i])) {
                     slist.push_back(scur);
                     sdlist.push_back(sdcur);
                     sddlist.push_back(0);
-                    std::cout << "[ES] Violated velocity constraint\n";
+                    std::cout << sdcur << ">" << constraints.vmax[i]/std::abs(qd[i]) << " " << "[ES] Violated velocity constraint\n";
                     returntype = INT_MVC;
                     break;
                 }
+            }
+            if(returntype == INT_MVC) {
+                break;
             }
         }
 
         sddlimits = constraints.SddLimits(scur,sdcur);
         alpha = sddlimits.first;
         beta = sddlimits.second;
-        if(alpha>beta) {
+        if(alpha>beta + 1e-2) {
             // Violated the acceleration constraints
             slist.push_back(scur);
             sdlist.push_back(sdcur);

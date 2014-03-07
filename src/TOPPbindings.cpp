@@ -30,7 +30,6 @@
 #include "TorqueLimitsRave.h"
 #include "ZMPTorqueLimits.h"
 #include "FrictionLimits.h"
-
 using namespace openravepy;
 #endif
 
