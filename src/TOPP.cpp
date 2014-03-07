@@ -209,22 +209,23 @@ void Constraints::AddSwitchPoint(int i, int switchpointtype, dReal sd){
     switchpointslist.insert(it,sw);
 }
 
-
 void Constraints::FindTangentSwitchPoints(){
     if(ndiscrsteps<3)
         return;
     int i = 1;
-    dReal s,sd,snext,sdnext,alpha,diff,diffprev;
+    dReal s,sd,snext,sdnext,alpha,diff,diffprev,tangent,prevtangent;
     std::pair<dReal,dReal> sddlimits;
 
     s = discrsvect[i];
     snext = discrsvect[i+1];
     sd = SdLimitBobrow(s);
     sdnext = SdLimitBobrow(snext);
+    tangent = (sdnext-sd)/discrtimestep;
+    prevtangent = (sd - SdLimitBobrow(discrsvect[i-1]))/discrtimestep;
     sddlimits = SddLimits(s,sd);
     alpha = sddlimits.first;
     //beta = sddlimits.second;
-    diffprev = alpha/sd - (sdnext-sd)/discrtimestep;
+    diffprev = alpha/sd - tangent;
 
     for(int i=2; i<ndiscrsteps-1; i++) {
         s = discrsvect[i];
@@ -233,15 +234,19 @@ void Constraints::FindTangentSwitchPoints(){
         sdnext = SdLimitBobrow(snext);
         sddlimits = SddLimits(s,sd);
         alpha = sddlimits.first;
+        prevtangent = tangent;
+        tangent = (sdnext-sd)/discrtimestep;
+        if(std::abs(tangent-prevtangent)>1.) {
+            continue;
+        }
         //beta = sddlimits.second;
-        diff = alpha/sd - (sdnext-sd)/discrtimestep;
-        if(diffprev*diff<0) {
+        diff = alpha/sd - tangent;
+        if(diffprev*diff<0 && std::abs(diff)<1) {
             AddSwitchPoint(i,SP_TANGENT);
         }
         diffprev = diff;
     }
 }
-
 
 void Constraints::FindDiscontinuousSwitchPoints() {
     if(ndiscrsteps<3)
