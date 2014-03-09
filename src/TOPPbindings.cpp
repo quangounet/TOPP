@@ -25,11 +25,14 @@
 #include <boost/python/def.hpp>
 
 #ifdef WITH_OPENRAVE
-#include <openrave-core.h>
-#include "openrave/python/bindings/openravepy_int.h"
+#include <openrave/openrave.h>
+#include "openravepy.h"
+//#include "openrave/python/bindings/openravepy_int.h"
 #include "TorqueLimitsRave.h"
 
-using namespace openravepy;
+//using namespace OpenRAVE;
+//using namespace openravepy;
+
 #endif
 
 using namespace boost::python;
@@ -57,7 +60,7 @@ public:
 
 #ifdef WITH_OPENRAVE
         else if (problemtype.compare("TorqueLimitsRave")==0) {
-            RobotBasePtr probot = GetRobot(o);
+            OpenRAVE::RobotBasePtr probot = openravepy::GetRobot(o);
             pconstraints = new TorqueLimitsRave(probot,constraintsstring,ptrajectory);
         }
 #endif

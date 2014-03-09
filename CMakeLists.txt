@@ -92,7 +92,10 @@ endif( CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX )
 
 #configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/include/topp/config.h IMMEDIATE @ONLY)
 
-find_package(OpenRAVE REQUIRED)
+find_package(OpenRAVE)
+if( OpenRAVE_FOUND )
+  set(EXTRA_COMPILE_FLAGS "${EXTRA_COMPILE_FLAGS} -DWITH_OPENRAVE")
+endif()
 
 find_package(Boost ${OpenRAVE_Boost_VERSION} EXACT COMPONENTS iostreams python thread filesystem system thread date_time)# regex)
 if( Boost_FOUND )
