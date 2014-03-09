@@ -18,26 +18,23 @@
 
 #include "TorqueLimitsRave.h"
 
-#define CLA_Nothing 0
-
 using namespace OpenRAVE;
 
 namespace TOPP {
 
 
 TorqueLimitsRave::TorqueLimitsRave(RobotBasePtr probot, std::string& constraintsstring, Trajectory* ptraj){
-    int buffsize = BUFFSIZE;  // TODO: remove this dirty string interface!
     std::vector<dReal> tmpvect;
-    char buff[buffsize];
+    std::string buff;
     std::istringstream iss(constraintsstring);
-    iss.getline(buff,buffsize);
-    discrtimestep = atof(buff);
-    iss.getline(buff,buffsize);
-    VectorFromString(std::string(buff),vmax);
-    iss.getline(buff,buffsize);
-    VectorFromString(std::string(buff),taumin);
-    iss.getline(buff,buffsize);
-    VectorFromString(std::string(buff),taumax);
+    getline(iss, buff, '\n');
+    discrtimestep = atof(buff.c_str());
+    getline(iss, buff, '\n');
+    VectorFromString(buff,vmax);
+    getline(iss, buff, '\n');
+    VectorFromString(buff,taumin);
+    getline(iss, buff, '\n');
+    VectorFromString(buff, taumax);
     hasvelocitylimits = VectorMax(vmax) > TINY;
 
     trajectory = *ptraj;
@@ -55,8 +52,8 @@ TorqueLimitsRave::TorqueLimitsRave(RobotBasePtr probot, std::string& constraints
             trajectory.Eval(s,q);
             trajectory.Evald(s,qd);
             trajectory.Evaldd(s,qdd);
-            probot->SetDOFValues(q,CLA_Nothing);
-            probot->SetDOFVelocities(qd,CLA_Nothing);
+            probot->SetDOFValues(q,KinBody::CLA_Nothing);
+            probot->SetDOFVelocities(qd,KinBody::CLA_Nothing);
             probot->ComputeInverseDynamics(torquesimple,qd);
             probot->ComputeInverseDynamics(torquecomponents,qdd);
             VectorAdd(torquesimple,torquecomponents[1],tmp0,1,-1);

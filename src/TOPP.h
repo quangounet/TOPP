@@ -14,8 +14,6 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
 #ifndef TOPP_H
 #define TOPP_H
 
@@ -40,17 +38,44 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
 
+#ifdef WITH_OPENRAVE
+#include <openrave/openrave.h>
+#endif
+
+#ifdef _MSC_VER
+#include <boost/typeof/std/string.hpp>
+#include <boost/typeof/std/vector.hpp>
+#include <boost/typeof/std/list.hpp>
+#include <boost/typeof/std/map.hpp>
+#include <boost/typeof/std/string.hpp>
+
+#define FOREACH(it, v) for(BOOST_TYPEOF(v) ::iterator it = (v).begin(); it != (v).end(); (it)++)
+#define FOREACH_NOINC(it, v) for(BOOST_TYPEOF(v) ::iterator it = (v).begin(); it != (v).end(); )
+
+#define FOREACHC(it, v) for(BOOST_TYPEOF(v) ::const_iterator it = (v).begin(); it != (v).end(); (it)++)
+#define FOREACHC_NOINC(it, v) for(BOOST_TYPEOF(v) ::const_iterator it = (v).begin(); it != (v).end(); )
+
+#else
+
+#define FOREACH(it, v) for(typeof((v).begin())it = (v).begin(); it != (v).end(); (it)++)
+#define FOREACH_NOINC(it, v) for(typeof((v).begin())it = (v).begin(); it != (v).end(); )
+#define FOREACHC FOREACH
+#define FOREACHC_NOINC FOREACH_NOINC
+
+#endif
+
 namespace TOPP {
 
+#ifdef WITH_OPENRAVE
+typedef OpenRAVE::dReal dReal;
+#else
 typedef double dReal;
+#endif
 
 #define TINY 1e-10
 #define TINY2 1e-5
 #define INF 1.0e15
 #define MAXSD 200
-
-
-const int BUFFSIZE = 300000;
 
 /// \brief Exception that all OpenRAVE internal methods throw; the error codes are held in \ref OpenRAVEErrorCode.
 class TOPPException : public std::exception

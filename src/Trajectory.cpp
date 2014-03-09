@@ -168,22 +168,21 @@ Trajectory::Trajectory(const std::list<Chunk>& chunkslist0) {
 
 
 Trajectory::Trajectory(const std::string& trajectorystring) {
-    int buffsize = BUFFSIZE;
-    char buff[buffsize];
+    std::string buff;
     std::istringstream iss(trajectorystring);
     int dimension;
     dReal duration;
     std::vector<Polynomial> polynomialsvector;
     std::list<Chunk> chunkslist0;
     while(iss.good()) {
-        iss.getline(buff,buffsize);
-        duration = atof(buff);
-        iss.getline(buff,buffsize);
-        dimension = atoi(buff);
+        getline(iss, buff, '\n');
+        duration = atof(buff.c_str());
+        getline(iss, buff, '\n');
+        dimension = atoi(buff.c_str());
         polynomialsvector.resize(0);
         for(int i = 0; i < dimension; i++) {
-            iss.getline(buff, buffsize);
-            polynomialsvector.push_back(Polynomial(std::string(buff)));
+            getline(iss, buff, '\n');
+            polynomialsvector.push_back(Polynomial(buff));
         }
         if(duration>TINY) {
             chunkslist0.push_back(Chunk(duration,polynomialsvector));

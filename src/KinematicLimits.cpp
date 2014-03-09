@@ -23,15 +23,14 @@
 namespace TOPP {
 
 KinematicLimits::KinematicLimits(const std::string& constraintsstring){
-    int buffsize = BUFFSIZE;
-    char buff[buffsize];
+    std::string buff;
     std::istringstream iss(constraintsstring);
-    iss.getline(buff,buffsize);
-    discrtimestep = atof(buff);
-    iss.getline(buff,buffsize);
-    VectorFromString(std::string(buff),vmax);
-    iss.getline(buff,buffsize);
-    VectorFromString(std::string(buff),amax);
+    getline(iss, buff, '\n');
+    discrtimestep = atof(buff.c_str());
+    getline(iss, buff, '\n');
+    VectorFromString(buff,vmax);
+    getline(iss, buff, '\n');
+    VectorFromString(buff, amax);
     hasvelocitylimits =  VectorMax(vmax) > TINY;
 }
 

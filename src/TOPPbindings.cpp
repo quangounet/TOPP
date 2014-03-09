@@ -47,22 +47,22 @@ public:
         TOPP::Trajectory* ptrajectory = new TOPP::Trajectory(trajectorystring);
 
         if (problemtype.compare("KinematicLimits")==0) {
-            pconstraints = new KinematicLimits(constraintsstring);
+            pconstraints.reset(new KinematicLimits(constraintsstring));
             pconstraints->trajectory = *ptrajectory;
         }
         else if (problemtype.compare("TorqueLimits")==0) {
-            pconstraints = new TorqueLimits(constraintsstring);
+            pconstraints.reset(new TorqueLimits(constraintsstring));
             pconstraints->trajectory = *ptrajectory;
         }
         else if (problemtype.compare("QuadraticConstraints")==0) {
-            pconstraints = new QuadraticConstraints(constraintsstring);
+            pconstraints.reset(new QuadraticConstraints(constraintsstring));
             pconstraints->trajectory = *ptrajectory;
         }
 
 #ifdef WITH_OPENRAVE
         else if (problemtype.compare("TorqueLimitsRave")==0) {
             OpenRAVE::RobotBasePtr probot = openravepy::GetRobot(o);
-            pconstraints = new TorqueLimitsRave(probot,constraintsstring,ptrajectory);
+            pconstraints.reset(new TorqueLimitsRave(probot,constraintsstring,ptrajectory));
         }
 #endif
         else {
@@ -80,7 +80,7 @@ public:
         pconstraints->loweringcoef = 0.95;
     }
 
-    Constraints* pconstraints;
+    boost::shared_ptr<Constraints> pconstraints;
     TOPP::Trajectory restrajectory;
 
     std::string restrajectorystring;
@@ -164,7 +164,7 @@ public:
     }
 
     void WriteResultTrajectory(){
-        std::stringstream ss;
+        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         // printf("WriteResultTrajectory: %d %f %d blah\n",
         //        restrajectory.dimension, restrajectory.duration,
         //        restrajectory.degree);
@@ -175,7 +175,7 @@ public:
 
     void WriteProfilesList(){
         std::list<Profile>::iterator itprofile = pconstraints->resprofileslist.begin();
-        std::stringstream ss;
+        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         TOPP::dReal dt = 1e-4;
         pconstraints->WriteMVCBobrow(ss,dt);
         ss << "\n";
@@ -190,7 +190,7 @@ public:
     }
 
     void WriteSwitchPointsList(){
-        std::stringstream ss;
+        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         std::list<SwitchPoint>::iterator itsw = pconstraints->switchpointslist.begin();
         while(itsw != pconstraints->switchpointslist.end()) {
             ss << itsw->s << " " << itsw->sd << " " << itsw->switchpointtype << "\n";
@@ -201,7 +201,7 @@ public:
 
     // Extra string, such as the coordinates of the ZMP (depending on the application)
     void WriteExtra(){
-        std::stringstream ss;
+        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         pconstraints->WriteExtra(ss);
         resextrastring = ss.str();
 
