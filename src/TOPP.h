@@ -37,6 +37,8 @@
 
 #include "Trajectory.h"
 
+#include <boost/lexical_cast.hpp>
+#include <boost/format.hpp>
 
 namespace TOPP {
 
@@ -50,6 +52,39 @@ typedef double dReal;
 
 const int BUFFSIZE = 300000;
 
+/// \brief Exception that all OpenRAVE internal methods throw; the error codes are held in \ref OpenRAVEErrorCode.
+class TOPPException : public std::exception
+{
+public:
+    TOPPException() : std::exception(), _s("unknown exception"), _errorcode(0) {
+    }
+    TOPPException(const std::string& s, int errorcode=0) : std::exception() {
+        _errorcode = errorcode;
+        _s = "openrave (";
+        _s += boost::lexical_cast<std::string>(_errorcode);
+        _s += "): ";
+        _s += s;
+    }
+    virtual ~TOPPException() throw() {
+    }
+    char const* what() const throw() {
+        return _s.c_str();
+    }
+    const std::string& message() const {
+        return _s;
+    }
+    int GetCode() const {
+        return _errorcode;
+    }
+private:
+    std::string _s;
+    int _errorcode;
+};
+
+#define TOPP_EXCEPTION_FORMAT0(s, errorcode) TOPP::TOPPException(boost::str(boost::format("[%s:%d] " s)%(__PRETTY_FUNCTION__)%(__LINE__)),errorcode)
+
+/// adds the function name and line number to an TOPP exception
+#define TOPP_EXCEPTION_FORMAT(s, args,errorcode) TOPP::TOPPException(boost::str(boost::format("[%s:%d] " s)%(__PRETTY_FUNCTION__)%(__LINE__)%args),errorcode)
 
 ////////////////////////////////////////////////////////////////////
 /////////////////////////// Switch Point ///////////////////////////

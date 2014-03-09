@@ -20,6 +20,7 @@
 #include "KinematicLimits.h"
 #include "TorqueLimits.h"
 
+#include <boost/format.hpp>
 #include <boost/python.hpp>
 #include <boost/python/module.hpp>
 #include <boost/python/def.hpp>
@@ -64,6 +65,9 @@ public:
             pconstraints = new TorqueLimitsRave(probot,constraintsstring,ptrajectory);
         }
 #endif
+        else {
+            throw TOPP_EXCEPTION_FORMAT("cannot create %s problem type", problemtype, 0);
+        }
 
         // Set default public tuning parameters
         integrationtimestep = 0;
