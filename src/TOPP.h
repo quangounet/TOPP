@@ -48,6 +48,7 @@
 #include <boost/typeof/std/list.hpp>
 #include <boost/typeof/std/map.hpp>
 #include <boost/typeof/std/string.hpp>
+#include <boost/typeof/typeof.hpp>
 
 #define FOREACH(it, v) for(BOOST_TYPEOF(v) ::iterator it = (v).begin(); it != (v).end(); (it)++)
 #define FOREACH_NOINC(it, v) for(BOOST_TYPEOF(v) ::iterator it = (v).begin(); it != (v).end(); )
@@ -57,10 +58,17 @@
 
 #else
 
-#define FOREACH(it, v) for(typeof((v).begin())it = (v).begin(); it != (v).end(); (it)++)
-#define FOREACH_NOINC(it, v) for(typeof((v).begin())it = (v).begin(); it != (v).end(); )
+#if __cplusplus > 199711L || defined(__GXX_EXPERIMENTAL_CXX0X__)
+#define FOREACH(it, v) for(decltype((v).begin()) it = (v).begin(); it != (v).end(); (it)++)
+#define FOREACH_NOINC(it, v) for(decltype((v).begin()) it = (v).begin(); it != (v).end(); )
 #define FOREACHC FOREACH
 #define FOREACHC_NOINC FOREACH_NOINC
+#else
+#define FOREACH(it, v) for(typeof((v).begin()) it = (v).begin(); it != (v).end(); (it)++)
+#define FOREACH_NOINC(it, v) for(typeof((v).begin()) it = (v).begin(); it != (v).end(); )
+#define FOREACHC FOREACH
+#define FOREACHC_NOINC FOREACH_NOINC
+#endif
 
 #endif
 
@@ -386,6 +394,9 @@ void PrintVector(const std::vector<dReal>& v);
 
 // Read a vector of dReal from a space-separated string
 void VectorFromString(const std::string& s,std::vector<dReal>&resvect);
+
+/// \brief read N items from a stream and put them into vector
+void ReadVectorFromStream(std::istream& s, size_t N, std::vector<dReal>& resvect);
 
 // Solve a0 + a1*x + a2*x^2 = 0 in the interval [lowerbound,upperbound]
 // Return false if no solution in [lowerbound,upperbound], true otherwise

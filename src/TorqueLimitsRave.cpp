@@ -14,7 +14,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+#ifdef WITH_OPENRAVE
 
 #include "TorqueLimitsRave.h"
 
@@ -24,28 +24,29 @@ namespace TOPP {
 
 
 TorqueLimitsRave::TorqueLimitsRave(RobotBasePtr probot, std::string& constraintsstring, Trajectory* ptraj){
-    std::vector<dReal> tmpvect;
-    std::string buff;
-    std::istringstream iss(constraintsstring);
-    getline(iss, buff, '\n');
-    discrtimestep = atof(buff.c_str());
-    getline(iss, buff, '\n');
-    VectorFromString(buff,vmax);
-    getline(iss, buff, '\n');
-    VectorFromString(buff,taumin);
-    getline(iss, buff, '\n');
-    VectorFromString(buff, taumax);
-    hasvelocitylimits = VectorMax(vmax) > TINY;
-
     trajectory = *ptraj;
-
     int ndof = trajectory.dimension;
+    std::istringstream iss(constraintsstring);
+    iss >> discrtimestep;
+    ReadVectorFromStream(iss, ndof, vmax);
+    ReadVectorFromStream(iss, ndof, taumin);
+    ReadVectorFromStream(iss, ndof, taumax);
+    hasvelocitylimits = false;
+    FOREACH(itv, vmax) {
+        if( std::abs(*itv) > TINY ) {
+            hasvelocitylimits = true;
+            break;
+        }
+    }
 
     // Define the avect, bvect, cvect
     int ndiscrsteps = int((trajectory.duration+1e-10)/discrtimestep)+1;
     std::vector<dReal> q(ndof), qd(ndof), qdd(ndof), tmp0(ndof), tmp1(ndof), torquesimple;
     boost::array< std::vector< dReal >, 3 > torquecomponents;
     {
+        avect.resize(ndiscrsteps);
+        bvect.resize(ndiscrsteps);
+        cvect.resize(ndiscrsteps);
         EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex()); // lock environment
         for(int i = 0; i<ndiscrsteps; i++) {
             dReal s = i*discrtimestep;
@@ -56,15 +57,15 @@ TorqueLimitsRave::TorqueLimitsRave(RobotBasePtr probot, std::string& constraints
             probot->SetDOFVelocities(qd,KinBody::CLA_Nothing);
             probot->ComputeInverseDynamics(torquesimple,qd);
             probot->ComputeInverseDynamics(torquecomponents,qdd);
-            VectorAdd(torquesimple,torquecomponents[1],tmp0,1,-1);
-            VectorAdd(tmp0,torquecomponents[2],tmp1,1,-1);
-            avect.push_back(tmp1);
-            VectorAdd(torquecomponents[0],torquecomponents[1],tmp0);
-            bvect.push_back(tmp0);
-            cvect.push_back(torquecomponents[2]);
+            VectorAdd(torquesimple,torquecomponents[1], bvect[i], 1, -1);
+            VectorAdd(bvect[i], torquecomponents[2], avect[i], 1, -1);
+            VectorAdd(torquecomponents[0],torquecomponents[1], bvect[i]);
+            cvect[i] = torquecomponents[2];
         }
     }
 }
 
 
 }
+
+#endif

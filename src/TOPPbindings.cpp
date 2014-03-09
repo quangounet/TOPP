@@ -26,14 +26,8 @@
 #include <boost/python/def.hpp>
 
 #ifdef WITH_OPENRAVE
-#include <openrave/openrave.h>
-#include "openravepy.h"
-//#include "openrave/python/bindings/openravepy_int.h"
 #include "TorqueLimitsRave.h"
-
-//using namespace OpenRAVE;
-//using namespace openravepy;
-
+#include "openravepy.h"
 #endif
 
 using namespace boost::python;
