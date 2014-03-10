@@ -245,7 +245,7 @@ public:
     // Called at initialization
     virtual dReal SdLimitBobrowInit(dReal s){
         std::cout << "Virtual method not implemented\n";
-        throw "Virtual method not implemented";
+        throw TOPPException("Virtual method not implemented");
     }
 
     // Upper limit on sd after incorporating pure velocity constraints
@@ -255,7 +255,7 @@ public:
     // Pair of (lower,upper) limits on sdd
     virtual std::pair<dReal,dReal> SddLimits(dReal s, dReal sd){
         std::cout << "Virtual method not implemented\n";
-        throw "Virtual method not implemented";
+        throw TOPPException("Virtual method not implemented");
     }
     virtual dReal SddLimitAlpha(dReal s, dReal sd){
         return SddLimits(s, sd).first;
@@ -279,7 +279,7 @@ public:
     // Compute the slope of the profiles near a dynamic singularity
     virtual void ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector){
         std::cout << "Virtual method not implemented\n";
-        throw "Virtual method not implemented";
+        throw TOPPException("Virtual method not implemented");
     }
 
     // Fix the integration at s=0 when there is a singularity there
@@ -300,7 +300,7 @@ public:
     // Add them to switchpointslist
     virtual void FindSingularSwitchPoints(){
         std::cout << "Virtual method not implemented\n";
-        throw "Virtual method not implemented";
+        throw TOPPException("Virtual method not implemented");
     };
 
     // Add a switch point to switchpointslist

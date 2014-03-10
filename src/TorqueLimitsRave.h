@@ -26,11 +26,21 @@
 
 namespace TOPP {
 
+/// \brief simple version of torque limits
 class TorqueLimitsRave : public TorqueLimits {
 public:
     TorqueLimitsRave(OpenRAVE::RobotBasePtr probot, std::string& constraintsstring, Trajectory* ptraj);
 
 };
+
+/// \brief gets all the information from openrave structures. use the active DOFs of the robot
+class TorqueLimitsRave2 : public TorqueLimits {
+public:
+    TorqueLimitsRave2(OpenRAVE::RobotBasePtr probot, OpenRAVE::TrajectoryBaseConstPtr ptraj, dReal discrtimestep);
+
+};
+
+
 }
 
 #endif

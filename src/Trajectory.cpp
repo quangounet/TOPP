@@ -31,10 +31,12 @@ void Polynomial::InitFromCoefficientsVector(const std::vector<dReal>&coefficient
     // Construct first- and second-order derivative polynomials
     coefficientsvectord.resize(0);
     coefficientsvectordd.resize(0);
-    for(int i = 1; i <= degree; i++)
+    for(int i = 1; i <= degree; i++) {
         coefficientsvectord.push_back(i * coefficientsvector[i]);
-    for(int i = 1; i <= degree - 1; i++)
+    }
+    for(int i = 1; i <= degree - 1; i++) {
         coefficientsvectordd.push_back(i * coefficientsvectord[i]);
+    }
 }
 
 

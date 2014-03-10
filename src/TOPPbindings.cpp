@@ -14,8 +14,6 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
 #include "TOPP.h"
 #include "KinematicLimits.h"
 #include "TorqueLimits.h"
@@ -72,6 +70,32 @@ public:
         // Set default private tuning parameters
         pconstraints->bisectionprecision = 0.01;
         pconstraints->loweringcoef = 0.95;
+    }
+
+    TOPPInstance(object orobot, std::string problemtype, object otrajectory, dReal discrtimestep)
+    {
+#ifdef WITH_OPENRAVE
+        OpenRAVE::RobotBasePtr probot = openravepy::GetRobot(orobot);
+        OpenRAVE::TrajectoryBasePtr ptrajectory = openravepy::GetTrajectory(otrajectory);
+        if (problemtype.compare("TorqueLimitsRave2")==0) {
+            pconstraints.reset(new TorqueLimitsRave2(probot,ptrajectory,discrtimestep));
+        }
+        else {
+            throw TOPP_EXCEPTION_FORMAT("cannot create %s problem type", problemtype, 0);
+        }
+
+        // Set default public tuning parameters
+        integrationtimestep = 0;
+        reparamtimestep = 0;
+        passswitchpointnsteps = 5;
+        extrareps = 0;
+
+        // Set default private tuning parameters
+        pconstraints->bisectionprecision = 0.01;
+        pconstraints->loweringcoef = 0.95;
+#else
+        throw TOPPException("not compiled with openrave");
+#endif
     }
 
     boost::shared_ptr<Constraints> pconstraints;
@@ -207,6 +231,7 @@ public:
 BOOST_PYTHON_MODULE(TOPPbindings) {
     using namespace boost::python;
     class_<TOPPInstance>("TOPPInstance", init<object,std::string,std::string,std::string>())
+    .def(init<object,std::string,object,dReal>(args("openraverobot","problemtype","openravetrajectory","discrtimestep")))
     .def_readwrite("integrationtimestep", &TOPPInstance::integrationtimestep)
     .def_readwrite("reparamtimestep", &TOPPInstance::reparamtimestep)
     .def_readwrite("passswitchpointnsteps", &TOPPInstance::passswitchpointnsteps)
