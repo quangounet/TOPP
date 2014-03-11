@@ -85,7 +85,7 @@ public:
     // Reparameterize the trajectory
     // The degree of the polynomials of restrajectory will be 2*d where d is
     // the degree of the polynomials in the original trajectory
-    int Reparameterize(Constraints& constraints, Trajectory& restrajectory);
+    int Reparameterize(Constraints& constraints, Trajectory& restrajectory, dReal smax = 0);
 
     // Write the trajectory to the stream
     void Write(std::stringstream& ss);

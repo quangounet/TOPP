@@ -379,6 +379,8 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
 // Velocity Interval Propagation from sdend backwards
 int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dReal sdendmin, dReal sdendmax);
 
+// Emergency stopping (integrate forward the minimum acceleration)
+dReal  EmergencyStop(Constraints& constraints, dReal sdbeg, Trajectory& restrajectory);
 
 //////// ////////////////////////////////////////////////////////////
 ///////////////////////// Utilities ////////////////////////////////

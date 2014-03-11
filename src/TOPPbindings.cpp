@@ -26,6 +26,8 @@
 #ifdef WITH_OPENRAVE
 #include "TorqueLimitsRave.h"
 #include "openravepy.h"
+#include "ZMPTorqueLimits.h"
+#include "FrictionLimits.h"
 #endif
 
 using namespace boost::python;
@@ -56,6 +58,14 @@ public:
             _probot = openravepy::GetRobot(o);
             pconstraints.reset(new TorqueLimitsRave(_probot,constraintsstring,ptrajectory));
         }
+        else if (problemtype.compare("FrictionLimits")==0) {
+            _probot = openravepy::GetRobot(o);
+            pconstraints.reset(new FrictionLimits(_probot,constraintsstring,ptrajectory));
+        }
+        else if (problemtype.compare("ZMPTorqueLimits")==0) {
+            _probot = openravepy::GetRobot(o);
+            pconstraints.reset(new ZMPTorqueLimits(_probot,constraintsstring,ptrajectory));
+        }
 #endif
         else {
             throw TOPP_EXCEPTION_FORMAT("cannot create %s problem type", problemtype, 0);
@@ -72,7 +82,7 @@ public:
         pconstraints->loweringcoef = 0.95;
     }
 
-    TOPPInstance(object orobot, std::string problemtype, object otrajectory, dReal discrtimestep)
+    TOPPInstance(object orobot, std::string problemtype, object otrajectory, TOPP::dReal discrtimestep)
     {
 #ifdef WITH_OPENRAVE
         _probot = openravepy::GetRobot(orobot);
@@ -110,7 +120,7 @@ public:
     TOPP::dReal sdbegmin, sdbegmax;
 
     // Tuning parameters
-    dReal integrationtimestep, reparamtimestep;
+    TOPP::dReal integrationtimestep, reparamtimestep;
     int passswitchpointnsteps, extrareps;
 
 #ifdef WITH_OPENRAVE
@@ -193,6 +203,18 @@ public:
     }
 #endif
 
+    TOPP::dReal RunEmergencyStop(TOPP::dReal sdbeg){
+        // Set tuning parameters
+        pconstraints->integrationtimestep = integrationtimestep;
+        pconstraints->passswitchpointnsteps = passswitchpointnsteps;
+        pconstraints->reparamtimestep = reparamtimestep;
+        pconstraints->extrareps = extrareps;
+
+        TOPP::dReal res = EmergencyStop(*pconstraints, sdbeg, restrajectory);
+        return res;
+
+    }
+
     void WriteResultTrajectory(){
         std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         // printf("WriteResultTrajectory: %d %f %d blah\n",
@@ -242,7 +264,7 @@ public:
 BOOST_PYTHON_MODULE(TOPPbindings) {
     using namespace boost::python;
     class_<TOPPInstance>("TOPPInstance", init<object,std::string,std::string,std::string>())
-    .def(init<object,std::string,object,dReal>(args("openraverobot","problemtype","openravetrajectory","discrtimestep")))
+    .def(init<object,std::string,object,TOPP::dReal>(args("openraverobot","problemtype","openravetrajectory","discrtimestep")))
     .def_readwrite("integrationtimestep", &TOPPInstance::integrationtimestep)
     .def_readwrite("reparamtimestep", &TOPPInstance::reparamtimestep)
     .def_readwrite("passswitchpointnsteps", &TOPPInstance::passswitchpointnsteps)
@@ -263,6 +285,7 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def("ReparameterizeTrajectory",&TOPPInstance::ReparameterizeTrajectory)
     .def("RunVIP",&TOPPInstance::RunVIP)
     .def("RunVIPBackward",&TOPPInstance::RunVIPBackward)
+    .def("RunEmergencyStop",&TOPPInstance::RunEmergencyStop)
     .def("WriteResultTrajectory",&TOPPInstance::WriteResultTrajectory)
     .def("WriteProfilesList",&TOPPInstance::WriteProfilesList)
     .def("WriteExtra",&TOPPInstance::WriteExtra)

@@ -1912,6 +1912,114 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
 }
 
 
+dReal EmergencyStop(Constraints& constraints, dReal sdbeg, Trajectory& restrajectory) {
+
+    dReal dt = constraints.integrationtimestep;
+    if(dt == 0) {
+        dt = constraints.discrtimestep;
+    }
+
+    int ndiscrsteps = int((constraints.trajectory.duration+1e-10)/constraints.discrtimestep);
+    if(ndiscrsteps<1) {
+        return false;
+    }
+
+    constraints.discrtimestep = constraints.trajectory.duration/ndiscrsteps;
+    constraints.Discretize();
+
+    dReal dtsq = dt*dt;
+
+    dReal scur = 0, sdcur = sdbeg, snext, sdnext, alpha, beta, sprev = 0;
+    std::list<dReal> slist, sdlist, sddlist;
+    std::pair<dReal,dReal> sddlimits;
+    std::vector<dReal> qd(constraints.trajectory.dimension);
+
+    bool cont = true;
+    int returntype = -1;
+
+    while(cont) {
+
+        if(sdcur<0) {
+            // Could achieve emergency stop
+            slist.push_back(scur);
+            sdlist.push_back(sdcur);
+            sddlist.push_back(0);
+            returntype = INT_BOTTOM;
+            break;
+        }
+
+        if(scur>constraints.trajectory.duration) {
+            // Reached the end of the trajectory
+            slist.push_back(scur);
+            sdlist.push_back(sdcur);
+            sddlist.push_back(0);
+            std::cout << "[ES] Reached end\n";
+            returntype = INT_END;
+            break;
+        }
+
+        if(constraints.hasvelocitylimits) {
+            constraints.trajectory.Evald(scur, qd);
+            for(int i=0; i<constraints.trajectory.dimension; i++) {
+                // Violated velocity constraint
+                if(std::abs(qd[i])>TINY && sdcur > 1e-2 + constraints.vmax[i]/std::abs(qd[i])) {
+                    slist.push_back(scur);
+                    sdlist.push_back(sdcur);
+                    sddlist.push_back(0);
+                    std::cout << sdcur << ">" << constraints.vmax[i]/std::abs(qd[i]) << " " << "[ES] Violated velocity constraint\n";
+                    returntype = INT_MVC;
+                    break;
+                }
+            }
+            if(returntype == INT_MVC) {
+                break;
+            }
+        }
+
+        sddlimits = constraints.SddLimits(scur,sdcur);
+        alpha = sddlimits.first;
+        beta = sddlimits.second;
+        if(alpha>beta + 1e-2) {
+            // Violated the acceleration constraints
+            slist.push_back(scur);
+            sdlist.push_back(sdcur);
+            sddlist.push_back(0);
+            std::cout << "[ES] Violated acceleration constraint\n";
+            returntype = INT_MVC;
+            break;
+        }
+
+        // Else, integrate forward following alpha
+        slist.push_back(scur);
+        sdlist.push_back(sdcur);
+        sddlist.push_back(alpha);
+        snext = scur + dt * sdcur + 0.5*dtsq*alpha;
+        sdnext = sdcur + dt * alpha;
+        sprev = scur;
+        scur = snext;
+        sdcur = sdnext;
+    }
+
+    if(returntype == INT_BOTTOM) {
+        Profile resprofile(slist,sdlist,sddlist,dt);
+        resprofile.forward = true;
+        constraints.resprofileslist.resize(0);
+        constraints.resprofileslist.push_back(resprofile);
+        int ret = constraints.trajectory.Reparameterize(constraints, restrajectory, sprev);
+        if(ret > 0) {
+            return sprev;
+        }
+        else{
+            return 0;
+        }
+    }
+    else{
+        return 0;
+    }
+
+
+}
+
 ////////////////////////////////////////////////////////////////////
 ///////////////////////// Utilities ////////////////////////////////
 ////////////////////////////////////////////////////////////////////

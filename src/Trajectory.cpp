@@ -149,7 +149,7 @@ void Trajectory::InitFromChunksList(const std::list<Chunk>&chunkslist0) {
     chunkcumulateddurationslist.resize(0);
     std::list<Chunk>::iterator itchunk = chunkslist.begin();
     while(itchunk != chunkslist.end()) {
-        assert(degree == itchunk->degree);
+        //assert(degree == itchunk->degree);
         dReal chunkduration = itchunk->duration;
         if(chunkduration > TINY) {
             chunkdurationslist.push_back(chunkduration);
@@ -341,17 +341,27 @@ void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
 }
 
 
-int Trajectory::Reparameterize(Constraints& constraints, Trajectory& restrajectory) {
+int Trajectory::Reparameterize(Constraints& constraints, Trajectory& restrajectory, dReal smax) {
 
-    if (constraints.resprofileslist.size() < 1)
+    if (constraints.resprofileslist.size() < 1) {
         return -1;
+    }
 
     dReal scur, sdcur, snext, sdnext, sdnext2, sdd;
     dReal dt = constraints.reparamtimestep;
 
     // Set the reparam timestep automatically if it is initially set to 0
-    if(dt == 0 && constraints.resduration>TINY) {
-        dt = constraints.discrtimestep*constraints.resduration/duration;
+    if(dt == 0) {
+        if(smax == 0 && constraints.resduration>TINY) {
+            dt = constraints.discrtimestep*constraints.resduration/duration;
+        }
+        else{
+            dt = constraints.discrtimestep;
+        }
+    }
+
+    if (smax == 0) {
+        smax = duration;
     }
 
     dReal dtsq = dt*dt;
@@ -376,11 +386,11 @@ int Trajectory::Reparameterize(Constraints& constraints, Trajectory& restrajecto
     FindLowestProfile(scur, profile, tres, constraints.resprofileslist);
     sdcur = profile.Evald(tres);
 
-    while(scur<duration) {
+    while(scur<smax) {
         sdd = profile.Evaldd(tres);
         sdnext = sdcur + dt*sdd;
         snext = scur + dt*sdcur + 0.5*dtsq*sdd;
-        if(snext >= scur+TINY && snext<= duration && FindLowestProfile(snext,profile,tres,constraints.resprofileslist)) {
+        if(snext >= scur+TINY && snext<= smax && FindLowestProfile(snext,profile,tres,constraints.resprofileslist)) {
             sdnext2 = profile.Evald(tres);
             dtmod = dt;
             // If discrepancy between integrated sd and profile's sd then

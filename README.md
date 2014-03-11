@@ -39,7 +39,6 @@ Examples, tutorials, reference manual
 
 See the wiki https://github.com/quangounet/TOPP/wiki
 
-
 Notes on OpenRAVE integration
 -----------------------------
 

@@ -3304,7 +3304,6 @@ $as_echo "no" >&6; }
 fi
 
 
-
 # Check whether --with-openrave was given.
 if test "${with_openrave+set}" = set; then :
   withval=$with_openrave;
