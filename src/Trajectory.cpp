@@ -53,7 +53,7 @@ Polynomial::Polynomial(const std::string& s) {
 
 
 // Evaluate polynomials using Horner's method
-dReal Polynomial::Eval(dReal s) {
+dReal Polynomial::Eval(dReal s) const {
     dReal res = 0;
     for(int i = degree; i >= 0; i--)
         res = res * s + coefficientsvector[i];
@@ -61,7 +61,7 @@ dReal Polynomial::Eval(dReal s) {
 }
 
 
-dReal Polynomial::Evald(dReal s) {
+dReal Polynomial::Evald(dReal s) const {
     dReal res = 0;
     for(int i = degree - 1; i >= 0; i--)
         res = res * s + coefficientsvectord[i];
@@ -69,7 +69,7 @@ dReal Polynomial::Evald(dReal s) {
 }
 
 
-dReal Polynomial::Evaldd(dReal s) {
+dReal Polynomial::Evaldd(dReal s) const {
     dReal res = 0;
     for(int i = degree - 2; i>=0; i--)
         res = res*s + coefficientsvectordd[i];
@@ -101,7 +101,7 @@ Chunk::Chunk(dReal duration0, const std::vector<Polynomial>& polynomialsvector0)
 }
 
 
-void Chunk::Eval(dReal s, std::vector<dReal>&q) {
+void Chunk::Eval(dReal s, std::vector<dReal>&q) const {
     assert(s >= -TINY);
     assert(s <= duration+TINY);
     for(int i = 0; i < dimension; i++)
@@ -109,7 +109,7 @@ void Chunk::Eval(dReal s, std::vector<dReal>&q) {
 }
 
 
-void Chunk::Evald(dReal s, std::vector<dReal>&qd) {
+void Chunk::Evald(dReal s, std::vector<dReal>&qd) const {
     assert(s >= -TINY);
     assert(s <= duration+TINY);
     for(int i = 0; i < dimension; i++)
@@ -117,7 +117,7 @@ void Chunk::Evald(dReal s, std::vector<dReal>&qd) {
 }
 
 
-void Chunk::Evaldd(dReal s, std::vector<dReal>&qdd) {
+void Chunk::Evaldd(dReal s, std::vector<dReal>&qdd) const {
     assert(s >= -TINY);
     assert(s <= duration+TINY);
     for(int i = 0; i < dimension; i++)
@@ -194,9 +194,9 @@ Trajectory::Trajectory(const std::string& trajectorystring) {
 }
 
 
-void Trajectory::FindChunkIndex(dReal s, int& index, dReal& remainder) {
+void Trajectory::FindChunkIndex(dReal s, int& index, dReal& remainder) const {
 
-    std::list<dReal>::iterator it = chunkcumulateddurationslist.begin();
+    std::list<dReal>::const_iterator it = chunkcumulateddurationslist.begin();
     if(s <= TINY) {
         index = 0;
         remainder = 0;
@@ -219,39 +219,39 @@ void Trajectory::FindChunkIndex(dReal s, int& index, dReal& remainder) {
 }
 
 
-void Trajectory::Eval(dReal s, std::vector<dReal>&q) {
+void Trajectory::Eval(dReal s, std::vector<dReal>&q) const {
     assert(s >= -TINY);
     assert(s <= duration+TINY);
     assert(dimension == int(q.size()));
     int index;
     dReal remainder;
     FindChunkIndex(s,index,remainder);
-    std::list<Chunk>::iterator itchunk = chunkslist.begin();
+    std::list<Chunk>::const_iterator itchunk = chunkslist.begin();
     advance(itchunk,index);
     itchunk->Eval(remainder,q);
 }
 
 
-void Trajectory::Evald(dReal s, std::vector<dReal>&qd) {
+void Trajectory::Evald(dReal s, std::vector<dReal>&qd) const {
     assert(s >= 0-TINY);
     assert(s <= duration+TINY);
     assert(dimension == int(qd.size()));
     int index;
     dReal remainder;
     FindChunkIndex(s,index,remainder);
-    std::list<Chunk>::iterator itchunk = chunkslist.begin();
+    std::list<Chunk>::const_iterator itchunk = chunkslist.begin();
     advance(itchunk,index);
     itchunk->Evald(remainder,qd);
 }
 
 
-void Trajectory::Evaldd(dReal s, std::vector<dReal>&qdd) {
+void Trajectory::Evaldd(dReal s, std::vector<dReal>&qdd) const {
     assert(s >= -TINY);
     assert(s <= duration+TINY);
     int index;
     dReal remainder;
     FindChunkIndex(s,index,remainder);
-    std::list<Chunk>::iterator itchunk = chunkslist.begin();
+    std::list<Chunk>::const_iterator itchunk = chunkslist.begin();
     advance(itchunk,index);
     itchunk->Evaldd(remainder,qdd);
 }

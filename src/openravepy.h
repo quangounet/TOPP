@@ -19,11 +19,8 @@
 
 #define PY_ARRAY_UNIQUE_SYMBOL PyArrayHandle
 #include <boost/python.hpp>
-//#include <pyconfig.h>
-//#include <numpy/arrayobject.h>
-//#include <openrave/xmlreaders.h>
 
-// declared from openravepy_int
+// declared from openravepy_int.h, do not include openravepy_int.h directly!
 namespace openravepy {
 
 OpenRAVE::Transform ExtractTransform(const boost::python::object& oraw);
@@ -42,6 +39,7 @@ boost::python::object toPyPlannerParameters(OpenRAVE::PlannerBase::PlannerParame
 boost::python::object toPyEnvironment(boost::python::object);
 boost::python::object toPyKinBody(OpenRAVE::KinBodyPtr, boost::python::object opyenv);
 boost::python::object toPyKinBodyLink(OpenRAVE::KinBody::LinkPtr plink, boost::python::object opyenv);
+boost::python::object toPyTrajectory(OpenRAVE::TrajectoryBasePtr ptraj, boost::python::object opyenv);
 
 //EnvironmentBasePtr GetEnvironment(boost::python::boost::python::object);
 OpenRAVE::TrajectoryBasePtr GetTrajectory(boost::python::object);

@@ -1,5 +1,5 @@
 // -*- coding: utf-8 -*-
-// Copyright (C) 2013 Quang-Cuong Pham <cuong.pham@normalesup.org>
+// Copyright (C) 2013 Quang-Cuong Pham <cuong.pham@normalesup.org> & Rosen Diankov <rosen.diankov@gmail.com>
 //
 // This file is part of the Time-Optimal Path Parameterization (TOPP) library.
 // TOPP is free software: you can redistribute it and/or modify
@@ -53,8 +53,8 @@ public:
 
 #ifdef WITH_OPENRAVE
         else if (problemtype.compare("TorqueLimitsRave")==0) {
-            OpenRAVE::RobotBasePtr probot = openravepy::GetRobot(o);
-            pconstraints.reset(new TorqueLimitsRave(probot,constraintsstring,ptrajectory));
+            _probot = openravepy::GetRobot(o);
+            pconstraints.reset(new TorqueLimitsRave(_probot,constraintsstring,ptrajectory));
         }
 #endif
         else {
@@ -75,10 +75,10 @@ public:
     TOPPInstance(object orobot, std::string problemtype, object otrajectory, dReal discrtimestep)
     {
 #ifdef WITH_OPENRAVE
-        OpenRAVE::RobotBasePtr probot = openravepy::GetRobot(orobot);
+        _probot = openravepy::GetRobot(orobot);
         OpenRAVE::TrajectoryBasePtr ptrajectory = openravepy::GetTrajectory(otrajectory);
         if (problemtype.compare("TorqueLimitsRave2")==0) {
-            pconstraints.reset(new TorqueLimitsRave2(probot,ptrajectory,discrtimestep));
+            pconstraints.reset(new TorqueLimitsRave2(_probot,ptrajectory,discrtimestep));
         }
         else {
             throw TOPP_EXCEPTION_FORMAT("cannot create %s problem type", problemtype, 0);
@@ -113,6 +113,9 @@ public:
     dReal integrationtimestep, reparamtimestep;
     int passswitchpointnsteps, extrareps;
 
+#ifdef WITH_OPENRAVE
+    OpenRAVE::RobotBasePtr _probot;
+#endif
 
     TOPP::dReal GetAlpha(TOPP::dReal s, TOPP::dReal sd) {
         std::pair<TOPP::dReal, TOPP::dReal> sdd_lim = pconstraints->SddLimits(s, sd);
@@ -181,6 +184,15 @@ public:
         return ret;
     }
 
+#ifdef WITH_OPENRAVE
+    object GetOpenRAVEResultTrajectory(object opyenv)
+    {
+        OpenRAVE::TrajectoryBasePtr ptraj = OpenRAVE::RaveCreateTrajectory(_probot->GetEnv());
+        ConvertToOpenRAVETrajectory(restrajectory, ptraj, _probot->GetActiveConfigurationSpecification());
+        return openravepy::toPyTrajectory(ptraj, opyenv);
+    }
+#endif
+
     void WriteResultTrajectory(){
         std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         // printf("WriteResultTrajectory: %d %f %d blah\n",
@@ -189,7 +201,6 @@ public:
         restrajectory.Write(ss);
         restrajectorystring = ss.str();
     }
-
 
     void WriteProfilesList(){
         std::list<Profile>::iterator itprofile = pconstraints->resprofileslist.begin();
@@ -255,5 +266,9 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def("WriteResultTrajectory",&TOPPInstance::WriteResultTrajectory)
     .def("WriteProfilesList",&TOPPInstance::WriteProfilesList)
     .def("WriteExtra",&TOPPInstance::WriteExtra)
-    .def("WriteSwitchPointsList",&TOPPInstance::WriteSwitchPointsList);
+    .def("WriteSwitchPointsList",&TOPPInstance::WriteSwitchPointsList)
+#ifdef WITH_OPENRAVE
+    .def("GetOpenRAVEResultTrajectory", &TOPPInstance::GetOpenRAVEResultTrajectory, args("pyenv"))
+#endif
+    ;
 }

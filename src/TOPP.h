@@ -220,26 +220,26 @@ public:
     virtual void Discretize();
 
     // Compute the MVC given by acceleration constraints
-    void ComputeMVCBobrow();
+    virtual void ComputeMVCBobrow();
 
     // Compute the combined MVC (incorporating pure velocity constraints)
-    void ComputeMVCCombined();
+    virtual void ComputeMVCCombined();
 
     // Write the MVC to stringstreams
-    void WriteMVCBobrow(std::stringstream& ss, dReal dt=0.01);
-    void WriteMVCDirect(std::stringstream& ss, dReal dt=0.01);
+    virtual void WriteMVCBobrow(std::stringstream& ss, dReal dt=0.01);
+    virtual void WriteMVCDirect(std::stringstream& ss, dReal dt=0.01);
     virtual void WriteExtra(std::stringstream& ss){
         return;
     }
 
     // Linear interpolation
-    dReal Interpolate1D(dReal s, const std::vector<dReal>& v);
+    virtual dReal Interpolate1D(dReal s, const std::vector<dReal>& v);
 
 
     //////////////////////// Limits ///////////////////////////
 
     // Upper limit on sd given by acceleration constraints (Bobrow)
-    dReal SdLimitBobrow(dReal s);
+    virtual dReal SdLimitBobrow(dReal s);
 
     // Compute the maximum velocity curve due to dynamics at s
     // Called at initialization
@@ -249,8 +249,8 @@ public:
     }
 
     // Upper limit on sd after incorporating pure velocity constraints
-    dReal SdLimitCombined(dReal s);
-    dReal SdLimitCombinedInit(dReal s);
+    virtual dReal SdLimitCombined(dReal s);
+    virtual dReal SdLimitCombinedInit(dReal s);
 
     // Pair of (lower,upper) limits on sdd
     virtual std::pair<dReal,dReal> SddLimits(dReal s, dReal sd){
@@ -268,13 +268,13 @@ public:
     ///////////////////////// Switch Points ///////////////////////
 
     // Find all switch points, add them to switchpointslist
-    void FindSwitchPoints();
-    void FindTangentSwitchPoints();
-    void FindDiscontinuousSwitchPoints();
+    virtual void FindSwitchPoints();
+    virtual void FindTangentSwitchPoints();
+    virtual void FindDiscontinuousSwitchPoints();
 
     // Switch points that are close to each other will be replaced by a single swtich point
     // Modifies switchpointslist
-    void TrimSwitchPoints();
+    virtual void TrimSwitchPoints();
 
     // Compute the slope of the profiles near a dynamic singularity
     virtual void ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector){
@@ -304,7 +304,7 @@ public:
     };
 
     // Add a switch point to switchpointslist
-    void AddSwitchPoint(int i, int switchpointtype, dReal sd = -1);
+    virtual void AddSwitchPoint(int i, int switchpointtype, dReal sd = -1);
 
 };
 
