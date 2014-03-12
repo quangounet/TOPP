@@ -48,7 +48,7 @@ class RaveInstance(TOPPpy.RaveInstance):
         assert len(tunstring) < buffsize
 
         self.solver = TOPPbindings.TOPPInstance(
-            "TorqueLimitsRave", constring, trajstring, tunstring, robot)
+            robot, "TorqueLimitsRave", constring, trajstring)
 
 
 def AVP(robot, traj, sdbegmin, sdbegmax, taumin, taumax, vmax, **kwargs):

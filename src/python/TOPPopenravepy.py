@@ -144,7 +144,7 @@ def PlotTorques(robot,traj0,traj1,dt=0.001,taumin=[],taumax=[],figstart=0):
     figure(figstart)
     clf()
     hold('on')
-    ax=gca()        
+    ax=gca()
     ax.set_color_cycle(colorcycle)
     plot(tvect0,tauvect0,'--',linewidth=2)
     ax.set_color_cycle(colorcycle)
@@ -152,14 +152,14 @@ def PlotTorques(robot,traj0,traj1,dt=0.001,taumin=[],taumax=[],figstart=0):
     ax.set_color_cycle(colorcycle)
     for a in taumax:
         plot([0,Tmax],[a,a],'-.')
-    ax.set_color_cycle(colorcycle)    
+    ax.set_color_cycle(colorcycle)
     for a in taumin:
         plot([0,Tmax],[a,a],'-.')
     if(len(taumax)>0):
         axis([0,Tmax,1.2*min(taumin),1.2*max(taumax)])
     title('Joint torques',fontsize=20)
     xlabel('Time (s)',fontsize=18)
-    ylabel('Joint torques (Nm)',fontsize=18)    
+    ylabel('Joint torques (Nm)',fontsize=18)
 
 
 def PlotTorques2(tvect0,torques0,tvect1,torques1,taumin=[],taumax=[],figstart=0):
@@ -168,7 +168,7 @@ def PlotTorques2(tvect0,torques0,tvect1,torques1,taumin=[],taumax=[],figstart=0)
     figure(figstart)
     clf()
     hold('on')
-    ax=gca()        
+    ax=gca()
     ax.set_color_cycle(colorcycle)
     plot(tvect0,torques0,'--',linewidth=2)
     ax.set_color_cycle(colorcycle)
@@ -181,10 +181,10 @@ def PlotTorques2(tvect0,torques0,tvect1,torques1,taumin=[],taumax=[],figstart=0)
         axis([0,Tmax,1.2*min(taumin),1.2*max(taumax)])
     title('Joint torques',fontsize=20)
     xlabel('Time (s)',fontsize=18)
-    ylabel('Joint torques (Nm)',fontsize=18)    
+    ylabel('Joint torques (Nm)',fontsize=18)
 
 
-def PlotZMP(robot,traj0,traj1,zmplimits,dt=0.01,figstart=0,border=0):    
+def PlotZMP(robot,traj0,traj1,zmplimits,dt=0.01,figstart=0,border=0):
     xmin, xmax, ymin, ymax = zmplimits
     xminf, xmaxf, yminf, ymaxf = xmin-border, xmax+border, ymin-border, ymax+border
     tvect0,xzmp0,yzmp0,com0 = ComputeZMP(traj0,robot,dt)
@@ -207,7 +207,7 @@ def PlotZMP(robot,traj0,traj1,zmplimits,dt=0.01,figstart=0,border=0):
     axis([0,Tmax,1.2*min(xmin,ymin),1.2*max(xmax,ymax)])
     title('Coordinates of the ZMP',fontsize=20)
     xlabel('Time (s)',fontsize=18)
-    ylabel('ZMP (m)',fontsize=18)    
+    ylabel('ZMP (m)',fontsize=18)
     figure(figstart+1)
     clf()
     plot([xminf,xminf,xmaxf,xmaxf,xminf],[yminf,ymaxf,ymaxf,yminf,yminf],'k',linewidth=2)
@@ -225,7 +225,7 @@ def PlotZMP(robot,traj0,traj1,zmplimits,dt=0.01,figstart=0,border=0):
     axis('equal')
     title('Spatial trajectory of the ZMP under the left foot',fontsize=20)
     xlabel('Anteroposterior axis (m)',fontsize=18)
-    ylabel('Mediolateral axis (m)',fontsize=18)    
+    ylabel('Mediolateral axis (m)',fontsize=18)
 
 
 
@@ -255,7 +255,7 @@ def Trim(robot,q):
 
 def Execute(robot,traj, dt=0.01):
     tvect = arange(0,traj.duration+dt,dt)
-    for t in tvect:        
+    for t in tvect:
         q = traj.Eval(t)
         robot.SetDOFValues(Fill(robot,q))
         time.sleep(dt)
@@ -293,7 +293,7 @@ def CheckCollisionStaticStabilityConfig(robot,q,baselimits):
             mass = robot.GetLinks()[i].GetMass()
             com += mass*ci
             totalmass += mass
-        com = com/totalmass        
+        com = com/totalmass
         if(com[0]<baselimits[0] or com[0]>baselimits[1] or com[1]<baselimits[2] or com[1]>baselimits[3]):
             return True
         return robot.GetEnv().CheckCollision(robot) or robot.CheckSelfCollision()
@@ -385,7 +385,7 @@ class HRP4Robot():
                 self.weights.append(1)
         self.weights = abs(array(self.qupperlimit)-array(self.qlowerlimit))
         self.weights = self.weights / norm(self.weights)
- 
+
     def CheckCollisionSegment(self,qstart,qend):
         return CheckCollisionStaticStabilitySegment(self.robot,qstart,qend,self.collisioncheckstep,self.baselimits)
     def CheckCollisionConfig(self,q):
@@ -443,7 +443,7 @@ def JointValuesFromTransform(robot,Tdesired):
     [h1,h2,h3] = AnglesFromRot(R)
     offset = dot(R,robot.baselinkinittransform[0:3,3])
     [s1,s2,s3] = Tdesired[0:3,3]-offset
-    return [s1,s2,s3,h1,h2,h3] 
+    return [s1,s2,s3,h1,h2,h3]
 
 
 def LoadFloat(env,robotfile,baselinkname):
@@ -491,39 +491,39 @@ def LoadFloat(env,robotfile,baselinkname):
     </mass>
     </body>
   </kinbody>
-  <robot file="%s"> 
+  <robot file="%s">
     <kinbody>
       <body name="%s">
       </body>
       <joint name="slider1" type="slider" circular="true">
         <body>root</body>
         <body>dummy1</body>
-        <axis>1 0 0</axis>  
+        <axis>1 0 0</axis>
       </joint>
       <joint name="slider2" type="slider" circular="true">
         <body>dummy1</body>
         <body>dummy2</body>
-        <axis>0 1 0</axis>  
+        <axis>0 1 0</axis>
       </joint>
       <joint name="slider3" type="slider" circular="true">
         <body>dummy2</body>
         <body>dummy3</body>
-        <axis>0 0 1</axis>  
+        <axis>0 0 1</axis>
       </joint>
       <joint name="hinge1" type="hinge" circular="true">
         <body>dummy3</body>
         <body>dummy4</body>
-        <axis>1 0  0</axis>  
+        <axis>1 0  0</axis>
       </joint>
       <joint name="hinge2" type="hinge" circular="true">
         <body>dummy4</body>
         <body>dummy5</body>
-        <axis>0 1 0</axis>  
+        <axis>0 1 0</axis>
       </joint>
       <joint name="hinge3" type="hinge" circular="true">
         <body>dummy5</body>
         <body>%s</body>
-        <axis>0 0 1</axis>  
+        <axis>0 0 1</axis>
       </joint>
     </kinbody>
   </robot>
@@ -532,6 +532,5 @@ def LoadFloat(env,robotfile,baselinkname):
     robot = env.ReadRobotData(xml)
     env.Add(robot)
     baselink = robot.GetLink(baselinkname)
-    robot.baselinkinittransform = baselink.GetTransform()    
+    robot.baselinkinittransform = baselink.GetTransform()
     return robot
-
