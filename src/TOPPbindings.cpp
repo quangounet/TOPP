@@ -59,12 +59,12 @@ public:
             pconstraints.reset(new TorqueLimitsRave(_probot,constraintsstring,ptrajectory));
         }
         else if (problemtype.compare("FrictionLimits")==0) {
-            RobotBasePtr probot = GetRobot(o);
-            pconstraints = new FrictionLimits(probot,constraintsstring,ptrajectory);
+            RobotBasePtr probot = openravepy::GetRobot(o);
+            pconstraints.reset(new FrictionLimits(probot,constraintsstring,ptrajectory));
         }
         else if (problemtype.compare("ZMPTorqueLimits")==0) {
-            RobotBasePtr probot = GetRobot(o);
-            pconstraints = new ZMPTorqueLimits(probot,constraintsstring,ptrajectory);
+            RobotBasePtr probot = openravepy::GetRobot(o);
+            pconstraints.reset(new ZMPTorqueLimits(probot,constraintsstring,ptrajectory));
         }
 #endif
         else {
