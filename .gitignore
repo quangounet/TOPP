@@ -5,6 +5,7 @@
 .*.swp
 autom4te.cache
 autoscan.log
+build/
 config.log
 config.h
 config.status
