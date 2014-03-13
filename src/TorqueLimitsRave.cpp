@@ -39,7 +39,7 @@ TorqueLimitsRave::TorqueLimitsRave(RobotBasePtr probot, std::string& constraints
     }
 
     // Define the avect, bvect, cvect
-    int ndiscrsteps = int((trajectory.duration+1e-10)/discrtimestep)+1;
+    int ndiscrsteps = int((trajectory.duration+TINY)/discrtimestep)+1;
     std::vector<dReal> q(ndof), qd(ndof), qdd(ndof), tmp0(ndof), tmp1(ndof), torquesimple;
     boost::array< std::vector< dReal >, 3 > torquecomponents;
     {
@@ -236,13 +236,13 @@ void ConvertToOpenRAVETrajectory(const Trajectory& intraj, OpenRAVE::TrajectoryB
 //    }
 }
 
-TorqueLimitsRave2::TorqueLimitsRave2(RobotBasePtr probot, OpenRAVE::TrajectoryBaseConstPtr ptraj, dReal discrtimestep)
+TorqueLimitsRave2::TorqueLimitsRave2(RobotBasePtr probot, OpenRAVE::TrajectoryBaseConstPtr ptraj, dReal _discrtimestep)
 {
     EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex()); // lock environment
     _probot = probot;
     RobotBase::RobotStateSaver robotsaver(probot, KinBody::Save_LinkTransformation|KinBody::Save_LinkVelocities);
     OPENRAVE_ASSERT_OP((int)probot->GetActiveDOFIndices().size(),==,probot->GetActiveDOF()); // don't allow affine dofs
-    this->discrtimestep = discrtimestep;
+    discrtimestep = _discrtimestep;
     ConvertToTOPPTrajectory(ptraj, probot->GetActiveConfigurationSpecification(), trajectory);
     int ndof = trajectory.dimension;
     probot->GetActiveDOFVelocityLimits(vmax);
@@ -276,7 +276,8 @@ TorqueLimitsRave2::TorqueLimitsRave2(RobotBasePtr probot, OpenRAVE::TrajectoryBa
     }
 
     // Define the avect, bvect, cvect
-    int ndiscrsteps = int((trajectory.duration+1e-10)/discrtimestep)+1;
+    int ndiscrsteps = int((trajectory.duration+TINY)/discrtimestep)+1;
+    discrtimestep = trajectory.duration/(ndiscrsteps-1);
     std::vector<dReal> q(ndof), qd(ndof), qdd(ndof), vfullvalues(probot->GetDOF()), torquesimple;
     probot->GetDOFValues(vfullvalues);
     boost::array< std::vector< dReal >, 3 > torquecomponents;
@@ -326,11 +327,20 @@ void TorqueLimitsRave2::InterpolateDynamics(dReal s, std::vector<dReal>& a, std:
         return;
     }
     int n = int(s / discrtimestep);
-    dReal coef = (s - n * discrtimestep) / discrtimestep;
-    for(int i = 0; i < trajectory.dimension; i++) {
-        a[i] = (1-coef)*avect[n][i] + coef*avect[n+1][i];
-        b[i] = (1-coef)*bvect[n][i] + coef*bvect[n+1][i];
-        c[i] = (1-coef)*cvect[n][i] + coef*cvect[n+1][i];
+    dReal coef = s - n * discrtimestep;
+    if( std::abs(coef) <= TINY ) {
+        a = avect[n];
+        b = bvect[n];
+        c = cvect[n];
+    }
+    else {
+        BOOST_ASSERT(n+1 < avect.size());
+        coef /= discrtimestep;
+        for(int i = 0; i < trajectory.dimension; i++) {
+            a[i] = (1-coef)*avect[n][i] + coef*avect[n+1][i];
+            b[i] = (1-coef)*bvect[n][i] + coef*bvect[n+1][i];
+            c[i] = (1-coef)*cvect[n][i] + coef*cvect[n+1][i];
+        }
     }
 }
 
@@ -458,9 +468,10 @@ void TorqueLimitsRave2::FindSingularSwitchPoints(){
         }
         if(found) {
             //std::cout << discrsvect[i] << "," << minsd << "\n";
+            //std::cout << "singular switch: " << discrsvect[i] << " minsid=" << minsd << std::endl;
             AddSwitchPoint(i,SP_SINGULAR,minsd);
         }
-        aprev = a;
+        aprev.swap(a);
     }
 }
 
