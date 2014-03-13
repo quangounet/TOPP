@@ -20,17 +20,15 @@ To integrate with OpenRAVE, you will also need:
 Installation
 ------------
 
-Follow the standard installation procedure:
+Follow the standard installation procedure: from the TOPP directory,
   
-    ./configure
+    mkdir build
+    cd build
+    cmake ..
     make
     sudo make install
 
-To build with OpenRAVE support:
-
-    ./configure --with-openrave
-    make
-    sudo make install
+TOPP will be compiled with OpenRAVE support if it is found on your system.
 
 See "Notes on OpenRAVE integration" below for more details.
 
