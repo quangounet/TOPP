@@ -26,29 +26,16 @@ class RaveInstance(TOPPpy.RaveInstance):
     def __init__(self, robot, traj, taumin, taumax, vmax, **kwargs):
         super(RaveInstance, self).__init__(robot, traj, taumin, taumax, vmax,
                                            **kwargs)
-        #n = 2
-        #rave_robot.SetDOFLimits(-10 * pylab.ones(n), 10 * pylab.ones(n))
-        #rave_robot.SetDOFVelocityLimits(100 * pylab.ones(n))
-        buffsize = 200000
-        tunstring = "%f %f %f %d" % (self.discrtimestep,
-                                     self.integrationtimestep,
-                                     self.reparamtimestep,
-                                     self.passswitchpointnsteps)
-        trajstring = str(traj)
-        constring = vect2str(taumin) + "\n"
+        constring = "%f" % self.discrtimestep + "\n"
+        constring += vect2str(taumin) + "\n"
         constring += vect2str(taumax) + "\n"
         constring += vect2str([0, 0])  # TODO: non-zero vmax
-        print "tuningsstring =", tunstring
-        print "constraintstring =", constring
-        print "trajectorystring = \"\"\"" + trajstring + "\"\"\"\n"
 
-        assert len(constring) < buffsize, \
-            "%d is bigger than buffer size" % len(constring)
-        assert len(trajstring) < buffsize
-        assert len(tunstring) < buffsize
+        print "constraintstring = \"\"\"" + constring + "\"\"\"\n"
+        print "trajectorystring = \"\"\"" + str(traj) + "\"\"\"\n"
 
         self.solver = TOPPbindings.TOPPInstance(
-            robot, "TorqueLimitsRave", constring, trajstring)
+            robot, "TorqueLimitsRave", constring, str(traj))
 
 
 def AVP(robot, traj, sdbegmin, sdbegmax, taumin, taumax, vmax, **kwargs):
