@@ -151,7 +151,8 @@ public:
     }
 
 
-    int ReparameterizeTrajectory(){
+    int ReparameterizeTrajectory(dReal reparamtimestep=0)
+    {
         // Set tuning parameters
         pconstraints->reparamtimestep = reparamtimestep;
 
@@ -261,6 +262,8 @@ public:
 };
 
 
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ReparameterizeTrajectory_overloads, ReparameterizeTrajectory, 0, 1)
+
 BOOST_PYTHON_MODULE(TOPPbindings) {
     using namespace boost::python;
     class_<TOPPInstance>("TOPPInstance", init<object,std::string,std::string,std::string>())
@@ -282,7 +285,7 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def("GetAlpha",&TOPPInstance::GetAlpha)
     .def("GetBeta",&TOPPInstance::GetBeta)
     .def("RunComputeProfiles",&TOPPInstance::RunComputeProfiles)
-    .def("ReparameterizeTrajectory",&TOPPInstance::ReparameterizeTrajectory)
+    .def("ReparameterizeTrajectory",&TOPPInstance::ReparameterizeTrajectory, ReparameterizeTrajectory_overloads(args("reparamtimestep")))
     .def("RunVIP",&TOPPInstance::RunVIP)
     .def("RunVIPBackward",&TOPPInstance::RunVIPBackward)
     .def("RunEmergencyStop",&TOPPInstance::RunEmergencyStop)

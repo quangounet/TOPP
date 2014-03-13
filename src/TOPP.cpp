@@ -62,10 +62,10 @@ bool Constraints::Preprocess() {
     // Set integration timestep automatically if it is initially set to 0
     dReal meanmvc = 0;
     if(integrationtimestep == 0) {
-        for(int i=0; i<ndiscrsteps; i++) {
+        for(size_t i=0; i< mvccombined.size(); i++) {
             meanmvc += std::min(mvccombined[i],10.);
         }
-        meanmvc /= ndiscrsteps;
+        meanmvc /= mvccombined.size();
         meanmvc = std::min(1.,meanmvc);
         integrationtimestep = discrtimestep/meanmvc;
         //std::cout << "\n--------------\nIntegration timestep: " << integrationtimestep << "\n";
@@ -78,9 +78,9 @@ bool Constraints::Preprocess() {
 void Constraints::Discretize() {
     ndiscrsteps = int((trajectory.duration+TINY)/discrtimestep);
     ndiscrsteps++;
-    discrsvect.resize(0);
+    discrsvect.resize(ndiscrsteps);
     for(int i=0; i<ndiscrsteps; i++) {
-        discrsvect.push_back(i*discrtimestep);
+        discrsvect[i] = i*discrtimestep;
     }
 }
 
@@ -1639,7 +1639,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         constraints.resduration = 0;
         Profile profile;
         //dReal ds = constraints.discrtimestep;
-        dReal ds = 1e-2;
+        dReal ds = 1e-4;
         int nsamples = int((constraints.trajectory.duration+TINY)/ds);
         dReal s,sdcur,sdnext;
         dReal tres;
@@ -1661,6 +1661,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
             }
             else{
                 clcdiscontinuous = true;
+                FindLowestProfile(s,profile,tres,constraints.resprofileslist);
                 break;
                 std::cout << "CLC discontinuous: " << s << "\n";
             }
