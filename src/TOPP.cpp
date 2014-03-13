@@ -418,23 +418,22 @@ void Constraints::TrimSwitchPoints() {
 
 
 QuadraticConstraints::QuadraticConstraints(const std::string& constraintsstring) {
-    int buffsize = BUFFSIZE;
     std::vector<dReal> tmpvect;
-    char buff[buffsize];
+    std::string buff;
     std::istringstream iss(constraintsstring);
-    iss.getline(buff,buffsize);
-    discrtimestep = atof(buff);
-    iss.getline(buff,buffsize);
-    VectorFromString(std::string(buff),vmax);
+    getline(iss, buff, '\n');
+    discrtimestep = atof(buff.c_str());
+    getline(iss, buff, '\n');
+    VectorFromString(buff, vmax);
     while(iss.good()) {
-        iss.getline(buff,buffsize);
-        VectorFromString(std::string(buff),tmpvect);
+        getline(iss, buff, '\n');
+        VectorFromString(buff, tmpvect);
         avect.push_back(tmpvect);
-        iss.getline(buff,buffsize);
-        VectorFromString(std::string(buff),tmpvect);
+        getline(iss, buff, '\n');
+        VectorFromString(buff,tmpvect);
         bvect.push_back(tmpvect);
-        iss.getline(buff,buffsize);
-        VectorFromString(std::string(buff),tmpvect);
+        getline(iss, buff, '\n');
+        VectorFromString(buff,tmpvect);
         cvect.push_back(tmpvect);
     }
     nconstraints = int(avect.front().size());
@@ -1930,6 +1929,16 @@ void VectorFromString(const std::string& s,std::vector<dReal>&resvect){
     }
 }
 
+void ReadVectorFromStream(std::istream& s, size_t N, std::vector<dReal>& resvect)
+{
+    resvect.resize(N);
+    for(size_t i = 0; i < N; ++i) {
+        s >> resvect[i];
+    }
+    if( !s ) {
+        throw TOPP_EXCEPTION_FORMAT("failed to read %d items from stream", N, 0);
+    }
+}
 
 dReal VectorMin(const std::vector<dReal>&v){
     dReal res = INF;
@@ -1958,15 +1967,15 @@ void PrintVector(const std::vector<dReal>& v){
 }
 
 void VectorAdd(const std::vector<dReal>&a, const std::vector<dReal>&b,  std::vector<dReal>&res, dReal coefa, dReal coefb){
+    res.resize(a.size());
     assert(a.size() == b.size());
-    assert(a.size() == res.size());
     for(int i=0; i<int(a.size()); i++) {
         res[i] = coefa*a[i]+coefb*b[i];
     }
 }
 
 void VectorMultScalar(const std::vector<dReal>&a, std::vector<dReal>&res, dReal scalar){
-    assert(a.size() == res.size());
+    res.resize(a.size());
     for(int i=0; i<int(a.size()); i++) {
         res[i] = scalar*a[i];
     }
