@@ -36,7 +36,7 @@ if( Boost_PYTHON_FOUND AND Boost_THREAD_FOUND )
     file(GLOB topp_files ${CMAKE_CURRENT_SOURCE_DIR}/*.h ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
     
     add_library(TOPPbindings SHARED ${topp_files})
-    target_link_libraries(TOPPbindings ${OpenRAVE_PYTHON_DIR}/openravepy_int.so ${PYTHON_LIBRARIES} ${Boost_PYTHON_LIBRARY} ${Boost_THREAD_LIBRARY} ${OpenRAVE_LIBRARIES})
+    target_link_libraries(TOPPbindings ${OpenRAVE_PYTHON_DIR}/openravepy_int.so ${PYTHON_LIBRARIES} ${Boost_PYTHON_LIBRARY} ${Boost_THREAD_LIBRARY} ${OpenRAVE_LIBRARIES} ${LAPACK_LIBRARIES})
     set_target_properties(TOPPbindings PROPERTIES PREFIX "" COMPILE_FLAGS "${EXTRA_COMPILE_FLAGS} ${OpenRAVE_CXX_FLAGS}" LINK_FLAGS "${OpenRAVE_LINK_FLAGS}")
     if( WIN32 )
       set_target_properties(TOPPbindings PROPERTIES SUFFIX ".pyd")

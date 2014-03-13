@@ -23,6 +23,21 @@ using namespace OpenRAVE;
 namespace TOPP {
 
 TorqueLimitsRave::TorqueLimitsRave(RobotBasePtr probot, std::string& constraintsstring, Trajectory* ptraj){
+//    trajectory = *ptraj;
+//
+//    int buffsize = BUFFSIZE;  // TODO: remove this dirty string interface!
+//    std::vector<dReal> tmpvect;
+//    char buff[buffsize];
+//    std::istringstream iss(constraintsstring);
+//    iss.getline(buff,buffsize);
+//    discrtimestep = atof(buff);
+//    iss.getline(buff,buffsize);
+//    VectorFromString(std::string(buff),vmax);
+//    iss.getline(buff,buffsize);
+//    VectorFromString(std::string(buff),taumin);
+//    iss.getline(buff,buffsize);
+//    VectorFromString(std::string(buff),taumax);
+//    hasvelocitylimits = VectorMax(vmax) > TINY;
     trajectory = *ptraj;
     int ndof = trajectory.dimension;
     std::istringstream iss(constraintsstring);

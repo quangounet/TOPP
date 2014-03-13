@@ -165,6 +165,13 @@ set(TOPPPY_INSTALL_DIR "${TOPP_PYTHON_INSTALL_DIR}/TOPP" CACHE PATH "TOPP Python
 
 find_package(PkgConfig) # pkg_check_modules
 
+check_library_exists(lapack cgesdd_ "" LAPACK_FOUND)
+if( LAPACK_FOUND )
+  set(LAPACK_LIBRARIES lapack)
+else()
+  message(STATUS "lapack dev library not found")
+endif()
+
 add_subdirectory(src)
 
 # add make uninstall capability

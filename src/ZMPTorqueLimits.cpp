@@ -40,27 +40,26 @@ ZMPTorqueLimits::ZMPTorqueLimits(RobotBasePtr probot0, std::string& constraintss
     trajectory = *ptraj;
     probot = probot0;
 
-    int buffsize = BUFFSIZE;  // TODO: remove this dirty string interface!
     std::vector<dReal> tmpvect, activedofs, activelinks0;
-    char buff[buffsize];
+    std::string buff;
     std::istringstream iss(constraintsstring);
-    iss.getline(buff,buffsize);
-    discrtimestep = atof(buff);
-    iss.getline(buff,buffsize);
+    getline(iss, buff, '\n');
+    discrtimestep = atof(buff.c_str());
+    getline(iss, buff, '\n');
     VectorFromString(std::string(buff),activedofs);
-    iss.getline(buff,buffsize);
+    getline(iss, buff, '\n');
     VectorFromString(std::string(buff),activelinks0);
-    iss.getline(buff,buffsize);
+    getline(iss, buff, '\n');
     VectorFromString(std::string(buff),vmax);
-    iss.getline(buff,buffsize);
+    getline(iss, buff, '\n');
     VectorFromString(std::string(buff),taumin);
-    iss.getline(buff,buffsize);
+    getline(iss, buff, '\n');
     VectorFromString(std::string(buff),taumax);
-    iss.getline(buff,buffsize);
+    getline(iss, buff, '\n');
     VectorFromString(std::string(buff),zmplimits);
-    iss.getline(buff,buffsize);
+    getline(iss, buff, '\n');
     VectorFromString(std::string(buff),qdefault);
-    iss.getline(buff,buffsize);
+    getline(iss, buff, '\n');
     supportfootlinkname = std::string(buff);
 
     hasvelocitylimits = VectorMax(vmax) > TINY;
