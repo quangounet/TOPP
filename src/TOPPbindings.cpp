@@ -28,8 +28,6 @@
 #include "ZMPTorqueLimits.h"
 #include "FrictionLimits.h"
 #include "openravepy.h"
-#include "ZMPTorqueLimits.h"
-#include "FrictionLimits.h"
 #endif
 
 using namespace boost::python;
@@ -196,18 +194,6 @@ public:
         return ret;
     }
 
-    dReal RunEmergencyStop(TOPP::dReal sdbeg){
-        // Set tuning parameters
-        pconstraints->integrationtimestep = integrationtimestep;
-        pconstraints->passswitchpointnsteps = passswitchpointnsteps;
-        pconstraints->reparamtimestep = reparamtimestep;
-        pconstraints->extrareps = extrareps;
-
-        dReal res = EmergencyStop(*pconstraints, sdbeg, restrajectory);
-        return res;
-
-    }
-
 #ifdef WITH_OPENRAVE
     object GetOpenRAVEResultTrajectory(object opyenv)
     {
@@ -226,7 +212,6 @@ public:
 
         TOPP::dReal res = EmergencyStop(*pconstraints, sdbeg, restrajectory);
         return res;
-
     }
 
     void WriteResultTrajectory(){
