@@ -21,27 +21,26 @@
 namespace TOPP {
 
 TorqueLimits::TorqueLimits(const std::string& constraintsstring){
-    int buffsize = BUFFSIZE;  // TODO: remove this dirty string interface!
     std::vector<dReal> tmpvect;
-    char buff[buffsize];
+    std::string buff;
     std::istringstream iss(constraintsstring);
-    iss.getline(buff,buffsize);
-    discrtimestep = atof(buff);
-    iss.getline(buff,buffsize);
-    VectorFromString(std::string(buff),taumin);
-    iss.getline(buff,buffsize);
-    VectorFromString(std::string(buff),taumax);
-    iss.getline(buff,buffsize);
-    VectorFromString(std::string(buff),vmax);
+    getline(iss, buff,'\n');
+    discrtimestep = atof(buff.c_str());
+    getline(iss, buff,'\n');
+    VectorFromString(buff,taumin);
+    getline(iss, buff, '\n');
+    VectorFromString(buff,taumax);
+    getline(iss, buff, '\n');
+    VectorFromString(buff, vmax);
     while(iss.good()) {
-        iss.getline(buff,buffsize);
-        VectorFromString(std::string(buff),tmpvect);
+        getline(iss, buff,'\n');
+        VectorFromString(buff,tmpvect);
         avect.push_back(tmpvect);
-        iss.getline(buff,buffsize);
-        VectorFromString(std::string(buff),tmpvect);
+        getline(iss, buff,'\n');
+        VectorFromString(buff,tmpvect);
         bvect.push_back(tmpvect);
-        iss.getline(buff,buffsize);
-        VectorFromString(std::string(buff),tmpvect);
+        getline(iss, buff,'\n');
+        VectorFromString(buff,tmpvect);
         cvect.push_back(tmpvect);
     }
     hasvelocitylimits = VectorMax(vmax) > TINY;
@@ -122,8 +121,7 @@ std::pair<dReal,dReal> TorqueLimits::SddLimits(dReal s, dReal sd){
         alpha = std::max(alpha,alpha_i);
         beta = std::min(beta,beta_i);
     }
-    std::pair<dReal,dReal> result(alpha,beta);
-    return result;
+    return std::make_pair(alpha,beta);
 }
 
 

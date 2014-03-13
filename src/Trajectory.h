@@ -20,9 +20,9 @@ public:
     std::vector<dReal> coefficientsvector;
     std::vector<dReal> coefficientsvectord;
     std::vector<dReal> coefficientsvectordd;
-    dReal Eval(dReal s);
-    dReal Evald(dReal s);
-    dReal Evaldd(dReal s);
+    dReal Eval(dReal s) const;
+    dReal Evald(dReal s) const;
+    dReal Evaldd(dReal s) const;
     void Write(std::stringstream& ss);
 };
 
@@ -37,9 +37,9 @@ public:
     dReal duration;
     dReal sbegin, send;
     std::vector<Polynomial> polynomialsvector;
-    void Eval(dReal s, std::vector<dReal>&q);
-    void Evald(dReal s, std::vector<dReal>&qd);
-    void Evaldd(dReal s, std::vector<dReal>&qdd);
+    void Eval(dReal s, std::vector<dReal>&q) const;
+    void Evald(dReal s, std::vector<dReal>&qd) const;
+    void Evaldd(dReal s, std::vector<dReal>&qdd) const;
     void Write(std::stringstream& ss);
 };
 
@@ -61,10 +61,10 @@ public:
     std::list<dReal> chunkcumulateddurationslist;
 
     // Return the index of the chunk that contains s, remainder indicates the s-time elapsed between the beginning of that chunk and s
-    void FindChunkIndex(dReal s, int& index, dReal& remainder);
-    void Eval(dReal s, std::vector<dReal>&q);
-    void Evald(dReal s, std::vector<dReal>&qd);
-    void Evaldd(dReal s, std::vector<dReal>&qdd);
+    void FindChunkIndex(dReal s, int& index, dReal& remainder) const;
+    void Eval(dReal s, std::vector<dReal>&q) const;
+    void Evald(dReal s, std::vector<dReal>&qd) const;
+    void Evaldd(dReal s, std::vector<dReal>&qdd) const;
 
     // Reparameterize one chunk
     void ComputeChunk(dReal t, dReal t0, dReal s, dReal sd, dReal sdd, const
