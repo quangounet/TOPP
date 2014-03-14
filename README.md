@@ -32,30 +32,7 @@ TOPP will be compiled with OpenRAVE support if it is found on your system.
 
 See "Notes on OpenRAVE integration" below for more details.
 
-Examples, tutorials, reference manual
+Examples, Tutorials, Reference Manual
 -------------------------------------
 
 See the wiki https://github.com/quangounet/TOPP/wiki
-
-
-Notes on OpenRAVE integration
------------------------------
-
-We will suppose here that you are installing OpenRAVE from source. Let
-OPENRAVE_DIR denote your OpenRAVE source folder, for instance:
-    
-    export OPENRAVE_DIR=~/openrave
-    git clone https://github.com/rdiankov/openrave.git OPENRAVE_DIR
-
-Install OpenRAVE (Linux instructions here:
-http://openrave.org/docs/latest_stable/coreapihtml/installation_linux.html).
-Supposing you kept the default installation path (i.e. /usr/local/), make
-a symbolic link:
-
-    /usr/local/include/openrave-0.9/openrave/python -> OPENRAVE_DIR/python
-
-Add the Python bindings folder to your library path by exporting it to
-LD_LIBRARY_PATH (you can put the following line in your .bashrc or .zshrc for
-persistence):
-
-    export LD_LIBRARY_PATH=$(openrave-config --python-dir)/openravepy/_openravepy_:$LD_LIBRARY_PATH
