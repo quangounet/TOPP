@@ -416,21 +416,22 @@ dReal TorqueLimitsRave2::SdLimitBobrowInit(dReal s){
             tau_beta[i] = taumin[i];
         }
     }
+
+    // at the limit, the alpha and beta curves of two dofs should meet. compute those points
     dReal sdmin = INF;
     for(int k=0; k<trajectory.dimension; k++) {
         for(int m=k+1; m<trajectory.dimension; m++) {
             dReal num, denum, r;
-            num = a[k]*(tau_alpha[m]-c[m])-a[m]*(tau_beta[k]-c[k]);
             denum = a[k]*b[m]-a[m]*b[k];
             if(std::abs(denum) > TINY) {
+                num = a[k]*(tau_alpha[m]-c[m])-a[m]*(tau_beta[k]-c[k]);
                 r = num/denum;
                 if(r>=0) {
                     sdmin = std::min(sdmin,sqrt(r));
                 }
-            }
-            num = a[m]*(tau_alpha[k]-c[k])-a[k]*(tau_beta[m]-c[m]);
-            denum = -denum;
-            if(std::abs(denum) > TINY) {
+                
+                num = a[m]*(tau_alpha[k]-c[k])-a[k]*(tau_beta[m]-c[m]);
+                denum = -denum;
                 r = num/denum;
                 if(r>=0) {
                     sdmin = std::min(sdmin,sqrt(r));
@@ -472,6 +473,45 @@ void TorqueLimitsRave2::FindSingularSwitchPoints(){
             AddSwitchPoint(i,SP_SINGULAR,minsd);
         }
         aprev.swap(a);
+    }
+}
+
+void TorqueLimitsRave2::FindDiscontinuousSwitchPoints() {
+    if(ndiscrsteps<3)
+        return;
+    int i = 0;
+    dReal sd, sdn, sdnn;
+    sd = SdLimitBobrow(discrsvect[i]);
+    sdn = SdLimitBobrow(discrsvect[i+1]);
+    // also look for the start of the chucks for the trajectory
+    std::list<dReal>::const_iterator itchuckstart = trajectory.chunkcumulateddurationslist.begin();
+    int nLastAddedSwitchIndex = -1;
+    for(int i=0; i<ndiscrsteps-3; i++) {
+        sdnn = SdLimitBobrow(discrsvect[i+2]);
+        if(std::abs(sdnn-sdn)>100*std::abs(sdn-sd)) {
+            if(sdn<sdnn) {
+                AddSwitchPoint(i+1,SP_DISCONTINUOUS);
+                nLastAddedSwitchIndex = i+1;
+            }
+            else{
+                AddSwitchPoint(i+2,SP_DISCONTINUOUS);
+                nLastAddedSwitchIndex = i+2;
+            }
+        }
+        if( trajectory.degree <= 3 ) {
+            // if the trajectory degree is <= 3, then the accelerations will not be differentiable at the trajectory chunk edges.
+            // therefore add those discontinuity points.
+            // perhaps there's a better way to compute this, but the above threshold doesn't catch it.
+            if( itchuckstart != trajectory.chunkcumulateddurationslist.end() && *itchuckstart < discrsvect[i+2] ) {
+                if( nLastAddedSwitchIndex < i+1 ) {
+                    AddSwitchPoint(i+1,SP_DISCONTINUOUS);
+                    nLastAddedSwitchIndex = i+1;
+                }
+                ++itchuckstart;
+            }
+        }
+        sd = sdn;
+        sdn = sdnn;
     }
 }
 
