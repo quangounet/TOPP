@@ -14,8 +14,6 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
 #ifndef TOPP_H
 #define TOPP_H
 
@@ -37,19 +35,89 @@
 
 #include "Trajectory.h"
 
+#include <boost/lexical_cast.hpp>
+#include <boost/format.hpp>
+
+#ifdef WITH_OPENRAVE
+#include <openrave/openrave.h>
+#endif
+
+#ifdef _MSC_VER
+#include <boost/typeof/std/string.hpp>
+#include <boost/typeof/std/vector.hpp>
+#include <boost/typeof/std/list.hpp>
+#include <boost/typeof/std/map.hpp>
+#include <boost/typeof/std/string.hpp>
+#include <boost/typeof/typeof.hpp>
+
+#define FOREACH(it, v) for(BOOST_TYPEOF(v) ::iterator it = (v).begin(); it != (v).end(); (it)++)
+#define FOREACH_NOINC(it, v) for(BOOST_TYPEOF(v) ::iterator it = (v).begin(); it != (v).end(); )
+
+#define FOREACHC(it, v) for(BOOST_TYPEOF(v) ::const_iterator it = (v).begin(); it != (v).end(); (it)++)
+#define FOREACHC_NOINC(it, v) for(BOOST_TYPEOF(v) ::const_iterator it = (v).begin(); it != (v).end(); )
+
+#else
+
+#if __cplusplus > 199711L || defined(__GXX_EXPERIMENTAL_CXX0X__)
+#define FOREACH(it, v) for(decltype((v).begin()) it = (v).begin(); it != (v).end(); (it)++)
+#define FOREACH_NOINC(it, v) for(decltype((v).begin()) it = (v).begin(); it != (v).end(); )
+#define FOREACHC FOREACH
+#define FOREACHC_NOINC FOREACH_NOINC
+#else
+#define FOREACH(it, v) for(typeof((v).begin()) it = (v).begin(); it != (v).end(); (it)++)
+#define FOREACH_NOINC(it, v) for(typeof((v).begin()) it = (v).begin(); it != (v).end(); )
+#define FOREACHC FOREACH
+#define FOREACHC_NOINC FOREACH_NOINC
+#endif
+
+#endif
 
 namespace TOPP {
 
+#ifdef WITH_OPENRAVE
+typedef OpenRAVE::dReal dReal;
+#else
 typedef double dReal;
+#endif
 
 #define TINY 1e-10
 #define TINY2 1e-5
 #define INF 1.0e15
 #define MAXSD 200
 
+/// \brief Exception that all OpenRAVE internal methods throw; the error codes are held in \ref OpenRAVEErrorCode.
+class TOPPException : public std::exception
+{
+public:
+    TOPPException() : std::exception(), _s("unknown exception"), _errorcode(0) {
+    }
+    TOPPException(const std::string& s, int errorcode=0) : std::exception() {
+        _errorcode = errorcode;
+        _s = "openrave (";
+        _s += boost::lexical_cast<std::string>(_errorcode);
+        _s += "): ";
+        _s += s;
+    }
+    virtual ~TOPPException() throw() {
+    }
+    char const* what() const throw() {
+        return _s.c_str();
+    }
+    const std::string& message() const {
+        return _s;
+    }
+    int GetCode() const {
+        return _errorcode;
+    }
+private:
+    std::string _s;
+    int _errorcode;
+};
 
-const int BUFFSIZE = 300000;
+#define TOPP_EXCEPTION_FORMAT0(s, errorcode) TOPP::TOPPException(boost::str(boost::format("[%s:%d] " s)%(__PRETTY_FUNCTION__)%(__LINE__)),errorcode)
 
+/// adds the function name and line number to an TOPP exception
+#define TOPP_EXCEPTION_FORMAT(s, args,errorcode) TOPP::TOPPException(boost::str(boost::format("[%s:%d] " s)%(__PRETTY_FUNCTION__)%(__LINE__)%args),errorcode)
 
 ////////////////////////////////////////////////////////////////////
 /////////////////////////// Switch Point ///////////////////////////
@@ -152,42 +220,42 @@ public:
     virtual void Discretize();
 
     // Compute the MVC given by acceleration constraints
-    void ComputeMVCBobrow();
+    virtual void ComputeMVCBobrow();
 
     // Compute the combined MVC (incorporating pure velocity constraints)
-    void ComputeMVCCombined();
+    virtual void ComputeMVCCombined();
 
     // Write the MVC to stringstreams
-    void WriteMVCBobrow(std::stringstream& ss, dReal dt=0.01);
-    void WriteMVCDirect(std::stringstream& ss, dReal dt=0.01);
+    virtual void WriteMVCBobrow(std::stringstream& ss, dReal dt=0.01);
+    virtual void WriteMVCDirect(std::stringstream& ss, dReal dt=0.01);
     virtual void WriteExtra(std::stringstream& ss){
         return;
     }
 
     // Linear interpolation
-    dReal Interpolate1D(dReal s, const std::vector<dReal>& v);
+    virtual dReal Interpolate1D(dReal s, const std::vector<dReal>& v);
 
 
     //////////////////////// Limits ///////////////////////////
 
     // Upper limit on sd given by acceleration constraints (Bobrow)
-    dReal SdLimitBobrow(dReal s);
+    virtual dReal SdLimitBobrow(dReal s);
 
     // Compute the maximum velocity curve due to dynamics at s
     // Called at initialization
     virtual dReal SdLimitBobrowInit(dReal s){
         std::cout << "Virtual method not implemented\n";
-        throw "Virtual method not implemented";
+        throw TOPPException("Virtual method not implemented");
     }
 
     // Upper limit on sd after incorporating pure velocity constraints
-    dReal SdLimitCombined(dReal s);
-    dReal SdLimitCombinedInit(dReal s);
+    virtual dReal SdLimitCombined(dReal s);
+    virtual dReal SdLimitCombinedInit(dReal s);
 
     // Pair of (lower,upper) limits on sdd
     virtual std::pair<dReal,dReal> SddLimits(dReal s, dReal sd){
         std::cout << "Virtual method not implemented\n";
-        throw "Virtual method not implemented";
+        throw TOPPException("Virtual method not implemented");
     }
     virtual dReal SddLimitAlpha(dReal s, dReal sd){
         return SddLimits(s, sd).first;
@@ -200,18 +268,18 @@ public:
     ///////////////////////// Switch Points ///////////////////////
 
     // Find all switch points, add them to switchpointslist
-    void FindSwitchPoints();
-    void FindTangentSwitchPoints();
-    void FindDiscontinuousSwitchPoints();
+    virtual void FindSwitchPoints();
+    virtual void FindTangentSwitchPoints();
+    virtual void FindDiscontinuousSwitchPoints();
 
     // Switch points that are close to each other will be replaced by a single swtich point
     // Modifies switchpointslist
-    void TrimSwitchPoints();
+    virtual void TrimSwitchPoints();
 
     // Compute the slope of the profiles near a dynamic singularity
     virtual void ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector){
         std::cout << "Virtual method not implemented\n";
-        throw "Virtual method not implemented";
+        throw TOPPException("Virtual method not implemented");
     }
 
     // Fix the integration at s=0 when there is a singularity there
@@ -232,11 +300,11 @@ public:
     // Add them to switchpointslist
     virtual void FindSingularSwitchPoints(){
         std::cout << "Virtual method not implemented\n";
-        throw "Virtual method not implemented";
+        throw TOPPException("Virtual method not implemented");
     };
 
     // Add a switch point to switchpointslist
-    void AddSwitchPoint(int i, int switchpointtype, dReal sd = -1);
+    virtual void AddSwitchPoint(int i, int switchpointtype, dReal sd = -1);
 
 };
 
@@ -311,6 +379,8 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
 // Velocity Interval Propagation from sdend backwards
 int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dReal sdendmin, dReal sdendmax);
 
+// Emergency stopping (integrate forward the minimum acceleration)
+dReal  EmergencyStop(Constraints& constraints, dReal sdbeg, Trajectory& restrajectory);
 
 //////// ////////////////////////////////////////////////////////////
 ///////////////////////// Utilities ////////////////////////////////
@@ -326,6 +396,9 @@ void PrintVector(const std::vector<dReal>& v);
 
 // Read a vector of dReal from a space-separated string
 void VectorFromString(const std::string& s,std::vector<dReal>&resvect);
+
+/// \brief read N items from a stream and put them into vector
+void ReadVectorFromStream(std::istream& s, size_t N, std::vector<dReal>& resvect);
 
 // Solve a0 + a1*x + a2*x^2 = 0 in the interval [lowerbound,upperbound]
 // Return false if no solution in [lowerbound,upperbound], true otherwise

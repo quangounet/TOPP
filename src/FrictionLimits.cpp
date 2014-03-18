@@ -29,33 +29,29 @@ namespace TOPP {
 FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstring, Trajectory* ptraj){
 
     trajectory = *ptraj;
-
-    int buffsize = BUFFSIZE;
-    char buff[buffsize];
+    std::string buff;
     std::istringstream iss(constraintsstring);
-    iss.getline(buff,buffsize);
-    discrtimestep = atof(buff);
 
-    iss.getline(buff, buffsize);
+    getline(iss, buff, '\n');
+    discrtimestep = atof(buff.c_str());
+    getline(iss, buff, '\n');
     VectorFromString(std::string(buff), vmax);
-    
     ndof = probot->GetDOF();
-    
-    iss.getline(buff, buffsize);
-    nbottle = atoi(buff);
+    getline(iss, buff, '\n');
+    nbottle = atoi(buff.c_str());
 
     for (int i = 0; i < nbottle; i++) {
 	objspecs.resize(0);
-	iss.getline(buff, buffsize);
+	getline(iss, buff, '\n');
 	VectorFromString(std::string(buff), objspecs);
 	dxvect.push_back(objspecs[0]);
 	dyvect.push_back(objspecs[1]);
 	bottlehvect.push_back(objspecs[2]);
     }
 
-    iss.getline(buff, buffsize);
-    mu = atof(buff);
-        
+    getline(iss, buff, '\n');
+    mu = atof(buff.c_str());
+    
     hasvelocitylimits = VectorMax(vmax) > TINY;
     
     //Check Soundness

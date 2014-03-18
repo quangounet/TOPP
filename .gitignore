@@ -3,11 +3,5 @@
 *.o
 .ropeproject
 .*.swp
-autom4te.cache
-autoscan.log
-config.log
-config.h
-config.status
-Makefile
+build/
 timeopt
-TOPPbindings.so

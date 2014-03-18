@@ -1,5 +1,5 @@
 // -*- coding: utf-8 -*-
-// Copyright (C) 2013 Quang-Cuong Pham <cuong.pham@normalesup.org>
+// Copyright (C) 2013 Quang-Cuong Pham <cuong.pham@normalesup.org> & Rosen Diankov <rosen.diankov@gmail.com>
 //
 // This file is part of the Time-Optimal Path Parameterization (TOPP) library.
 // TOPP is free software: you can redistribute it and/or modify
@@ -14,24 +14,20 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
 #include "TOPP.h"
 #include "KinematicLimits.h"
 #include "TorqueLimits.h"
-#include "ZMPTorqueLimits.h"
-#include "FrictionLimits.h"
 
+#include <boost/format.hpp>
 #include <boost/python.hpp>
 #include <boost/python/module.hpp>
 #include <boost/python/def.hpp>
 
 #ifdef WITH_OPENRAVE
-#include <openrave-core.h>
-#include "openrave/python/bindings/openravepy_int.h"
 #include "TorqueLimitsRave.h"
-
-using namespace openravepy;
+#include "ZMPTorqueLimits.h"
+#include "FrictionLimits.h"
+#include "openravepy.h"
 #endif
 
 using namespace boost::python;
@@ -45,32 +41,35 @@ public:
         TOPP::Trajectory* ptrajectory = new TOPP::Trajectory(trajectorystring);
 
         if (problemtype.compare("KinematicLimits")==0) {
-            pconstraints = new KinematicLimits(constraintsstring);
+            pconstraints.reset(new KinematicLimits(constraintsstring));
             pconstraints->trajectory = *ptrajectory;
         }
         else if (problemtype.compare("TorqueLimits")==0) {
-            pconstraints = new TorqueLimits(constraintsstring);
+            pconstraints.reset(new TorqueLimits(constraintsstring));
             pconstraints->trajectory = *ptrajectory;
         }
         else if (problemtype.compare("QuadraticConstraints")==0) {
-            pconstraints = new QuadraticConstraints(constraintsstring);
+            pconstraints.reset(new QuadraticConstraints(constraintsstring));
             pconstraints->trajectory = *ptrajectory;
         }
 
 #ifdef WITH_OPENRAVE
         else if (problemtype.compare("TorqueLimitsRave")==0) {
-            RobotBasePtr probot = GetRobot(o);
-            pconstraints = new TorqueLimitsRave(probot,constraintsstring,ptrajectory);
+            _probot = openravepy::GetRobot(o);
+            pconstraints.reset(new TorqueLimitsRave(_probot,constraintsstring,ptrajectory));
         }
         else if (problemtype.compare("FrictionLimits")==0) {
-            RobotBasePtr probot = GetRobot(o);
-            pconstraints = new FrictionLimits(probot,constraintsstring,ptrajectory);
+            _probot = openravepy::GetRobot(o);
+            pconstraints.reset(new FrictionLimits(_probot,constraintsstring,ptrajectory));
         }
         else if (problemtype.compare("ZMPTorqueLimits")==0) {
-            RobotBasePtr probot = GetRobot(o);
-            pconstraints = new ZMPTorqueLimits(probot,constraintsstring,ptrajectory);
+            _probot = openravepy::GetRobot(o);
+            pconstraints.reset(new ZMPTorqueLimits(_probot,constraintsstring,ptrajectory));
         }
 #endif
+        else {
+            throw TOPP_EXCEPTION_FORMAT("cannot create %s problem type", problemtype, 0);
+        }
 
         // Set default public tuning parameters
         integrationtimestep = 0;
@@ -83,7 +82,33 @@ public:
         pconstraints->loweringcoef = 0.95;
     }
 
-    Constraints* pconstraints;
+    TOPPInstance(object orobot, std::string problemtype, object otrajectory, TOPP::dReal discrtimestep)
+    {
+#ifdef WITH_OPENRAVE
+        _probot = openravepy::GetRobot(orobot);
+        OpenRAVE::TrajectoryBasePtr ptrajectory = openravepy::GetTrajectory(otrajectory);
+        if (problemtype.compare("TorqueLimitsRave2")==0) {
+            pconstraints.reset(new TorqueLimitsRave2(_probot,ptrajectory,discrtimestep));
+        }
+        else {
+            throw TOPP_EXCEPTION_FORMAT("cannot create %s problem type", problemtype, 0);
+        }
+
+        // Set default public tuning parameters
+        integrationtimestep = 0;
+        reparamtimestep = 0;
+        passswitchpointnsteps = 5;
+        extrareps = 0;
+
+        // Set default private tuning parameters
+        pconstraints->bisectionprecision = 0.01;
+        pconstraints->loweringcoef = 0.95;
+#else
+        throw TOPPException("not compiled with openrave");
+#endif
+    }
+
+    boost::shared_ptr<Constraints> pconstraints;
     TOPP::Trajectory restrajectory;
 
     std::string restrajectorystring;
@@ -95,9 +120,12 @@ public:
     TOPP::dReal sdbegmin, sdbegmax;
 
     // Tuning parameters
-    dReal integrationtimestep, reparamtimestep;
+    TOPP::dReal integrationtimestep, reparamtimestep;
     int passswitchpointnsteps, extrareps;
 
+#ifdef WITH_OPENRAVE
+    OpenRAVE::RobotBasePtr _probot;
+#endif
 
     TOPP::dReal GetAlpha(TOPP::dReal s, TOPP::dReal sd) {
         std::pair<TOPP::dReal, TOPP::dReal> sdd_lim = pconstraints->SddLimits(s, sd);
@@ -166,8 +194,28 @@ public:
         return ret;
     }
 
+#ifdef WITH_OPENRAVE
+    object GetOpenRAVEResultTrajectory(object opyenv)
+    {
+        OpenRAVE::TrajectoryBasePtr ptraj = OpenRAVE::RaveCreateTrajectory(_probot->GetEnv());
+        ConvertToOpenRAVETrajectory(restrajectory, ptraj, _probot->GetActiveConfigurationSpecification());
+        return openravepy::toPyTrajectory(ptraj, opyenv);
+    }
+#endif
+
+    TOPP::dReal RunEmergencyStop(TOPP::dReal sdbeg){
+        // Set tuning parameters
+        pconstraints->integrationtimestep = integrationtimestep;
+        pconstraints->passswitchpointnsteps = passswitchpointnsteps;
+        pconstraints->reparamtimestep = reparamtimestep;
+        pconstraints->extrareps = extrareps;
+
+        TOPP::dReal res = EmergencyStop(*pconstraints, sdbeg, restrajectory);
+        return res;
+    }
+
     void WriteResultTrajectory(){
-        std::stringstream ss;
+        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         // printf("WriteResultTrajectory: %d %f %d blah\n",
         //        restrajectory.dimension, restrajectory.duration,
         //        restrajectory.degree);
@@ -175,10 +223,9 @@ public:
         restrajectorystring = ss.str();
     }
 
-
     void WriteProfilesList(){
         std::list<Profile>::iterator itprofile = pconstraints->resprofileslist.begin();
-        std::stringstream ss;
+        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         TOPP::dReal dt = 1e-4;
         pconstraints->WriteMVCBobrow(ss,dt);
         ss << "\n";
@@ -193,7 +240,7 @@ public:
     }
 
     void WriteSwitchPointsList(){
-        std::stringstream ss;
+        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         std::list<SwitchPoint>::iterator itsw = pconstraints->switchpointslist.begin();
         while(itsw != pconstraints->switchpointslist.end()) {
             ss << itsw->s << " " << itsw->sd << " " << itsw->switchpointtype << "\n";
@@ -204,7 +251,7 @@ public:
 
     // Extra string, such as the coordinates of the ZMP (depending on the application)
     void WriteExtra(){
-        std::stringstream ss;
+        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         pconstraints->WriteExtra(ss);
         resextrastring = ss.str();
 
@@ -216,6 +263,7 @@ public:
 BOOST_PYTHON_MODULE(TOPPbindings) {
     using namespace boost::python;
     class_<TOPPInstance>("TOPPInstance", init<object,std::string,std::string,std::string>())
+    .def(init<object,std::string,object,TOPP::dReal>(args("openraverobot","problemtype","openravetrajectory","discrtimestep")))
     .def_readwrite("integrationtimestep", &TOPPInstance::integrationtimestep)
     .def_readwrite("reparamtimestep", &TOPPInstance::reparamtimestep)
     .def_readwrite("passswitchpointnsteps", &TOPPInstance::passswitchpointnsteps)
@@ -236,8 +284,13 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def("ReparameterizeTrajectory",&TOPPInstance::ReparameterizeTrajectory)
     .def("RunVIP",&TOPPInstance::RunVIP)
     .def("RunVIPBackward",&TOPPInstance::RunVIPBackward)
+    .def("RunEmergencyStop",&TOPPInstance::RunEmergencyStop)
     .def("WriteResultTrajectory",&TOPPInstance::WriteResultTrajectory)
     .def("WriteProfilesList",&TOPPInstance::WriteProfilesList)
     .def("WriteExtra",&TOPPInstance::WriteExtra)
-    .def("WriteSwitchPointsList",&TOPPInstance::WriteSwitchPointsList);
+    .def("WriteSwitchPointsList",&TOPPInstance::WriteSwitchPointsList)
+#ifdef WITH_OPENRAVE
+    .def("GetOpenRAVEResultTrajectory", &TOPPInstance::GetOpenRAVEResultTrajectory, args("pyenv"))
+#endif
+    ;
 }
