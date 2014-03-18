@@ -90,6 +90,16 @@ def Interpolate3rdDegree(q0, q1, qd0, qd1, T):
     return a, b, c, d
 
 
+def Interpolate5thDegree(q0, q1, qd0, qd1, qdd0, qdd1, T):
+    a = (6.0*(q1 - q0) - T*3.0*(qd1 + qd0) + (T**2)*0.5*(qdd1 - qdd0))/(T**5)
+    b = (-15.0*(q1 - q0) + (7.0*qd1 + 8.0*qd0)*T - (qdd1 - 1.5*qdd0)*(T**2))/(T**4)
+    c = (10.0*(q1 - q0) - (4.0*qd1 + 6.0*qd0)*T + (0.5*qdd1 - 1.5*qdd0)*(T**2))/(T**3)
+    d = 0.5*qdd0
+    e = qd0
+    f = q0
+    return a, b, c, d, e, f
+
+
 def BezierToPolynomial(T, p0, p1, p2, p3):
     a = -p0 + 3 * p1 - 3 * p2 + p3
     b = 3 * p0 - 6 * p1 + 3 * p2

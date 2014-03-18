@@ -35,9 +35,12 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
     std::istringstream iss(constraintsstring);
     iss.getline(buff,buffsize);
     discrtimestep = atof(buff);
+
     iss.getline(buff, buffsize);
-    ndof = atoi(buff);
-    //************************************TASK :: to be revised
+    VectorFromString(std::string(buff), vmax);
+    
+    ndof = probot->GetDOF();
+    
     iss.getline(buff, buffsize);
     nbottle = atoi(buff);
 
@@ -52,11 +55,7 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
 
     iss.getline(buff, buffsize);
     mu = atof(buff);
-    //*********************************************************
-    
-    iss.getline(buff, buffsize);
-    VectorFromString(std::string(buff), vmax);
-    
+        
     hasvelocitylimits = VectorMax(vmax) > TINY;
     
     //Check Soundness
