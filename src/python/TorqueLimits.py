@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2013 Quang-Cuong Pham <cuong.pham@normalesup.org>
+# Copyright (C) 2013 Stéphane Caron <caron@ynl.t.u-tokyo.ac.jp>
 #
 # This file is part of the Time-Optimal Path Parameterization (TOPP) library.
 # TOPP is free software: you can redistribute it and/or modify
@@ -16,34 +16,19 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import TOPPpy
-import TOPPbindings
-
-from TOPPpy import vect2str
+from TOPPpy import RAVEBindings
+from Utilities import vect2str
 
 
-class RaveInstance(TOPPpy.RaveInstance):
-    def __init__(self, robot, traj, taumin, taumax, vmax, **kwargs):
-        super(RaveInstance, self).__init__(robot, traj, taumin, taumax, vmax,
-                                           **kwargs)
-        constring = "%f" % self.discrtimestep + "\n"
+class Bindings(RAVEBindings):
+    """Bindings for the 'TorqueLimitsRave' problem."""
+
+    def __init__(self, robot, traj, taumin, taumax, vmax, discrtimestep=None,
+                 integrationtimestep=None):
+        constring = str(discrtimestep) + "\n"
         constring += vect2str(taumin) + "\n"
         constring += vect2str(taumax) + "\n"
         constring += vect2str([0, 0])  # TODO: non-zero vmax
-
-        print "constraintstring = \"\"\"" + constring + "\"\"\"\n"
-        print "trajectorystring = \"\"\"" + str(traj) + "\"\"\"\n"
-
-        self.solver = TOPPbindings.TOPPInstance(
-            robot, "TorqueLimitsRave", constring, str(traj))
-
-
-def AVP(robot, traj, sdbegmin, sdbegmax, taumin, taumax, vmax, **kwargs):
-    rave_instance = RaveInstance(robot, traj, taumin, taumax, vmax, **kwargs)
-    return rave_instance.GetAVP(sdbegmin, sdbegmax)
-
-
-def Reparameterize(robot, traj, sdbegmin, sdbegmax, taumin, taumax, vmax,
-                   **kwargs):
-    rave_instance = RaveInstance(robot, traj, taumin, taumax, vmax, **kwargs)
-    return rave_instance.GetTrajectory(sdbegmin, sdbegmax)
+        trajstring = str(traj)
+        super(Bindings, self).__init__(robot, "TorqueLimitsRave", constring,
+                                       trajstring)
