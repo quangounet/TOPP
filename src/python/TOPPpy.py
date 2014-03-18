@@ -16,14 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from pylab import *
-from numpy import *
-import pylab
-import time
-
 from Trajectory import PiecewisePolynomialTrajectory
 from Trajectory import NoTrajectoryFound
-from Utilities import vect2str
+from Utilities import vect2str, BezierToTrajectoryString
+from pylab import double, array, random
 
 
 _DEFAULTS = {
@@ -35,19 +31,20 @@ _DEFAULTS = {
 class RaveInstance(object):
     """..."""
 
-    def __init__(self, robot, taumin, taumax, vmax, discrtimestep=None,
-                 integrationtimestep=None)
+    def __init__(self, robot, discrtimestep=None, integrationtimestep=None):
         self.discrtimestep = discrtimestep
+        self.integrationtimestep = integrationtimestep
+        self.solver = None
         if self.discrtimestep is None:
             self.discrtimestep = _DEFAULTS['discrtimestep']
-        self.integrationtimestep = integrationtimestep
         if self.integrationtimestep is None:
             self.integrationtimestep = _DEFAULTS['integrationtimestep']
-        self.taumin = taumin
-        self.taumax = taumax
-        self.vmax = vmax
 
     def GetTrajectory(self, sdbeg=0., sdend=0.):
+        assert self.solver is not None, \
+            "[RaveInstance] Please set self.solver" \
+            "to a TOPPbindings instance."
+
         return_code = self.solver.RunComputeProfiles(sdbeg, sdend)
         if return_code != 1:
             raise NoTrajectoryFound
@@ -61,6 +58,10 @@ class RaveInstance(object):
         return PiecewisePolynomialTrajectory.FromString(traj_str)
 
     def GetAVP(self, sdmin, sdmax):
+        assert self.solver is not None, \
+            "[RaveInstance] Please set self.solver" \
+            "to a TOPPbindings instance."
+
         return_code = self.solver.RunVIP(sdmin, sdmax)
         if return_code == 0:
             raise NoTrajectoryFound
@@ -97,10 +98,10 @@ def ExtraFromString(s):
     lines.pop(0)
     tvect = []
     torques = []
-    for i in range(len(lines)/2):
-        tvect.append(double(lines[2*i]))
-        torques.append(array([double(x) for x in lines[2*i+1].split(' ')]))
-    return array(tvect),array(torques)
+    for i in range(len(lines) / 2):
+        tvect.append(double(lines[2 * i]))
+        torques.append(array([double(x) for x in lines[2 * i + 1].split(' ')]))
+    return array(tvect), array(torques)
 
 
 def SwitchPointsFromString(s):
@@ -120,31 +121,31 @@ def VectorFromString(s):
     return array([double(x) for x in s.split(' ')])
 
 
-def GenerateRandomTrajectory(ncurve,ndof,bound):
+def GenerateRandomTrajectory(ncurve, ndof, bound):
     def vector2string(v):
-        ndof = len(v);
+        ndof = len(v)
         s = str(ndof)
         for a in v:
             s += ' %f' % a
         return s
 
-    p0a = vector2string(rand(ndof)*2*bound-bound)
-    p0b = vector2string(rand(ndof)*2*bound-bound)
-    p1a = vector2string(rand(ndof)*2*bound-bound)
-    p1b = vector2string(rand(ndof)*2*bound-bound)
-    s = '%d'%ncurve
-    s+= '\n1.0 ' + p0a + ' ' + p0b
-    for k in range(ncurve-1):
-        a = rand(ndof)*2*bound-bound
-        b = rand(ndof)*2*bound-bound
-        c = 2*b-a
+    p0a = vector2string(random(ndof) * 2 * bound - bound)
+    p0b = vector2string(random(ndof) * 2 * bound - bound)
+    p1a = vector2string(random(ndof) * 2 * bound - bound)
+    p1b = vector2string(random(ndof) * 2 * bound - bound)
+    s = '%d' % ncurve
+    s += '\n1.0 ' + p0a + ' ' + p0b
+    for k in range(ncurve - 1):
+        a = random(ndof) * 2 * bound - bound
+        b = random(ndof) * 2 * bound - bound
+        c = 2 * b - a
         pa = vector2string(a)
         pb = vector2string(b)
         pc = vector2string(c)
-        s+= ' ' + pa + ' ' + pb + '\n1.0 ' + pb + ' ' + pc
-    s+= ' ' + p1a + ' ' + p1b
-    Tv,p0v,p1v,p2v,p3v = string2p(s)
-    return BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v)
+        s += ' ' + pa + ' ' + pb + '\n1.0 ' + pb + ' ' + pc
+    s += ' ' + p1a + ' ' + p1b
+    Tv, p0v, p1v, p2v, p3v = string2p(s)
+    return BezierToTrajectoryString(Tv, p0v, p1v, p2v, p3v)
 
 
 ################# Compute constraints #####################
@@ -166,6 +167,7 @@ def ComputeKinematicConstraints(traj, amax, discrtimestep):
 ######################## Plots ############################
 
 def PlotProfiles(profileslist0, switchpointslist=[], figstart=1):
+    from pylab import figure, clf, hold, plot, gca, axis, title, xlabel, ylabel
     profileslist = list(profileslist0)
     figure(figstart)
     clf()
@@ -200,9 +202,9 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=1):
             plot(sw[0], sw[1], 'yo', markersize=8)
     smax, sdmax = mvcbobrow[0], M
     axis([0, smax, 0, sdmax])
-    title('Maximum Velocity Curves and profiles',fontsize=20)
-    xlabel('$s$',fontsize=22)
-    ylabel('$\dot s$',fontsize=22)
+    title('Maximum Velocity Curves and profiles', fontsize=20)
+    xlabel('$s$', fontsize=22)
+    ylabel('$\dot s$', fontsize=22)
     return smax, sdmax  # return this for PlotPhase (yurk!)
 
 
@@ -215,6 +217,7 @@ def PlotComputedProfiles(topp_bind, figstart=1):
 
 
 def PlotAlphaBeta(topp_inst, prec=30):
+    from pylab import axis, linspace, sqrt, plot
     smin, smax, sdmin, sdmax = axis()
     if sdmin <= 0.:
         sdmin = 1e-2
@@ -240,6 +243,7 @@ def PlotAlphaBeta(topp_inst, prec=30):
 
 
 def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
+    from pylab import figure, clf, hold, gca, title, xlabel, ylabel, plot, axis
     colorcycle = ['r', 'g', 'b', 'm', 'c', 'y', 'k']
     colorcycle = colorcycle[0:traj0.dimension]
     Tmax = max(traj0.duration, traj1.duration)
@@ -252,9 +256,9 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
     traj0.Plot(dt, '--')
     ax.set_color_cycle(colorcycle)
     traj1.Plot(dt)
-    title('Joint values',fontsize=20)
-    xlabel('Time (s)',fontsize=18)
-    ylabel('Joint values (rad)',fontsize=18)
+    title('Joint values', fontsize=20)
+    xlabel('Time (s)', fontsize=18)
+    ylabel('Joint values (rad)', fontsize=18)
     # Velocity
     figure(figstart + 1)
     clf()
@@ -273,9 +277,9 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
         if Vmax < 0.1:
             Vmax = 10
         axis([0, Tmax, -Vmax, Vmax])
-    title('Joint velocities',fontsize=20)
-    xlabel('Time (s)',fontsize=18)
-    ylabel('Joint velocities (rad/s)',fontsize=18)
+    title('Joint velocities', fontsize=20)
+    xlabel('Time (s)', fontsize=18)
+    ylabel('Joint velocities (rad/s)', fontsize=18)
     # Acceleration
     figure(figstart + 2)
     clf()
@@ -292,9 +296,9 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
     if len(amax) > 0:
         Amax = 1.2 * max(amax)
         axis([0, Tmax, -Amax, Amax])
-    title('Joint accelerations',fontsize=20)
-    xlabel('Time (s)',fontsize=18)
-    ylabel('Joint accelerations (rad/s^2)',fontsize=18)
+    title('Joint accelerations', fontsize=20)
+    xlabel('Time (s)', fontsize=18)
+    ylabel('Joint accelerations (rad/s^2)', fontsize=18)
 
 
 def string2p(s):
@@ -304,7 +308,7 @@ def string2p(s):
     p1v = []
     p2v = []
     p3v = []
-    for i in range(1,len(lines)):
+    for i in range(1, len(lines)):
         l = [float(x) for x in lines[i].split(' ')]
         Tv.append(l.pop(0))
         ndof = int(l[0])

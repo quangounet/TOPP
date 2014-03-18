@@ -24,15 +24,16 @@ from Utilities import vect2str
 
 class RaveInstance(TOPPpy.RaveInstance):
     def __init__(self, robot, traj, taumin, taumax, vmax, **kwargs):
-        super(RaveInstance, self).__init__(robot, traj, taumin, taumax, vmax,
-                                           **kwargs)
-        trajstring = str(traj)
+        super(RaveInstance, self).__init__(robot, **kwargs)
+        self.taumin = taumin
+        self.taumax = taumax
+        self.vmax = vmax
         constring = str(self.discrtimestep) + "\n"
         constring += vect2str(taumin) + "\n"
         constring += vect2str(taumax) + "\n"
         constring += vect2str([0, 0])  # TODO: non-zero vmax
         self.solver = TOPPbindings.TOPPInstance(
-            robot, "TorqueLimitsRave", constring, trajstring)
+            robot, "TorqueLimitsRave", constring, str(traj))
 
 
 def AVP(robot, traj, sdbegmin, sdbegmax, taumin, taumax, vmax, **kwargs):
