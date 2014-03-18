@@ -16,58 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from Trajectory import PiecewisePolynomialTrajectory
-from Trajectory import NoTrajectoryFound
 from Utilities import vect2str, BezierToTrajectoryString
 from pylab import double, array, random
-
-
-_DEFAULTS = {
-    'discrtimestep': 1e-2,
-    'integrationtimestep': 1e-3,
-}
-
-
-class RaveInstance(object):
-    """..."""
-
-    def __init__(self, robot, discrtimestep=None, integrationtimestep=None):
-        self.discrtimestep = discrtimestep
-        self.integrationtimestep = integrationtimestep
-        self.solver = None
-        if self.discrtimestep is None:
-            self.discrtimestep = _DEFAULTS['discrtimestep']
-        if self.integrationtimestep is None:
-            self.integrationtimestep = _DEFAULTS['integrationtimestep']
-
-    def GetTrajectory(self, sdbeg=0., sdend=0.):
-        assert self.solver is not None, \
-            "[RaveInstance] Please set self.solver" \
-            "to a TOPPbindings instance."
-
-        return_code = self.solver.RunComputeProfiles(sdbeg, sdend)
-        if return_code != 1:
-            raise NoTrajectoryFound
-
-        return_code = self.solver.ReparameterizeTrajectory()
-        if return_code < 0:
-            raise NoTrajectoryFound
-
-        self.solver.WriteResultTrajectory()
-        traj_str = self.solver.restrajectorystring
-        return PiecewisePolynomialTrajectory.FromString(traj_str)
-
-    def GetAVP(self, sdmin, sdmax):
-        assert self.solver is not None, \
-            "[RaveInstance] Please set self.solver" \
-            "to a TOPPbindings instance."
-
-        return_code = self.solver.RunVIP(sdmin, sdmax)
-        if return_code == 0:
-            raise NoTrajectoryFound
-        sdendmin = self.solver.sdendmin
-        sdendmax = self.solver.sdendmax
-        return (sdendmin, sdendmax)
 
 
 ################# Reading from string #####################
@@ -247,6 +197,7 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
     colorcycle = ['r', 'g', 'b', 'm', 'c', 'y', 'k']
     colorcycle = colorcycle[0:traj0.dimension]
     Tmax = max(traj0.duration, traj1.duration)
+
     # Joint angles
     figure(figstart)
     clf()
@@ -259,6 +210,7 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
     title('Joint values', fontsize=20)
     xlabel('Time (s)', fontsize=18)
     ylabel('Joint values (rad)', fontsize=18)
+
     # Velocity
     figure(figstart + 1)
     clf()
@@ -280,6 +232,7 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
     title('Joint velocities', fontsize=20)
     xlabel('Time (s)', fontsize=18)
     ylabel('Joint velocities (rad/s)', fontsize=18)
+
     # Acceleration
     figure(figstart + 2)
     clf()
