@@ -1548,12 +1548,41 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         // flags
         bool testaboveexistingprofiles = true, testmvc = true, zlajpah = false;
 
-        // Integrate forward from s = 0
+
+        /////////////////  Compute the CLC /////////////////////
+        ret = ComputeLimitingCurves(constraints);
+        if(ret!=CLC_OK) {
+            message = "CLC failed\n";
+            integrateprofilesstatus = false;
+            continue;
+        }
+
+
+        Profile tmpprofile;
+        dReal smallincrement = constraints.integrationtimestep*2;
+        dReal bound,tres;
+
+
+        /////////////////  Integrate from start /////////////////////
+        // Fix start
         dReal sstartnew = 0, sdstartnew = sdbeg;
         constraints.FixStart(sstartnew,sdstartnew);
         if(sstartnew<=TINY2 || sdstartnew > constraints.SdLimitCombined(0) - TINY2) {
             sdstartnew = sdbeg;
         }
+        // Check whether sdend > CLC or MVC
+        if(FindLowestProfile(smallincrement,tmpprofile,tres,constraints.resprofileslist)) {
+            bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[0]);
+        }
+        else{
+            bound = constraints.mvccombined[0];
+        }
+        if(sdstartnew > bound) {
+            message = "Sdbeg > CLC or MVC\n";
+            integrateprofilesstatus = false;
+            continue;
+        }
+        // Integrate from s = 0
         ret = IntegrateForward(constraints,sstartnew,sdstartnew,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
         if(resprofile.nsteps>1) {
             constraints.resprofileslist.push_back(resprofile);
@@ -1564,12 +1593,27 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
             continue;
         }
 
-        // Integrate backward from s = s_end
+
+        /////////////////  Integrate from end /////////////////////
+        // Fix end
         dReal sendnew = constraints.trajectory.duration, sdendnew = sdend;
         constraints.FixEnd(sendnew,sdendnew);
         if(constraints.trajectory.duration-sendnew<=TINY2 || sdendnew > constraints.SdLimitCombined(sendnew)- TINY2) {
             sdendnew = sdend;
         }
+        // Check whether sdend > CLC or MVC
+        if(FindLowestProfile(constraints.trajectory.duration-smallincrement,tmpprofile,tres,constraints.resprofileslist)) {
+            bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[constraints.mvccombined.size()-1]);
+        }
+        else{
+            bound = constraints.mvccombined[constraints.mvccombined.size()-1];
+        }
+        if(sdendnew > bound) {
+            message = "Sdend > CLC or MVC\n";
+            integrateprofilesstatus = false;
+            continue;
+        }
+        // Integrate back from s = send
         ret = IntegrateBackward(constraints,sendnew,sdendnew,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
         if(resprofile.nsteps>1) {
             constraints.resprofileslist.push_back(resprofile);
@@ -1580,15 +1624,8 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
             continue;
         }
 
-        // Compute the CLC
-        ret = ComputeLimitingCurves(constraints);
-        if(ret!=CLC_OK) {
-            message = "CLC failed\n";
-            integrateprofilesstatus = false;
-            continue;
-        }
 
-
+        /////////////////////// Zlajpah //////////////////////////
         // Add separation points between MVCBobrow and MVCCombined to zlajpahlist
         bool active = false;
         for(int i = 0; i<constraints.ndiscrsteps; i++) {
@@ -1628,6 +1665,8 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
             continue;
         }
 
+
+        /////////////////////  Final checks /////////////////////////
         // Reset currentindex
         std::list<Profile>::iterator it = constraints.resprofileslist.begin();
         while(it != constraints.resprofileslist.end()) {
@@ -1642,7 +1681,6 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         dReal ds = 1e-2;
         int nsamples = int((constraints.trajectory.duration+TINY)/ds);
         dReal s,sdcur,sdnext;
-        dReal tres;
         if(FindLowestProfile(0,profile,tres,constraints.resprofileslist)) {
             sdcur = profile.Evald(tres);
         }
