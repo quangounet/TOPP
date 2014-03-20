@@ -1734,7 +1734,7 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
         bound = constraints.mvccombined[0];
 
     if(sdbegmin>bound) {
-        std::cout << "[TOPP::VIP] sdbegmin is above the combined MVC \n";
+        std::cout << "[TOPP::VIP] sdbegmin is above the CLC or the combined MVC \n";
         return 0;
     }
 
