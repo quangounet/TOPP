@@ -4,6 +4,10 @@ TOPP
 This is TOPP, the Time-Optimal Path Parameterization library by Quang-Cuong
 Pham (cuong.pham@normalesup.org)
 
+If you use this library for your research, please reference the accompanying paper « A general, fast, and robust implementation of the time-optimal path parameterization algorithm » http://arxiv.org/abs/1312.6533 
+
+
+
 Requirements 
 ------------
 
@@ -14,7 +18,7 @@ The following software is required to install TOPP:
 
 If you need OpenRAVE support (for dynamics computations), the following software is also required:
 
-- OpenRAVE (0.9 or above) with Python bindings
+- OpenRAVE (installed from source, see http://openrave.org/docs/latest_stable/coreapihtml/installation_linux.html)
 - LAPACK (3.5.0 or above)
 
 Installation
