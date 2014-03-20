@@ -1,4 +1,4 @@
-from TOPPpy import RAVEBindings
+from TOPPopenravepy import RAVEBindings
 from Utilities import vect2str
 
 class Bindings(RAVEBindings):
