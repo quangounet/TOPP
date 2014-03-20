@@ -236,9 +236,9 @@ void Constraints::FindTangentSwitchPoints(){
         alpha = sddlimits.first;
         prevtangent = tangent;
         tangent = (sdnext-sd)/discrtimestep;
-        if(std::abs(tangent-prevtangent)>1.) {
-            continue;
-        }
+        //if(std::abs(tangent-prevtangent)>1.) {
+        //    continue;
+        //}
         //beta = sddlimits.second;
         diff = alpha/sd - tangent;
         if(diffprev*diff<0 && std::abs(diff)<1) {

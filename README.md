@@ -7,14 +7,14 @@ Pham (cuong.pham@normalesup.org)
 Requirements 
 ------------
 
-The following software is required to run TOPP:
+The following software is required to install TOPP:
 
 - Boost (1.47 or above) with Boost.Python
 - Python (2.7 or above)
 
-To integrate with OpenRAVE, you will also need:
+If you need OpenRAVE support (for dynamics computations), the following software is also required:
 
-- OpenRAVE (0.9 or above) with Python bindings (see "Notes on OpenRAVE integration" below for more details) 
+- OpenRAVE (0.9 or above) with Python bindings
 - LAPACK (3.5.0 or above)
 
 Installation
@@ -28,9 +28,7 @@ Follow the standard installation procedure: from the TOPP directory,
     make
     sudo make install
 
-TOPP will be compiled with OpenRAVE support if it is found on your system.
-
-See "Notes on OpenRAVE integration" below for more details.
+TOPP will be compiled with OpenRAVE support if the latter is found on your system.
 
 Examples, Tutorials, Reference Manual
 -------------------------------------
