@@ -827,7 +827,7 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
         dReal bestsstep = 0.1;
         dReal bestslope = 0;
         dReal bestscore = INF;
-        for(dReal sstep = 3.3e-3; sstep <= 0.1; sstep*=3.33) {
+        for(dReal sstep = 3.3e-3; sstep <= 0.01; sstep*=3.33) {
             for(int i = 0; i<int(switchpoint.slopesvector.size()); i++) {
                 sforward = std::min(s + sstep,constraints.trajectory.duration);
                 sbackward = std::max(s - sstep,0.);
