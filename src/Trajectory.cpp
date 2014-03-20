@@ -263,7 +263,7 @@ void Trajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal
     dReal a0, a1, a2, b0, b1, b2, b3, b4, c0, c1, c2, c3, c4, c5, c6, u0, u1, u2, u3;
     std::vector<dReal> coefficientsvector;
     std::vector<Polynomial> polynomialsvector;
-    // current chunk : u0 + u1*s + u2*s^2
+    // current chunk : u0 + u1*s + u2*s^2 + u3*s^3
     // profile : s + sd*t + 0.5*sdd*t^2
     // new chunk : v0 + v1*t + v2*t^2 + v3*t^3 + v4*t^4 + v5*t^5 + v6*t^6;
     a0 = s + sd*t0 + 0.5*sdd*t0*t0;
