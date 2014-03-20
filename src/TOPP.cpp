@@ -1833,7 +1833,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
 
     // Determine the lowest profile at send
     dReal bound;
-    if (FindLowestProfile(constraints.trajectory.duration, tmpprofile, tres, constraints.resprofileslist))
+    if (FindLowestProfile(constraints.trajectory.duration-smallincrement, tmpprofile, tres, constraints.resprofileslist))
         bound = std::min(tmpprofile.Evald(tres), constraints.mvccombined[constraints.mvccombined.size() - 1]);
     else // just to make sure the profile is below mvccombined
         bound = constraints.mvccombined[constraints.mvccombined.size() - 1];
@@ -1879,7 +1879,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
                 }
                 dint /= 3.3;
             }
-            if (resintfw == INT_BOTTOM || resintbw == INT_MVC)
+            if (resintfw == INT_BOTTOM || resintfw == INT_MVC)
                 return 0;
         }
     }

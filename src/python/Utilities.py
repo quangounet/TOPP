@@ -31,7 +31,7 @@ def Interpolate3rdDegree(q0, q1, qd0, qd1, T):
 
 def Interpolate5thDegree(q0, q1, qd0, qd1, qdd0, qdd1, T):
     a = (6*(q1 - q0) - 3*(qd1 + qd0)*T + 0.5*(qdd1 - qdd0)*(T**2))/(T**5)
-    b = (-15*(qd1 - qd0) + (7*qd1 + 8*qd0)*T - 0.5*(2*qdd1 - 3*qdd0)*(T**2))/(T**4)
+    b = (-15*(q1 - q0) + (7*qd1 + 8*qd0)*T - 0.5*(2*qdd1 - 3*qdd0)*(T**2))/(T**4)
     c = (10*(q1 - q0) - 4*(qd1 + 1.5*qd0)*T + 0.5*(qdd1 - 3*qdd0)*(T**2))/(T**3)
     d = 0.5*qdd0
     e = qd0
