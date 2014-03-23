@@ -64,8 +64,8 @@
 #define FOREACHC FOREACH
 #define FOREACHC_NOINC FOREACH_NOINC
 #else
-#define FOREACH(it, v) for(typeof((v).begin()) it = (v).begin(); it != (v).end(); (it)++)
-#define FOREACH_NOINC(it, v) for(typeof((v).begin()) it = (v).begin(); it != (v).end(); )
+#define FOREACH(it, v) for(typeof((v).begin())it = (v).begin(); it != (v).end(); (it)++)
+#define FOREACH_NOINC(it, v) for(typeof((v).begin())it = (v).begin(); it != (v).end(); )
 #define FOREACHC FOREACH
 #define FOREACHC_NOINC FOREACH_NOINC
 #endif
@@ -231,6 +231,9 @@ public:
     virtual void WriteExtra(std::stringstream& ss){
         return;
     }
+    virtual void WriteConstraints(std::stringstream& ss){
+        return;
+    }
 
     // Linear interpolation
     virtual dReal Interpolate1D(dReal s, const std::vector<dReal>& v);
@@ -328,10 +331,12 @@ public:
     dReal SdLimitBobrowInit(dReal s);
     void FindSingularSwitchPoints();
     void ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector);
+    void WriteConstraints(std::stringstream& ss);
 
     //////////////// Specific members and methods //////////////////////
     int nconstraints;  // Number of constraints
     std::vector<std::vector<dReal> > avect, bvect, cvect;  // Dynamics coefficients
+
     void InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c);   // Linearly interpolate the dynamics coefficients a,b,c
     void FixStart(dReal& sstartnew,dReal& sdstartnew);
     void FixEnd(dReal& sendnew,dReal& sdendnew);

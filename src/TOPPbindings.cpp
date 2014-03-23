@@ -25,6 +25,7 @@
 
 #ifdef WITH_OPENRAVE
 #include "TorqueLimitsRave.h"
+#include "TorqueLimitsRave3.h"
 #include "ZMPTorqueLimits.h"
 #include "FrictionLimits.h"
 #include "openravepy.h"
@@ -90,6 +91,9 @@ public:
         if (problemtype.compare("TorqueLimitsRave2")==0) {
             pconstraints.reset(new TorqueLimitsRave2(_probot,ptrajectory,discrtimestep));
         }
+        else if (problemtype.compare("TorqueLimitsRave3")==0) {
+            pconstraints.reset(new TorqueLimitsRave3(_probot,ptrajectory,discrtimestep));
+        }
         else {
             throw TOPP_EXCEPTION_FORMAT("cannot create %s problem type", problemtype, 0);
         }
@@ -111,6 +115,7 @@ public:
     boost::shared_ptr<Constraints> pconstraints;
     TOPP::Trajectory restrajectory;
 
+    std::string outconstraintstring;
     std::string restrajectorystring;
     std::string resextrastring;
     std::string resprofilesliststring;
@@ -249,12 +254,19 @@ public:
         switchpointsliststring = ss.str();
     }
 
+    // Write Constraints (currently works only for QuadraticConstraints)
+    void WriteConstraints(){
+        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        pconstraints->WriteConstraints(ss);
+        outconstraintstring = ss.str();
+
+    }
+
     // Extra string, such as the coordinates of the ZMP (depending on the application)
     void WriteExtra(){
         std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         pconstraints->WriteExtra(ss);
         resextrastring = ss.str();
-
     }
 
 };
@@ -269,6 +281,7 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def_readwrite("passswitchpointnsteps", &TOPPInstance::passswitchpointnsteps)
     .def_readwrite("extrareps", &TOPPInstance::extrareps)
     .def_readonly("restrajectorystring", &TOPPInstance::restrajectorystring)
+    .def_readonly("outconstraintstring", &TOPPInstance::outconstraintstring)
     .def_readonly("resprofilesliststring", &TOPPInstance::resprofilesliststring)
     .def_readonly("resextrastring", &TOPPInstance::resextrastring)
     .def_readonly("switchpointsliststring", &TOPPInstance::switchpointsliststring)
@@ -288,6 +301,7 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def("WriteResultTrajectory",&TOPPInstance::WriteResultTrajectory)
     .def("WriteProfilesList",&TOPPInstance::WriteProfilesList)
     .def("WriteExtra",&TOPPInstance::WriteExtra)
+    .def("WriteConstraints",&TOPPInstance::WriteConstraints)
     .def("WriteSwitchPointsList",&TOPPInstance::WriteSwitchPointsList)
 #ifdef WITH_OPENRAVE
     .def("GetOpenRAVEResultTrajectory", &TOPPInstance::GetOpenRAVEResultTrajectory, args("pyenv"))
