@@ -120,6 +120,12 @@ void ConvertToTOPPTrajectory(OpenRAVE::TrajectoryBaseConstPtr pintraj, const Ope
         }
         pintraj->GetWaypoint(iwaypoint, vdeltatime, timespec);
         dReal deltatime = vdeltatime.at(0);
+        if( deltatime <= TINY ) {
+            // just skip since too small and will cause more problems with other epsilons later
+            if( deltatime <= 0 ) {
+            }
+            continue;
+        }
         dReal ideltatime = 1/deltatime;
         for(int idof = 0; idof < posspec.GetDOF(); ++idof) {
             // try not to use the acceleration
@@ -211,29 +217,20 @@ void ConvertToOpenRAVETrajectory(const Trajectory& intraj, OpenRAVE::TrajectoryB
     std::copy(qdd.begin(), qdd.end(), v.begin()+2*intraj.dimension);
     pouttraj->Insert(0, v);
     FOREACH(itchunk, intraj.chunkslist) {
-        itchunk->Eval(0, q);
-        itchunk->Evald(0, qd);
-        itchunk->Evaldd(0, qdd);
-        std::copy(q.begin(), q.end(), v.begin());
-        std::copy(qd.begin(), qd.end(), v.begin()+intraj.dimension);
-        std::copy(qdd.begin(), qdd.end(), v.begin()+2*intraj.dimension);
-        v.at(3*intraj.dimension) = itchunk->duration;
-        pouttraj->Insert(pouttraj->GetNumWaypoints(), v);
+        if( itchunk->duration > 0 ) {
+            itchunk->Eval(0, q);
+            itchunk->Evald(0, qd);
+            itchunk->Evaldd(0, qdd);
+            std::copy(q.begin(), q.end(), v.begin());
+            std::copy(qd.begin(), qd.end(), v.begin()+intraj.dimension);
+            std::copy(qdd.begin(), qdd.end(), v.begin()+2*intraj.dimension);
+            v.at(3*intraj.dimension) = itchunk->duration;
+            pouttraj->Insert(pouttraj->GetNumWaypoints(), v);
+        }
+        else if( itchunk->duration < 0 ) {
+            std::cerr << "chuck duration is negative! " << itchunk->duration << std::endl;
+        }
     }
-//    dReal prevtime = 0;
-//    FOREACH(ittime, intraj.chunkcumulateddurationslist) {
-//        dReal deltatime = *ittime - prevtime;
-//        intraj.Eval(*ittime, q);
-//        intraj.Evald(*ittime, qd);
-//        intraj.Evaldd(*ittime, qdd);
-//        std::copy(q.begin(), q.end(), v.begin());
-//        std::copy(qd.begin(), qd.end(), v.begin()+intraj.dimension);
-//        std::copy(qdd.begin(), qdd.end(), v.begin()+2*intraj.dimension);
-//        v.at(3*intraj.dimension) = deltatime;
-//        
-//        pouttraj->Insert(pouttraj->GetNumWaypoints(), v);
-//        prevtime = *ittime;
-//    }
 }
 
 TorqueLimitsRave2::TorqueLimitsRave2(RobotBasePtr probot, OpenRAVE::TrajectoryBaseConstPtr ptraj, dReal _discrtimestep)

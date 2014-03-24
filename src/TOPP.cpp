@@ -1638,8 +1638,8 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         // Estimate resulting trajectory duration
         constraints.resduration = 0;
         Profile profile;
-        //dReal ds = constraints.discrtimestep;
-        dReal ds = 1e-4;
+        dReal ds = constraints.discrtimestep;
+        //dReal ds = 1e-5;
         int nsamples = int((constraints.trajectory.duration+TINY)/ds);
         dReal s,sdcur,sdnext;
         dReal tres;
