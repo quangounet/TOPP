@@ -20,6 +20,7 @@ from pylab import *
 from numpy import *
 from TOPP import TOPPbindings
 from TOPP import TOPPpy
+from TOPP import Trajectory
 
 # Trajectory
 ndof = 5
@@ -60,8 +61,8 @@ profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
 switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
 TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
 x.WriteResultTrajectory()
-traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
-traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
+traj1 = Trajectory.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
+traj0 = Trajectory.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 dtplot = 0.01
 TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax,amax)
 print "Trajectory duration before TOPP: ", traj0.duration

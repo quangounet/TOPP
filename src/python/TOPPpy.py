@@ -16,101 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from pylab import *
-from numpy import *
-import pylab
-import time
-
-from Trajectory import PiecewisePolynomialTrajectory
-from Trajectory import NoTrajectoryFound
-
-DEFAULTS = {
-    'discrtimestep': 1e-2,
-    'integrationtimestep': 1e-3,
-    'reparamtimestep': 1e-3,
-    'passswitchpointnsteps': 5,
-}
-
-
-################### Public interface ######################
-
-class RaveInstance(object):
-    def __init__(self, robot, traj, tau_min, tau_max, v_max,
-                 discrtimestep=DEFAULTS['discrtimestep'],
-                 integrationtimestep=DEFAULTS['integrationtimestep'],
-                 reparamtimestep=DEFAULTS['reparamtimestep'],
-                 passswitchpointnsteps=DEFAULTS['passswitchpointnsteps']):
-        self.discrtimestep = discrtimestep
-        self.integrationtimestep = integrationtimestep
-        self.reparamtimestep = reparamtimestep
-        self.passswitchpointnsteps = passswitchpointnsteps
-        self.solver = None  # set by child class
-
-    def GetTrajectory(self, sd_beg=0., sd_end=0.):
-        return_code = self.solver.RunComputeProfiles(sd_beg, sd_end)
-        if return_code != 1:
-            raise NoTrajectoryFound
-
-        return_code = self.solver.ReparameterizeTrajectory()
-        if return_code < 0:
-            raise NoTrajectoryFound
-
-        self.solver.WriteResultTrajectory()
-        traj_str = self.solver.restrajectorystring
-        return PiecewisePolynomialTrajectory.FromString(traj_str)
-
-    def GetAVP(self, sd_min, sd_max):
-        return_code = self.solver.RunVIP(sd_min, sd_max)
-        if return_code == 0:
-            raise NoTrajectoryFound
-        sd_end_min = self.solver.sdendmin
-        sd_end_max = self.solver.sdendmax
-        return (sd_end_min, sd_end_max)
-
-
-###################### Utilities #########################
-
-def vector2string(v):
-    ndof = len(v);
-    s = str(ndof)
-    for a in v:
-        s+= ' %f'%a
-    return s
-
-
-def vect2str(v):
-    return ' '.join(map(str, v))
-
-
-def Interpolate3rdDegree(q0, q1, qd0, qd1, T):
-    a = ((qd1 - qd0) * T - 2 * (q1 - q0 - qd0 * T)) / T ** 3
-    b = (3 * (q1 - q0 - qd0 * T) - (qd1 - qd0) * T) / T ** 2
-    c = qd0
-    d = q0
-    return a, b, c, d
-
-
-def BezierToPolynomial(T, p0, p1, p2, p3):
-    a = -p0 + 3 * p1 - 3 * p2 + p3
-    b = 3 * p0 - 6 * p1 + 3 * p2
-    c = -3 * p0 + 3 * p1
-    d = p0
-    return a / (T * T * T), b / (T * T), c / T, d
-
-
-def BezierToTrajectoryString(Tv, p0v, p1v, p2v, p3v):
-    nchunks = len(Tv)
-    dimension = len(p0v[0])
-    trajectorystring = ""
-    for i in range(nchunks):
-        if i > 0:
-            trajectorystring += "\n"
-        trajectorystring += str(Tv[i]) + "\n" + str(dimension)
-        for j in range(dimension):
-            a, b, c, d = BezierToPolynomial(Tv[i], p0v[i][j], p1v[i][j],
-                                            p2v[i][j], p3v[i][j])
-            trajectorystring += "\n%f %f %f %f" % (d, c, b, a)
-    return trajectorystring
+from Utilities import vect2str, BezierToTrajectoryString
+from pylab import double, array, random
 
 
 ################# Reading from string #####################
@@ -124,6 +31,7 @@ def ProfileFromLines(lines):
     sdarray = array([double(x) for x in l.split(' ')])
     return [duration, dt, sarray, sdarray]
 
+
 def ProfilesFromString(s):
     s = s.strip(" \n")
     profileslist = []
@@ -133,16 +41,18 @@ def ProfilesFromString(s):
         profileslist.append(ProfileFromLines(lines[3 * i:3 * i + 3]))
     return profileslist
 
+
 def ExtraFromString(s):
     s = s.strip(" \n")
     lines = [l.strip(" \n") for l in s.split('\n')]
     lines.pop(0)
     tvect = []
     torques = []
-    for i in range(len(lines)/2):
-        tvect.append(double(lines[2*i]))
-        torques.append(array([double(x) for x in lines[2*i+1].split(' ')]))
-    return array(tvect),array(torques)
+    for i in range(len(lines) / 2):
+        tvect.append(double(lines[2 * i]))
+        torques.append(array([double(x) for x in lines[2 * i + 1].split(' ')]))
+    return array(tvect), array(torques)
+
 
 def SwitchPointsFromString(s):
     if len(s) == 0:
@@ -161,24 +71,31 @@ def VectorFromString(s):
     return array([double(x) for x in s.split(' ')])
 
 
-def GenerateRandomTrajectory(ncurve,ndof,bound):    
-    p0a = vector2string(rand(ndof)*2*bound-bound)
-    p0b = vector2string(rand(ndof)*2*bound-bound)
-    p1a = vector2string(rand(ndof)*2*bound-bound)
-    p1b = vector2string(rand(ndof)*2*bound-bound)
-    s = '%d'%ncurve
-    s+= '\n1.0 ' + p0a + ' ' + p0b
-    for k in range(ncurve-1):    
-        a = rand(ndof)*2*bound-bound
-        b = rand(ndof)*2*bound-bound
-        c = 2*b-a
+def GenerateRandomTrajectory(ncurve, ndof, bound):
+    def vector2string(v):
+        ndof = len(v)
+        s = str(ndof)
+        for a in v:
+            s += ' %f' % a
+        return s
+
+    p0a = vector2string(random(ndof) * 2 * bound - bound)
+    p0b = vector2string(random(ndof) * 2 * bound - bound)
+    p1a = vector2string(random(ndof) * 2 * bound - bound)
+    p1b = vector2string(random(ndof) * 2 * bound - bound)
+    s = '%d' % ncurve
+    s += '\n1.0 ' + p0a + ' ' + p0b
+    for k in range(ncurve - 1):
+        a = random(ndof) * 2 * bound - bound
+        b = random(ndof) * 2 * bound - bound
+        c = 2 * b - a
         pa = vector2string(a)
         pb = vector2string(b)
         pc = vector2string(c)
-        s+= ' ' + pa + ' ' + pb + '\n1.0 ' + pb + ' ' + pc
-    s+= ' ' + p1a + ' ' + p1b
-    Tv,p0v,p1v,p2v,p3v = string2p(s)
-    return BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v)
+        s += ' ' + pa + ' ' + pb + '\n1.0 ' + pb + ' ' + pc
+    s += ' ' + p1a + ' ' + p1b
+    Tv, p0v, p1v, p2v, p3v = string2p(s)
+    return BezierToTrajectoryString(Tv, p0v, p1v, p2v, p3v)
 
 
 ################# Compute constraints #####################
@@ -200,6 +117,7 @@ def ComputeKinematicConstraints(traj, amax, discrtimestep):
 ######################## Plots ############################
 
 def PlotProfiles(profileslist0, switchpointslist=[], figstart=1):
+    from pylab import figure, clf, hold, plot, gca, axis, title, xlabel, ylabel
     profileslist = list(profileslist0)
     figure(figstart)
     clf()
@@ -232,12 +150,12 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=1):
             plot(sw[0], sw[1], 'bo', markersize=8)
         if sw[2] == 3:
             plot(sw[0], sw[1], 'yo', markersize=8)
-    s_max, sd_max = mvcbobrow[0], M
-    axis([0, s_max, 0, sd_max])
-    title('Maximum Velocity Curves and profiles',fontsize=20)
-    xlabel('$s$',fontsize=22)
-    ylabel('$\dot s$',fontsize=22)
-    return s_max, sd_max  # return this for PlotPhase (yurk!)
+    smax, sdmax = mvcbobrow[0], M
+    axis([0, smax, 0, sdmax])
+    title('Maximum Velocity Curves and profiles', fontsize=20)
+    xlabel('$s$', fontsize=22)
+    ylabel('$\dot s$', fontsize=22)
+    return smax, sdmax  # return this for PlotPhase (yurk!)
 
 
 def PlotComputedProfiles(topp_bind, figstart=1):
@@ -249,6 +167,7 @@ def PlotComputedProfiles(topp_bind, figstart=1):
 
 
 def PlotAlphaBeta(topp_inst, prec=30):
+    from pylab import axis, linspace, sqrt, plot
     smin, smax, sdmin, sdmax = axis()
     if sdmin <= 0.:
         sdmin = 1e-2
@@ -274,9 +193,11 @@ def PlotAlphaBeta(topp_inst, prec=30):
 
 
 def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
+    from pylab import figure, clf, hold, gca, title, xlabel, ylabel, plot, axis
     colorcycle = ['r', 'g', 'b', 'm', 'c', 'y', 'k']
     colorcycle = colorcycle[0:traj0.dimension]
     Tmax = max(traj0.duration, traj1.duration)
+
     # Joint angles
     figure(figstart)
     clf()
@@ -286,9 +207,10 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
     traj0.Plot(dt, '--')
     ax.set_color_cycle(colorcycle)
     traj1.Plot(dt)
-    title('Joint values',fontsize=20)
-    xlabel('Time (s)',fontsize=18)
-    ylabel('Joint values (rad)',fontsize=18)
+    title('Joint values', fontsize=20)
+    xlabel('Time (s)', fontsize=18)
+    ylabel('Joint values (rad)', fontsize=18)
+
     # Velocity
     figure(figstart + 1)
     clf()
@@ -307,9 +229,10 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
         if Vmax < 0.1:
             Vmax = 10
         axis([0, Tmax, -Vmax, Vmax])
-    title('Joint velocities',fontsize=20)
-    xlabel('Time (s)',fontsize=18)
-    ylabel('Joint velocities (rad/s)',fontsize=18)
+    title('Joint velocities', fontsize=20)
+    xlabel('Time (s)', fontsize=18)
+    ylabel('Joint velocities (rad/s)', fontsize=18)
+
     # Acceleration
     figure(figstart + 2)
     clf()
@@ -326,9 +249,9 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
     if len(amax) > 0:
         Amax = 1.2 * max(amax)
         axis([0, Tmax, -Amax, Amax])
-    title('Joint accelerations',fontsize=20)
-    xlabel('Time (s)',fontsize=18)
-    ylabel('Joint accelerations (rad/s^2)',fontsize=18)
+    title('Joint accelerations', fontsize=20)
+    xlabel('Time (s)', fontsize=18)
+    ylabel('Joint accelerations (rad/s^2)', fontsize=18)
 
 
 def string2p(s):
@@ -338,7 +261,7 @@ def string2p(s):
     p1v = []
     p2v = []
     p3v = []
-    for i in range(1,len(lines)):
+    for i in range(1, len(lines)):
         l = [float(x) for x in lines[i].split(' ')]
         Tv.append(l.pop(0))
         ndof = int(l[0])
@@ -347,107 +270,3 @@ def string2p(s):
         p2v.append(l[2 * (ndof + 1) + 1:3 * (ndof + 1)])
         p3v.append(l[3 * (ndof + 1) + 1:4 * (ndof + 1)])
     return Tv, p0v, p1v, p2v, p3v
-
-
-############################### (s, sd)-RRT ###################################
-
-class __PhaseRRT(object):
-    class Node(object):
-        def __init__(self, s, sd, parent=None):
-            self.s = s
-            self.sd = sd
-            self.parent = parent
-
-    def __init__(self, topp_inst, traj, sd_beg_min, sd_beg_max, ds):
-        sd_start = linspace(sd_beg_min, sd_beg_max, 42)
-        self.topp_inst = topp_inst
-        self.traj = traj
-        self.ds = ds
-        self.sd_beg_max = sd_beg_max
-        self.nodes = [self.Node(0., sd) for sd in sd_start]
-        self.end_node = None
-        self.max_reached_s = 0.
-        self.max_reached_sd = self.sd_beg_max
-
-    def found_solution(self):
-        return self.end_node is not None
-
-    def plot_tree(self):
-        cur_axis = pylab.axis()
-        for node in self.nodes:
-            s, sd = node.s, node.sd
-            plot([s], [sd], 'bo')
-            if node.parent:
-                ps, psd = node.parent.s, node.parent.sd
-                plot([ps, s], [psd, sd], 'g-', linewidth=1)
-        pylab.axis(cur_axis)
-
-    def plot_path(self, node):
-        if node.parent:
-            s, sd, ps, psd = node.s, node.sd, node.parent.s, node.parent.sd
-            plot([ps, s], [psd, sd], 'r-', linewidth=3)
-            return self.plot_path(node.parent)
-
-    def plot_solution(self):
-        cur_axis = pylab.axis()
-        if self.end_node:
-            self.plot_path(self.end_node)
-        pylab.axis(cur_axis)
-
-    def steer(self, node, target):
-        """Returns True iff the steering reached the target."""
-        interp_step = (target.sd - node.sd) / (target.s - node.s)
-        interp_sd = lambda s: (s - node.s) * interp_step + node.sd
-        for s in arange(node.s, target.s, self.ds):
-            sd = interp_sd(s)
-            alpha = self.topp_inst.GetAlpha(s, sd)
-            beta = self.topp_inst.GetBeta(s, sd)
-            # stepping condition is: alpha / sd <= sdd <= beta / sd
-            if sd <= 0 or not (alpha <= interp_step * sd <= beta):
-                return False
-        return True
-
-    def extend(self, target, k=10):
-        from random import sample
-        candidates = [node for node in self.nodes if node.s < target.s]
-        if len(candidates) > k:
-            candidates = sample(candidates, k)
-        for candidate in candidates:
-            if not self.steer(candidate, target):
-                continue
-            new_node = self.Node(target.s, target.sd, candidate)
-            self.nodes.append(new_node)
-            if target.s >= self.traj.duration:
-                self.end_node = new_node
-            if target.s > self.max_reached_s:
-                self.max_reached_s = target.s
-            if target.sd > 0.75 * self.max_reached_sd:
-                self.max_reached_sd *= 1.25
-
-    def run(self, max_nodes, time_budget):
-        """Runs until the time budget is exhausted."""
-        smax = self.traj.duration
-        svar = smax / 10.
-        start_time = time.time()
-        while not self.found_solution():
-            if len(self.nodes) > max_nodes \
-               or time.time() - start_time > time_budget:
-                break
-            if pylab.random() < 0.1:
-                s = pylab.random() * self.traj.duration
-            else:
-                s = pylab.normal(.5 * (smax + self.max_reached_s), svar)
-                s = max(0., min(smax, s))
-            sd = pylab.random() * self.max_reached_sd
-            self.extend(self.Node(s, sd))
-            if sd < self.max_reached_sd / 10:  # happens 1/10 times
-                sd_end = pylab.random() * self.max_reached_sd
-                self.extend(self.Node(smax, sd_end))
-        print "RRT run time: %d s" % int(time.time() - start_time)
-
-
-def TryRRT(topp_inst, traj, sd_beg_min, sd_beg_max, ds=1e-3, max_nodes=500,
-           time_budget=360):
-    rrt = __PhaseRRT(topp_inst, traj, sd_beg_min, sd_beg_max, ds)
-    rrt.run(max_nodes, time_budget)
-    return rrt
