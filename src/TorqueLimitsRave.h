@@ -54,6 +54,7 @@ public:
     virtual std::pair<dReal,dReal> SddLimits(dReal s, dReal sd);
     virtual dReal SdLimitBobrowInit(dReal s);
     virtual void FindSingularSwitchPoints();
+    virtual void FindDiscontinuousSwitchPoints();
     virtual void ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector);
 
 protected:

@@ -4,59 +4,37 @@ TOPP
 This is TOPP, the Time-Optimal Path Parameterization library by Quang-Cuong
 Pham (cuong.pham@normalesup.org)
 
+If you use this library for your research, please reference the accompanying paper « A general, fast, and robust implementation of the time-optimal path parameterization algorithm » http://arxiv.org/abs/1312.6533 
+
+
+
 Requirements 
 ------------
 
-The following software is required to run TOPP:
+The following software is required to install TOPP:
 
 - Boost (1.47 or above) with Boost.Python
 - Python (2.7 or above)
 
-To integrate with OpenRAVE, you will also need:
+If you need OpenRAVE support (for dynamics computations), the following software is also required:
 
-- OpenRAVE (0.9 or above) with Python bindings (see "Notes on OpenRAVE integration" below for more details) 
+- OpenRAVE (installed from source, see http://openrave.org/docs/latest_stable/coreapihtml/installation_linux.html)
 - LAPACK (3.5.0 or above)
 
 Installation
 ------------
 
-Follow the standard installation procedure:
+Follow the standard installation procedure: from the TOPP directory,
   
-    ./configure
+    mkdir build
+    cd build
+    cmake ..
     make
     sudo make install
 
-To build with OpenRAVE support:
+TOPP will be compiled with OpenRAVE support if the latter is found on your system.
 
-    ./configure --with-openrave
-    make
-    sudo make install
-
-See "Notes on OpenRAVE integration" below for more details.
-
-Examples, tutorials, reference manual
+Examples, Tutorials, Reference Manual
 -------------------------------------
 
 See the wiki https://github.com/quangounet/TOPP/wiki
-
-Notes on OpenRAVE integration
------------------------------
-
-We will suppose here that you are installing OpenRAVE from source. Let
-OPENRAVE_DIR denote your OpenRAVE source folder, for instance:
-    
-    export OPENRAVE_DIR=~/openrave
-    git clone https://github.com/rdiankov/openrave.git OPENRAVE_DIR
-
-Install OpenRAVE (Linux instructions here:
-http://openrave.org/docs/latest_stable/coreapihtml/installation_linux.html).
-Supposing you kept the default installation path (i.e. /usr/local/), make
-a symbolic link:
-
-    /usr/local/include/openrave-0.9/openrave/python -> OPENRAVE_DIR/python
-
-Add the Python bindings folder to your library path by exporting it to
-LD_LIBRARY_PATH (you can put the following line in your .bashrc or .zshrc for
-persistence):
-
-    export LD_LIBRARY_PATH=$(openrave-config --python-dir)/openravepy/_openravepy_:$LD_LIBRARY_PATH
