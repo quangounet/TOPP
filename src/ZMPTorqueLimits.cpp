@@ -66,7 +66,7 @@ ZMPTorqueLimits::ZMPTorqueLimits(RobotBasePtr probot0, std::string& constraintss
     activelinks = activelinks0;
 
     // Check soundness
-    assert(int(activedofs.size()) == probot->GetDOF());  // TODO: why casting an int???
+    assert(int(activedofs.size()) == probot->GetDOF());
     assert(int(qdefault.size()) == probot->GetDOF());
     assert(activelinks.size() == probot->GetLinks().size());
     assert(zmplimits.size() == 4);

@@ -31,11 +31,12 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
     trajectory = *ptraj;
     std::string buff;
     std::istringstream iss(constraintsstring);
+
     getline(iss, buff, '\n');
     discrtimestep = atof(buff.c_str());
     getline(iss, buff, '\n');
-    ndof = atoi(buff.c_str());
-    //************************************TASK :: to be revised
+    VectorFromString(std::string(buff), vmax);
+    ndof = probot->GetDOF();
     getline(iss, buff, '\n');
     nbottle = atoi(buff.c_str());
 
@@ -50,10 +51,6 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
 
     getline(iss, buff, '\n');
     mu = atof(buff.c_str());
-    //*********************************************************
-    
-    getline(iss, buff, '\n');
-    VectorFromString(std::string(buff), vmax);
     
     hasvelocitylimits = VectorMax(vmax) > TINY;
     

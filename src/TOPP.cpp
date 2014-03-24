@@ -441,6 +441,30 @@ QuadraticConstraints::QuadraticConstraints(const std::string& constraintsstring)
 }
 
 
+void QuadraticConstraints::WriteConstraints(std::stringstream& ss){
+    ss << discrtimestep << "\n";
+    for(int i=0; i<int(vmax.size()); i++) {
+        ss << vmax[i] << " ";
+    }
+    ss << "\n";
+    for(int i=0; i<int(avect.size()); i++) {
+        for(int j=0; j<int(avect[0].size()); j++) {
+            ss << avect[i][j] << " ";
+        }
+        ss << "\n";
+        for(int j=0; j<int(avect[0].size()); j++) {
+            ss << bvect[i][j] << " ";
+        }
+        ss << "\n";
+        for(int j=0; j<int(avect[0].size()); j++) {
+            ss << cvect[i][j] << " ";
+        }
+        if(i<int(avect.size())-1) {
+            ss << "\n";
+        }
+    }
+}
+
 void QuadraticConstraints::InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c) {
     a.resize(nconstraints);
     b.resize(nconstraints);
@@ -1872,7 +1896,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
 
     // Determine the lowest profile at send
     dReal bound;
-    if (FindLowestProfile(constraints.trajectory.duration, tmpprofile, tres, constraints.resprofileslist))
+    if (FindLowestProfile(constraints.trajectory.duration-smallincrement, tmpprofile, tres, constraints.resprofileslist))
         bound = std::min(tmpprofile.Evald(tres), constraints.mvccombined[constraints.mvccombined.size() - 1]);
     else // just to make sure the profile is below mvccombined
         bound = constraints.mvccombined[constraints.mvccombined.size() - 1];
