@@ -1832,7 +1832,7 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
                 }
                 dtint /= 3.3;
             }
-            if(resintbw == INT_BOTTOM || resintbw == INT_MVC)
+            if(resintbw == INT_BOTTOM || resintbw == INT_MVC || (resintbw == INT_END && tmpprofile.Evald(0)<sdbegmin))
                 return 0;
         }
     }
@@ -1941,7 +1941,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
                 }
                 dint /= 3.3;
             }
-            if (resintfw == INT_BOTTOM || resintfw == INT_MVC)
+            if (resintfw == INT_BOTTOM || resintfw == INT_MVC || (resintfw == INT_END && tmpprofile.Evald(tmpprofile.duration) < sdendmin))
                 return 0;
         }
     }
