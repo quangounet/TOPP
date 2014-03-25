@@ -1591,7 +1591,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         // Fix start
         dReal sstartnew = 0, sdstartnew = sdbeg;
         constraints.FixStart(sstartnew,sdstartnew);
-        if(sstartnew<=TINY2 || sdstartnew > constraints.SdLimitCombined(0) - TINY2) {
+        if(sstartnew<=TINY2 || sdstartnew > constraints.SdLimitCombined(0) - TINY2 || sdstartnew < 0) {
             sdstartnew = sdbeg;
         }
         // Check whether sdend > CLC or MVC
@@ -1622,7 +1622,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         // Fix end
         dReal sendnew = constraints.trajectory.duration, sdendnew = sdend;
         constraints.FixEnd(sendnew,sdendnew);
-        if(constraints.trajectory.duration-sendnew<=TINY2 || sdendnew > constraints.SdLimitCombined(sendnew)- TINY2) {
+        if(constraints.trajectory.duration-sendnew<=TINY2 || sdendnew > constraints.SdLimitCombined(sendnew)- TINY2 || sdendnew < 0 ) {
             sdendnew = sdend;
         }
         // Check whether sdend > CLC or MVC
