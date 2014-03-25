@@ -166,28 +166,6 @@ def ComputeTorquesConstraints(robot, traj, taumin, taumax, discrtimestep):
     return constraintstring
 
 
-def ComputeTorquesConstraintsLegacy(robot, traj, taumin, taumax,
-                                    discrtimestep):
-    """Sample the dynamics constraints."""
-    ndiscrsteps = int((traj.duration + 1e-10) / discrtimestep) + 1
-    constraintstring = ""
-    for i in range(ndiscrsteps):
-        t = i * discrtimestep
-        q = traj.Eval(t)
-        qd = traj.Evald(t)
-        qdd = traj.Evaldd(t)
-        with robot:
-            robot.SetDOFValues(q)
-            robot.SetDOFVelocities(qd)
-            tm, tc, tg = robot.ComputeInverseDynamics(qdd, None,
-                                                      returncomponents=True)
-            to = robot.ComputeInverseDynamics(qd) - tc - tg
-            constraintstring += "\n" + string.join([str(x) for x in to])
-            constraintstring += "\n" + string.join([str(x) for x in tm + tc])
-            constraintstring += "\n" + string.join([str(x) for x in tg])
-    return constraintstring
-
-
 def PlotTorques(robot, traj0, traj1, dt=0.001, taumin=[], taumax=[],
                 figstart=0):
     from pylab import figure, clf, hold, gca, plot, axis, title, xlabel, ylabel
