@@ -326,7 +326,7 @@ void TorqueLimitsRave2::InterpolateDynamics(dReal s, std::vector<dReal>& a, std:
     a.resize(trajectory.dimension);
     b.resize(trajectory.dimension);
     c.resize(trajectory.dimension);
-    assert(s >= -TINY && s <= trajectory.duration + TINY);
+    BOOST_ASSERT(s >= -TINY && s <= trajectory.duration + TINY);
     if(s < 0)
         s = 0;
     if(s >= trajectory.duration - TINY) {
@@ -346,7 +346,7 @@ void TorqueLimitsRave2::InterpolateDynamics(dReal s, std::vector<dReal>& a, std:
         c = cvect[n];
     }
     else {
-        BOOST_ASSERT(n+1 < avect.size());
+        BOOST_ASSERT(n+1 < (int)avect.size());
         coef /= discrtimestep;
         for(int i = 0; i < trajectory.dimension; i++) {
             a[i] = (1-coef)*avect[n][i] + coef*avect[n+1][i];

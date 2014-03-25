@@ -100,7 +100,7 @@ void Constraints::ComputeMVCCombined(){
 
 
 dReal Constraints::Interpolate1D(dReal s, const std::vector<dReal>& v) {
-    assert(s>=-TINY && s<=trajectory.duration+TINY);
+    BOOST_ASSERT(s>=-TINY && s<=trajectory.duration+TINY);
     if(s<0) {
         s=0;
     }
@@ -469,7 +469,7 @@ void QuadraticConstraints::InterpolateDynamics(dReal s, std::vector<dReal>& a, s
     a.resize(nconstraints);
     b.resize(nconstraints);
     c.resize(nconstraints);
-    assert(s>=-TINY && s<=trajectory.duration+TINY);
+    BOOST_ASSERT(s>=-TINY && s<=trajectory.duration+TINY);
     if(s < 0)
         s = 0;
     if(s >= trajectory.duration-TINY) {
@@ -483,11 +483,19 @@ void QuadraticConstraints::InterpolateDynamics(dReal s, std::vector<dReal>& a, s
     }
 
     int n = int(s/discrtimestep);
-    dReal coef = (s-n*discrtimestep)/discrtimestep;
-    for (int i = 0; i < nconstraints; i++) {
-        a[i] = (1-coef)*avect[n][i] + coef*avect[n+1][i];
-        b[i] = (1-coef)*bvect[n][i] + coef*bvect[n+1][i];
-        c[i] = (1-coef)*cvect[n][i] + coef*cvect[n+1][i];
+    dReal coef = (s-n*discrtimestep);
+    if( std::abs(coef) <= TINY ) {
+        a = avect[n];
+        b = bvect[n];
+        c = cvect[n];
+    }
+    else {
+        coef /= discrtimestep;
+        for (int i = 0; i < nconstraints; i++) {
+            a[i] = (1-coef)*avect[n][i] + coef*avect[n+1][i];
+            b[i] = (1-coef)*bvect[n][i] + coef*bvect[n+1][i];
+            c[i] = (1-coef)*cvect[n][i] + coef*cvect[n+1][i];
+        }
     }
 }
 
@@ -2139,7 +2147,7 @@ void PrintVector(const std::vector<dReal>& v){
 
 void VectorAdd(const std::vector<dReal>&a, const std::vector<dReal>&b,  std::vector<dReal>&res, dReal coefa, dReal coefb){
     res.resize(a.size());
-    assert(a.size() == b.size());
+    BOOST_ASSERT(a.size() == b.size());
     for(int i=0; i<int(a.size()); i++) {
         res[i] = coefa*a[i]+coefb*b[i];
     }

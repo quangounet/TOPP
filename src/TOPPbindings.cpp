@@ -156,7 +156,7 @@ public:
     }
 
 
-    int ReparameterizeTrajectory(dReal reparamtimestep=0)
+    int ReparameterizeTrajectory(TOPP::dReal reparamtimestep=0)
     {
         // Set tuning parameters
         pconstraints->reparamtimestep = reparamtimestep;

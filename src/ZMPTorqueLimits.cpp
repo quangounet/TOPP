@@ -66,10 +66,10 @@ ZMPTorqueLimits::ZMPTorqueLimits(RobotBasePtr probot0, std::string& constraintss
     activelinks = activelinks0;
 
     // Check soundness
-    assert(int(activedofs.size()) == probot->GetDOF());
-    assert(int(qdefault.size()) == probot->GetDOF());
-    assert(activelinks.size() == probot->GetLinks().size());
-    assert(zmplimits.size() == 4);
+    BOOST_ASSERT(int(activedofs.size()) == probot->GetDOF());
+    BOOST_ASSERT(int(qdefault.size()) == probot->GetDOF());
+    BOOST_ASSERT(activelinks.size() == probot->GetLinks().size());
+    BOOST_ASSERT(zmplimits.size() == 4);
 
     // DOFs
     for(int i=0; i<int(activedofs.size()); i++) {
@@ -78,7 +78,7 @@ ZMPTorqueLimits::ZMPTorqueLimits(RobotBasePtr probot0, std::string& constraintss
         }
     }
     ndof = int(dofsvector.size());
-    assert(ndof == ptraj->dimension);
+    BOOST_ASSERT(ndof == ptraj->dimension);
 
     // Links
     nlink0 = int(activelinks.size());
@@ -278,7 +278,7 @@ Vector ZMPTorqueLimits::COM(std::vector<dReal>& qfilled){
 
 
 Vector ZMPTorqueLimits::ZMP(std::vector<dReal>& qfilled, std::vector<dReal>& qdfilled, std::vector<dReal>& qddfilled, bool withangularmomentum){
-    assert(!withangularmomentum);  // not implemented
+    BOOST_ASSERT(!withangularmomentum);  // not implemented
     Vector tau0;
     Vector g = probot->GetEnv()->GetPhysicsEngine()->GetGravity();
     dReal f02 = totalmass * g[2];
@@ -368,7 +368,7 @@ void ZMPTorqueLimits::WriteExtra(std::stringstream& ss){
 
 Vector ZMPTorqueLimits::MatrixMultVector(const boost::multi_array<dReal,2>& M, const std::vector<dReal>& v){
     Vector res;
-    assert(M.shape()[0] == 3);
+    BOOST_ASSERT(M.shape()[0] == 3);
     for(int i=0; i<3; i++) {
         res[i] = 0;
         for(int j=0; j<int(v.size()); j++) {

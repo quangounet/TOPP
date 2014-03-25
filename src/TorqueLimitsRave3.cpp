@@ -102,6 +102,7 @@ TorqueLimitsRave3::TorqueLimitsRave3(RobotBasePtr probot, OpenRAVE::TrajectoryBa
             cvect[i][ndof+idof] = -torquecomponents[2][idof] + taumin[idof];
         }
     }
+    nconstraints = int(avect.front().size());
 }
 
 } // end namespace TOPP
