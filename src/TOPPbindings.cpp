@@ -245,6 +245,12 @@ public:
         resprofilesliststring = ss.str();
     }
 
+    std::string SerializeInputTrajectory() {
+        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        pconstraints->trajectory.Write(ss);
+        return ss.str();
+    }
+
     void WriteSwitchPointsList(){
         std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         std::list<SwitchPoint>::iterator itsw = pconstraints->switchpointslist.begin();
@@ -306,6 +312,7 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def("WriteExtra",&TOPPInstance::WriteExtra)
     .def("WriteConstraints",&TOPPInstance::WriteConstraints)
     .def("WriteSwitchPointsList",&TOPPInstance::WriteSwitchPointsList)
+    .def("SerializeInputTrajectory", &TOPPInstance::SerializeInputTrajectory)
 #ifdef WITH_OPENRAVE
     .def("GetOpenRAVEResultTrajectory", &TOPPInstance::GetOpenRAVEResultTrajectory, args("pyenv"))
 #endif
