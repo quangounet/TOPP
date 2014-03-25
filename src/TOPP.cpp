@@ -234,7 +234,7 @@ void Constraints::FindTangentSwitchPoints(){
         sdnext = SdLimitBobrow(snext);
         sddlimits = SddLimits(s,sd);
         alpha = sddlimits.first;
-        if(std::abs(prevtangent-tangent)>2 && prevtangent*tangent < 0) {
+        if(std::abs(prevtangent-tangent)>2 && prevtangent < 0 && tangent >0) {
             AddSwitchPoint(i,SP_DISCONTINUOUS);
         }
         prevtangent = tangent;
