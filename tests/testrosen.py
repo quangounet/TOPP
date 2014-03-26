@@ -10,8 +10,8 @@ from TOPP import Utilities
 
 ion()
 
-trajfile = "data/mujin1.topp.traj"
-constraintsfile = "data/mujin1.topp.constraints"
+trajfile = "data/mujin2.topp.traj"
+constraintsfile = "data/mujin2.topp.constraints"
 
 handle = open(trajfile,"r")
 trajectorystring = handle.read()
