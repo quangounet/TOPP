@@ -867,6 +867,9 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
                 sforward = std::min(s + sstep,constraints.trajectory.duration);
                 sbackward = std::max(s - sstep,0.);
                 dReal slope = switchpoint.slopesvector[i];
+                if(std::abs(slope*sstep)>0.1) {
+                    continue;
+                }
                 sdforward = sd + (sforward-s)*slope;
                 sdbackward = sd - (s-sbackward)*slope;
                 dReal alphabackward = constraints.SddLimits(sbackward,sdbackward).first/sd;
@@ -875,7 +878,7 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
                 dReal bob2 = constraints.SdLimitBobrow(sforward)-sdforward;
                 dReal slopediff1 = std::abs(alphabackward-slope);
                 dReal slopediff2 = std::abs(betaforward-slope);
-                if(bob1>=0 && bob2>=0) {
+                if(bob1>=0 && bob2>=0 && sdbackward > 0.01 && sdforward > 0.01) {
                     dReal score = (slopediff1+slopediff2)/std::abs(std::log(sstep));
                     if(score<bestscore) {
                         bestsstep = sstep;
