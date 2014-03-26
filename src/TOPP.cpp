@@ -1685,7 +1685,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         Profile profile;
         //dReal ds = constraints.discrtimestep;
         dReal ds = 1e-2;
-        int nsamples = int((constraints.trajectory.duration+TINY)/ds);
+        int nsamples = int((constraints.trajectory.duration-TINY)/ds);
         dReal s,sdcur,sdnext;
         if(FindLowestProfile(0,profile,tres,constraints.resprofileslist)) {
             sdcur = profile.Evald(tres);
