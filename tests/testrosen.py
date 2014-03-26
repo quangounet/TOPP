@@ -17,6 +17,8 @@ handle = open(trajfile,"r")
 trajectorystring = handle.read()
 traj0 = Trajectory.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
+trajectorystring = str(traj0)
+
 handle = open(constraintsfile,"r")
 constraintsstring = handle.read()
 
