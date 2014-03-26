@@ -78,8 +78,9 @@ dReal Polynomial::Evaldd(dReal s) const {
 
 
 void Polynomial::Write(std::stringstream& ss) {
-    for(int i = 0; i <= degree; i++)
-        ss << std::setprecision(17) << coefficientsvector[i] << " ";
+    ss << std::setprecision(17) << coefficientsvector[0];
+    for(int i = 1; i <= degree; i++)
+        ss << " " << std::setprecision(17) << coefficientsvector[i];
 }
 
 
