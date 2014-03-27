@@ -12,7 +12,6 @@ ion()
 
 trajfile = "data/mujin4.topp.traj"
 constraintsfile = "data/mujin4.topp.constraints"
-
 handle = open(trajfile,"r")
 trajectorystring = handle.read()
 traj0 = Trajectory.PiecewisePolynomialTrajectory.FromString(trajectorystring)
