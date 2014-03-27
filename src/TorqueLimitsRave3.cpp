@@ -77,27 +77,30 @@ TorqueLimitsRave3::TorqueLimitsRave3(RobotBasePtr probot, OpenRAVE::TrajectoryBa
         trajectory.Evaldd(s,qdd);
         probot->SetActiveDOFValues(q,KinBody::CLA_Nothing);
         probot->SetActiveDOFVelocities(qd,KinBody::CLA_Nothing);
-        for(int idof = 0; idof < ndof; ++idof) {
-            vfullvalues[probot->GetActiveDOFIndices()[idof]] = qd[idof];
-        }
-        probot->ComputeInverseDynamics(torquesimple,vfullvalues);
+        // Torque components with qdd
         for(int idof = 0; idof < ndof; ++idof) {
             vfullvalues[probot->GetActiveDOFIndices()[idof]] = qdd[idof];
         }
         probot->ComputeInverseDynamics(torquecomponents,vfullvalues);
+        // Torque simple with qd
+        for(int idof = 0; idof < ndof; ++idof) {
+            vfullvalues[probot->GetActiveDOFIndices()[idof]] = qd[idof];
+        }
+        probot->ComputeInverseDynamics(torquesimple,vfullvalues);
         // Note that the a,b,c in QuadraticConstraints are not the same as those in TorqueLimits
+        // See TOPPopenravepy.ComputeTorquesConstraints for details
         avect[i].resize(ndof*2);
         bvect[i].resize(ndof*2);
         cvect[i].resize(ndof*2);
         // Constraints tau < taumax
         for(int idof = 0; idof < ndof; ++idof) {
-            avect[i][idof] = torquesimple[idof];
+            avect[i][idof] = torquesimple[idof] - torquecomponents[1][idof] - torquecomponentns[2][idof];
             bvect[i][idof] = torquecomponents[0][idof] + torquecomponents[1][idof];
             cvect[i][idof] = torquecomponents[2][idof] - taumax[idof];
         }
         // Constraints tau > taumin
         for(int idof = 0; idof < ndof; ++idof) {
-            avect[i][ndof+idof] = -torquesimple[idof];
+            avect[i][ndof+idof] = -torquesimple[idof]] + torquecomponents[1][idof] + torquecomponentns[2][idof];
             bvect[i][ndof+idof] = -torquecomponents[0][idof] - torquecomponents[1][idof];
             cvect[i][ndof+idof] = -torquecomponents[2][idof] + taumin[idof];
         }
