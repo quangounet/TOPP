@@ -91,9 +91,9 @@ public:
         if (problemtype.compare("TorqueLimitsRave2")==0) {
             pconstraints.reset(new TorqueLimitsRave2(_probot,ptrajectory,discrtimestep));
         }
-        else if (problemtype.compare("TorqueLimitsRave3")==0) {
-            pconstraints.reset(new TorqueLimitsRave3(_probot,ptrajectory,discrtimestep));
-        }
+        // else if (problemtype.compare("TorqueLimitsRave3")==0) {
+        //     pconstraints.reset(new TorqueLimitsRave3(_probot,ptrajectory,discrtimestep));
+        // }
         else {
             throw TOPP_EXCEPTION_FORMAT("cannot create %s problem type", problemtype, 0);
         }
@@ -111,6 +111,32 @@ public:
         throw TOPPException("not compiled with openrave");
 #endif
     }
+
+
+    TOPPInstance(object orobot, std::string problemtype, std::string trajectorystring, TOPP::dReal discrtimestep)
+    {
+#ifdef WITH_OPENRAVE
+        _probot = openravepy::GetRobot(orobot);
+        TOPP::Trajectory* ptopptraj = new TOPP::Trajectory(trajectorystring);
+        if (problemtype.compare("TorqueLimitsRave3")==0) {
+            pconstraints.reset(new TorqueLimitsRave3(_probot,*ptopptraj,discrtimestep));
+            pconstraints->trajectory = *ptopptraj;
+        }
+
+        // Set default public tuning parameters
+        integrationtimestep = 0;
+        reparamtimestep = 0;
+        passswitchpointnsteps = 5;
+        extrareps = 0;
+
+        // Set default private tuning parameters
+        pconstraints->bisectionprecision = 0.01;
+        pconstraints->loweringcoef = 0.95;
+#else
+        throw TOPPException("not compiled with openrave");
+#endif
+    }
+
 
     boost::shared_ptr<Constraints> pconstraints;
     TOPP::Trajectory restrajectory;
@@ -285,6 +311,7 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     using namespace boost::python;
     class_<TOPPInstance>("TOPPInstance", init<object,std::string,std::string,std::string>())
     .def(init<object,std::string,object,TOPP::dReal>(args("openraverobot","problemtype","openravetrajectory","discrtimestep")))
+    .def(init<object,std::string,std::string,TOPP::dReal>(args("openraverobot","problemtype","trajectorystring","discrtimestep")))
     .def_readwrite("integrationtimestep", &TOPPInstance::integrationtimestep)
     .def_readwrite("reparamtimestep", &TOPPInstance::reparamtimestep)
     .def_readwrite("passswitchpointnsteps", &TOPPInstance::passswitchpointnsteps)

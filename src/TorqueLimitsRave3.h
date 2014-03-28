@@ -32,7 +32,7 @@ namespace TOPP {
 class TorqueLimitsRave3 : public QuadraticConstraints
 {
 public:
-    TorqueLimitsRave3(OpenRAVE::RobotBasePtr probot, OpenRAVE::TrajectoryBaseConstPtr ptraj, dReal discrtimestep);
+    TorqueLimitsRave3(OpenRAVE::RobotBasePtr probot, Trajectory& trajectory, dReal discrtimestep);
 
 protected:
     //////////////// Specific members and methods //////////////////////

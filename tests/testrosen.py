@@ -10,8 +10,8 @@ from TOPP import Utilities
 
 ion()
 
-trajfile = "data/mujin4.topp.traj"
-constraintsfile = "data/mujin4.topp.constraints"
+trajfile = "data/mujin6.topp.traj"
+constraintsfile = "data/mujin6.topp.constraints"
 handle = open(trajfile,"r")
 trajectorystring = handle.read()
 traj0 = Trajectory.PiecewisePolynomialTrajectory.FromString(trajectorystring)

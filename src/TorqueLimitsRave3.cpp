@@ -23,14 +23,13 @@ using namespace OpenRAVE;
 
 namespace TOPP {
 
-TorqueLimitsRave3::TorqueLimitsRave3(RobotBasePtr probot, OpenRAVE::TrajectoryBaseConstPtr ptraj, dReal discrtimestep)
+TorqueLimitsRave3::TorqueLimitsRave3(RobotBasePtr probot, Trajectory& trajectory, dReal discrtimestep)
 {
     EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex()); // lock environment
     _probot = probot;
     RobotBase::RobotStateSaver robotsaver(probot, KinBody::Save_LinkTransformation|KinBody::Save_LinkVelocities);
     OPENRAVE_ASSERT_OP((int)probot->GetActiveDOFIndices().size(),==,probot->GetActiveDOF()); // don't allow affine dofs
     this->discrtimestep = discrtimestep;
-    ConvertToTOPPTrajectory(ptraj, probot->GetActiveConfigurationSpecification(), trajectory);
     int ndof = trajectory.dimension;
     probot->GetActiveDOFVelocityLimits(vmax);
     hasvelocitylimits = false;
@@ -94,15 +93,19 @@ TorqueLimitsRave3::TorqueLimitsRave3(RobotBasePtr probot, OpenRAVE::TrajectoryBa
         cvect[i].resize(ndof*2);
         // Constraints tau < taumax
         for(int idof = 0; idof < ndof; ++idof) {
-            avect[i][idof] = torquesimple[idof] - torquecomponents[1][idof] - torquecomponents[2][idof];
-            bvect[i][idof] = torquecomponents[0][idof] + torquecomponents[1][idof];
-            cvect[i][idof] = torquecomponents[2][idof] - taumax[idof];
+            if(taumax[idof]>TINY) {
+                avect[i][idof] = torquesimple[idof] - torquecomponents[1][idof] - torquecomponents[2][idof];
+                bvect[i][idof] = torquecomponents[0][idof] + torquecomponents[1][idof];
+                cvect[i][idof] = torquecomponents[2][idof] - taumax[idof];
+            }
         }
         // Constraints tau > taumin
         for(int idof = 0; idof < ndof; ++idof) {
-            avect[i][ndof+idof] = -torquesimple[idof] + torquecomponents[1][idof] + torquecomponents[2][idof];
-            bvect[i][ndof+idof] = -torquecomponents[0][idof] - torquecomponents[1][idof];
-            cvect[i][ndof+idof] = -torquecomponents[2][idof] + taumin[idof];
+            if(taumin[idof]<-TINY) {
+                avect[i][ndof+idof] = -torquesimple[idof] + torquecomponents[1][idof] + torquecomponents[2][idof];
+                bvect[i][ndof+idof] = -torquecomponents[0][idof] - torquecomponents[1][idof];
+                cvect[i][ndof+idof] = -torquecomponents[2][idof] + taumin[idof];
+            }
         }
     }
     nconstraints = int(avect.front().size());

@@ -65,13 +65,13 @@ taumax[0:4] = [30,50,25,15]
 constraintstring = str(discrtimestep) + "\n";
 constraintstring += string.join([str(v) for v in vmax])
 constraintstring += TOPPopenravepy.ComputeTorquesConstraints(robot,traj0,taumin,taumax,discrtimestep)
+robot.SetDOFTorqueLimits(taumax)
+robot.SetDOFVelocityLimits(vmax)
+
 
 # Run TOPP
-x = TOPPbindings.TOPPInstance(None,"QuadraticConstraints",constraintstring,trajectorystring);
-
-# Testing constraints serialization
-x.WriteConstraints()
-x = TOPPbindings.TOPPInstance(None,"QuadraticConstraints",x.outconstraintstring,trajectorystring);
+#x = TOPPbindings.TOPPInstance(None,"QuadraticConstraints",constraintstring,trajectorystring);
+x = TOPPbindings.TOPPInstance(robot,"TorqueLimitsRave3",trajectorystring,discrtimestep);
 
 ret = x.RunComputeProfiles(0,0)
 if(ret == 1):
