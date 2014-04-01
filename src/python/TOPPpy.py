@@ -18,7 +18,7 @@
 
 from Utilities import vect2str, BezierToTrajectoryString
 from pylab import double, array, random
-
+from TOPPbindings import TOPPInstance
 
 ################# Reading from string #####################
 

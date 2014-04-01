@@ -257,7 +257,6 @@ ZMPTorqueLimits::ZMPTorqueLimits(RobotBasePtr probot0, std::string& constraintss
     }
 
     nconstraints = int(avect.front().size());
-
 }
 
 

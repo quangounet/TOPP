@@ -1,7 +1,6 @@
 from Trajectory import Polynomial, Chunk, PiecewisePolynomialTrajectory
 from Trajectory import NoTrajectoryFound
 
-from TOPPopenravepy import RAVEBindings
-
-import TorqueLimits
-import ZMPTorqueLimits
+from TorqueLimits import TorqueLimits
+from QuadraticConstraints import QuadraticConstraints
+from ZMPTorqueLimits import ZMPTorqueLimits

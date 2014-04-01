@@ -20,7 +20,7 @@ from TOPPopenravepy import RAVEBindings
 from Utilities import vect2str
 
 
-class Bindings(RAVEBindings):
+class TorqueLimits(RAVEBindings):
     """Bindings for the 'TorqueLimitsRave' problem."""
 
     def __init__(self, robot, traj, taumin, taumax, vmax, discrtimestep=None,
@@ -30,5 +30,5 @@ class Bindings(RAVEBindings):
         constring += vect2str(taumax) + "\n"
         constring += vect2str([0, 0])  # TODO: non-zero vmax
         trajstring = str(traj)
-        super(Bindings, self).__init__(robot, "TorqueLimitsRave", constring,
-                                       trajstring)
+        super(TorqueLimits, self).__init__(
+            robot, "TorqueLimitsRave", constring, trajstring)
