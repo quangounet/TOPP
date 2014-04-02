@@ -22,9 +22,9 @@ import time
 import Trajectory
 import TOPPbindings
 
+from QuadraticConstraints import QuadraticConstraints
 from pylab import arange, array, cross, dot, inv, norm, random, zeros
 from pylab import arcsin, arctan2, cos, pi, sin
-from QuadraticConstraints import QuadraticConstraints
 
 
 class RAVEBindings(QuadraticConstraints):

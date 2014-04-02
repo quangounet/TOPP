@@ -16,6 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import TOPPpy
+
 from Errors import NoTrajectoryFound
 from Trajectory import PiecewisePolynomialTrajectory
 from TOPPbindings import TOPPInstance
@@ -45,11 +47,11 @@ class QuadraticConstraints(object):
     def Reparameterize(self, sdbeg=0., sdend=0.):
         return_code = self.solver.RunComputeProfiles(sdbeg, sdend)
         if return_code != 1:
-            raise NoTrajectoryFound(return_code)
+            raise NoTrajectoryFound(return_code, self)
 
         return_code = self.solver.ReparameterizeTrajectory()
         if return_code < 0:
-            raise NoTrajectoryFound(return_code)
+            raise NoTrajectoryFound(return_code, self)
 
         self.solver.WriteResultTrajectory()
         traj_str = self.solver.restrajectorystring
@@ -70,3 +72,6 @@ class QuadraticConstraints(object):
         switchpointslist = SwitchPointsFromString(
             self.solver.switchpointsliststring)
         PlotProfiles(profileslist, switchpointslist, 4)
+
+    def PlotAlphaBeta(self):
+        return TOPPpy.PlotAlphaBeta(self.solver)
