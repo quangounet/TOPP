@@ -142,6 +142,15 @@ ZMPTorqueLimits::ZMPTorqueLimits(RobotBasePtr probot0, std::string& constraintss
             this->ComputeInverseDynamicsSingleSupport(tmp0, qdfilled); // Mqd + Cqd + gq
             this->ComputeInverseDynamicsSingleSupport(tmp1, zero); // Cqd + gq
             VectorAdd(tmp0,tmp1,Mqd,1,-1); // Mqd = tmp0 - tmp1
+            //
+            // Note: this is wrong when the speed of the base link is not zero,
+            // because in this case contact forces are not the same for
+            // tau=tmp0 and tau=tmp1:
+            //     tmp0 + J.T f0 = Mqd + Cqd + gq
+            //     tmp1 + J.T f1 =       Cqd + gq
+            // so
+            //     tmp0 - tmp1 = Mqd + J.T (f1 - f0)
+            //
             probot->SetDOFVelocities(zero,CLA_Nothing);
             this->ComputeInverseDynamicsSingleSupport(gq, zero); // gq
             VectorAdd(tmp1,gq,Cqd,1,-1); // Cqd = tmp1 - gq
