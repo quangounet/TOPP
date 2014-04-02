@@ -22,13 +22,12 @@ import time
 import Trajectory
 import TOPPbindings
 
+from QuadraticConstraints import QuadraticConstraints
 from pylab import arange, array, cross, dot, inv, norm, random, zeros
 from pylab import arcsin, arctan2, cos, pi, sin
-from Trajectory import PiecewisePolynomialTrajectory
-from Trajectory import NoTrajectoryFound
 
 
-class RAVEBindings(object):
+class RAVEBindings(QuadraticConstraints):
     """Wrapper around TOPPbindings for OpenRAVE robot models.
 
     robot - - OpenRAVE robot object
@@ -48,33 +47,6 @@ class RAVEBindings(object):
         self.integrationtimestep = integrationtimestep
         self.solver = TOPPbindings.TOPPInstance(robot, pbname, constring,
                                                 trajstring)
-
-    def AVP(self, sdmin, sdmax):
-        return self.GetAVP(sdmin, sdmax)
-
-    def GetTrajectory(self, sdbeg=0., sdend=0.):
-        return_code = self.solver.RunComputeProfiles(sdbeg, sdend)
-        if return_code != 1:
-            raise NoTrajectoryFound
-
-        return_code = self.solver.ReparameterizeTrajectory()
-        if return_code < 0:
-            raise NoTrajectoryFound
-
-        self.solver.WriteResultTrajectory()
-        traj_str = self.solver.restrajectorystring
-        return PiecewisePolynomialTrajectory.FromString(traj_str)
-
-    def GetAVP(self, sdmin, sdmax):
-        return_code = self.solver.RunVIP(sdmin, sdmax)
-        if return_code == 0:
-            raise NoTrajectoryFound
-        sdendmin = self.solver.sdendmin
-        sdendmax = self.solver.sdendmax
-        return (sdendmin, sdendmax)
-
-    def Reparameterize(self, sdbegmin, sdbegmax):
-        return self.GetTrajectory(sdbegmin, sdbegmax)
 
 
 def ToRaveTraj(robot, spec, traj):
