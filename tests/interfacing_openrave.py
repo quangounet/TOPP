@@ -22,6 +22,7 @@ from openravepy import *
 from TOPP import TOPPbindings
 from TOPP import TOPPpy
 from TOPP import TOPPopenravepy
+from TOPP import Trajectory
 
 # Robot
 env = Environment()
@@ -77,7 +78,8 @@ switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
 TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
 if(ret == 1):
     x.WriteResultTrajectory()
-    topptraj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
+    topptraj1 = Trajectory.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
+    #topptraj1 = x.GetOpenRAVEResultTrajectory(env)
     dtplot = 0.01
     TOPPpy.PlotKinematics(topptraj0,topptraj1,dtplot,vmax)
     TOPPopenravepy.PlotTorques(robot,topptraj0,topptraj1,dtplot,taumin,taumax,3)

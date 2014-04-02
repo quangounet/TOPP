@@ -22,6 +22,8 @@ from openravepy import *
 from TOPP import TOPPbindings
 from TOPP import TOPPpy
 from TOPP import TOPPopenravepy
+from TOPP import Trajectory
+from TOPP import Utilities
 
 # Robot (OpenRAVE)
 env = Environment()
@@ -48,9 +50,9 @@ q1[0:4] = [2.32883,  1.61082,  0.97706,  1.94169] #Target DOF values for the sho
 T = 1.5
 trajectorystring = "%f\n%d"%(T,ndof)
 for i in range(ndof):
-    a,b,c,d = TOPPpy.Interpolate3rdDegree(q0[i],q1[i],qd0[i],qd1[i],T)
+    a,b,c,d = Utilities.Interpolate3rdDegree(q0[i],q1[i],qd0[i],qd1[i],T)
     trajectorystring += "\n%f %f %f %f"%(d,c,b,a)
-traj0 = TOPPpy.PiecewisePolynomialTrajectory.FromString(trajectorystring)
+traj0 = Trajectory.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 # Constraints
 discrtimestep = 0.005
@@ -66,6 +68,11 @@ constraintstring += TOPPopenravepy.ComputeTorquesConstraints(robot,traj0,taumin,
 
 # Run TOPP
 x = TOPPbindings.TOPPInstance(None,"QuadraticConstraints",constraintstring,trajectorystring);
+
+# Testing constraints serialization
+x.WriteConstraints()
+x = TOPPbindings.TOPPInstance(None,"QuadraticConstraints",x.outconstraintstring,trajectorystring);
+
 ret = x.RunComputeProfiles(0,0)
 if(ret == 1):
     x.ReparameterizeTrajectory()
@@ -79,7 +86,7 @@ switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
 TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
 if(ret == 1):
     x.WriteResultTrajectory()
-    traj1 = TOPPpy.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
+    traj1 = Trajectory.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
     dtplot = 0.01
     TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax)
     TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)
