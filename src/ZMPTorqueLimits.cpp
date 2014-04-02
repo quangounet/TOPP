@@ -36,7 +36,6 @@ using namespace OpenRAVE;
 namespace TOPP {
 
 ZMPTorqueLimits::ZMPTorqueLimits(RobotBasePtr probot0, std::string& constraintsstring, Trajectory* ptraj){
-
     trajectory = *ptraj;
     probot = probot0;
 
@@ -65,20 +64,19 @@ ZMPTorqueLimits::ZMPTorqueLimits(RobotBasePtr probot0, std::string& constraintss
     hasvelocitylimits = VectorMax(vmax) > TINY;
     activelinks = activelinks0;
 
+    for(int i=0; i<int(activedofs.size()); i++)
+        if(activedofs[i]>TINY)
+            dofsvector.push_back(i);
+    ndof = int(dofsvector.size());
+
     // Check soundness
     assert(int(activedofs.size()) == probot->GetDOF());
     assert(int(qdefault.size()) == probot->GetDOF());
     assert(activelinks.size() == probot->GetLinks().size());
     assert(zmplimits.size() == 4);
-
-    // DOFs
-    for(int i=0; i<int(activedofs.size()); i++) {
-        if(activedofs[i]>TINY) {
-            dofsvector.push_back(i);
-        }
-    }
-    ndof = int(dofsvector.size());
     assert(ndof == ptraj->dimension);
+    assert(taumax.size() == ndof);
+    assert(taumin.size() == ndof);
 
     // Links
     nlink0 = int(activelinks.size());
@@ -249,6 +247,7 @@ ZMPTorqueLimits::ZMPTorqueLimits(RobotBasePtr probot0, std::string& constraintss
                 b.push_back(b_ymin);
                 c.push_back(c_ymin);
             }
+
             avect.push_back(a);
             bvect.push_back(b);
             cvect.push_back(c);
