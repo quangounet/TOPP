@@ -33,6 +33,7 @@
 #include <cstdlib>
 #include <cassert>
 
+#include "Errors.h"
 #include "Trajectory.h"
 
 #include <boost/lexical_cast.hpp>
