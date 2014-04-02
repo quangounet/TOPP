@@ -75,8 +75,8 @@ ZMPTorqueLimits::ZMPTorqueLimits(RobotBasePtr probot0, std::string& constraintss
     assert(activelinks.size() == probot->GetLinks().size());
     assert(zmplimits.size() == 4);
     assert(ndof == ptraj->dimension);
-    assert(taumax.size() == ndof);
-    assert(taumin.size() == ndof);
+    assert((int)taumax.size() == ndof);
+    assert((int)taumin.size() == ndof);
 
     // Links
     nlink0 = int(activelinks.size());
