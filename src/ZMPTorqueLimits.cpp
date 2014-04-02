@@ -82,6 +82,7 @@ ZMPTorqueLimits::ZMPTorqueLimits(RobotBasePtr probot0, std::string& constraintss
     nlink0 = int(activelinks.size());
     linksvector = probot->GetLinks();
 
+    totalmass = 0.;
     for(int i=0; i < nlink0; i++) {
         mass.push_back(linksvector[i]->GetMass());
         totalmass += mass[i];
