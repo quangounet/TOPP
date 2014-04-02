@@ -6,9 +6,6 @@ import StringIO
 
 from pylab import arange, array, double, plot, zeros
 
-class NoTrajectoryFound(Exception):
-    pass
-
 
 class Polynomial(object):
     @staticmethod

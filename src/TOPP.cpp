@@ -1523,12 +1523,12 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
     bool retprocess = constraints.Preprocess();
     if(!retprocess) {
         std::cout << "Trajectory duration too short\n";
-        return 0;
+        return TOPP_SHORT_TRAJ;
     }
 
     if(VectorMin(constraints.mvcbobrow) <= TINY) {
         //std::cout << "[TOPP] MVCBobrow hit 0\n";
-        return 0;
+        return TOPP_MVC_HIT_ZERO;
     }
 
     Profile resprofile;
@@ -1723,7 +1723,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
 
     if(!integrateprofilesstatus) {
         std::cout << "[TOPP::ComputeProfiles] " << message << "\n";
-        return 0;
+        return TOPP_UNSPEC;
     }
 
     t2 = std::chrono::system_clock::now();
@@ -1738,25 +1738,25 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
     //std::cout << "Duration calculation : " <<  d3.count() << " \n ";
     //std::cout << "Total PP : " <<  dtot.count() << " \n ";
 
-    return 1;
+    return TOPP_OK;
 }
 
 
 int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmin, dReal& sdendmax){
     if (constraints.trajectory.duration <= 0) {
         std::cout << "[TOPP::VIP] Warning : trajectory duration is <= 0 \n";
-        return 0;
+        return TOPP_SHORT_TRAJ;
     }
 
     bool retprocess = constraints.Preprocess();
     if(!retprocess) {
         std::cout << "Trajectory duration too short\n";
-        return 0;
+        return TOPP_SHORT_TRAJ;
     }
 
     if(VectorMin(constraints.mvcbobrow) <= TINY) {
         std::cout << "[TOPP::VIP] MVCBobrow hit 0 \n";
-        return 0;
+        return TOPP_MVC_HIT_ZERO;
     }
 
     Profile tmpprofile;
@@ -1767,7 +1767,7 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
     int resclc = ComputeLimitingCurves(constraints);
     if(resclc == CLC_SWITCH || resclc == CLC_BOTTOM) {
         std::cout << "[TOPP::VIP] resclc == CLC_SWITCH or CLC_BOTTOM \n";
-        return 0;
+        return TOPP_CLC_ERROR;
     }
 
     // Determine the lowest profile at t=0
@@ -1779,7 +1779,7 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
 
     if(sdbegmin>bound) {
         std::cout << "[TOPP::VIP] sdbegmin is above the CLC or the combined MVC \n";
-        return 0;
+        return TOPP_SDBEGMIN_TOO_HIGH;
     }
 
     sdbegmax = std::min(sdbegmax,bound-constraints.bisectionprecision);
@@ -1791,7 +1791,7 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
     constraints.resprofileslist.push_back(tmpprofile);
     if(resintfw == INT_BOTTOM) {
         std::cout << "[TOPP::VIP] Forward integration hit sd = 0 \n";
-        return 0;
+        return TOPP_FWD_HIT_ZERO;
     }
     else if (resintfw == INT_END && tmpprofile.Evald(tmpprofile.duration) <= constraints.mvccombined[constraints.mvccombined.size() - 1])
         sdendmax = tmpprofile.Evald(tmpprofile.duration);
@@ -1805,7 +1805,10 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
             int count = 0;
             int resintbw;
             dReal dtint = constraints.integrationtimestep;
-            // If integrating from sdendmax fails with INT_BOTTOM or INT_MVC, then the trajectory is not traversable. However, since integrating backward from a high sdendmax can be risky, we give three chances by decreasing the value of the integration step
+            // If integrating from sdendmax fails with INT_BOTTOM or INT_MVC,
+            // then the trajectory is not traversable. However, since
+            // integrating backward from a high sdendmax can be risky, we give
+            // three chances by decreasing the value of the integration step
             while(count<3) {
                 count++;
                 resintbw = IntegrateBackward(constraints,constraints.trajectory.duration,sdendmax,dtint,tmpprofile,1e5);
@@ -1815,7 +1818,7 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
                 dtint /= 3.3;
             }
             if(resintbw == INT_BOTTOM || resintbw == INT_MVC || (resintbw == INT_END && tmpprofile.Evald(0)<sdbegmin))
-                return 0;
+                return TOPP_BWD_FAIL;
         }
     }
 
@@ -1824,7 +1827,7 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
     if((resintbw == INT_END && tmpprofile.Evald(0)>=sdbegmin) || resintbw == INT_PROFILE) {
         constraints.resprofileslist.push_back(tmpprofile);
         sdendmin = 0;
-        return 1;
+        return TOPP_OK;
     }
 
     // Determine sdendmin by bisection
@@ -1843,25 +1846,25 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
     sdendmin = sdupper;
     constraints.resprofileslist.push_back(bestprofile);
 
-    return 1;
+    return TOPP_OK;
 }
 
 
 int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dReal sdendmin, dReal sdendmax) {
     if (constraints.trajectory.duration <= 0) {
         std::cout << "[TOPP::VIPBackward] Warning : trajectory duration is <= 0 \n";
-        return 0;
+        return TOPP_SHORT_TRAJ;
     }
 
     bool retprocess = constraints.Preprocess();
     if(!retprocess) {
         std::cout << "Trajectory duration too short\n";
-        return 0;
+        return TOPP_SHORT_TRAJ;
     }
 
     if(VectorMin(constraints.mvcbobrow) <= TINY) {
         std::cout << "[TOPP::VIPBackward] MVCBobrow hit 0 \n";
-        return 0;
+        return TOPP_MVC_HIT_ZERO;
     }
 
     Profile tmpprofile;
@@ -1872,7 +1875,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
     int resclc = ComputeLimitingCurves(constraints);
     if (resclc == CLC_SWITCH || resclc == CLC_BOTTOM) {
         std::cout << "[TOPP::VIPBackward] resclc == CLC_SWITCH or CLC_BOTTOM \n";
-        return 0;
+        return TOPP_CLC_ERROR;
     }
 
     // Determine the lowest profile at send
@@ -1884,7 +1887,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
 
     if (sdendmin > bound) {
         std::cout << "[TOPP::VIPBackward] sdendmin is above the combined MVC \n";
-        return 0;
+        return TOPP_SDENDMIN_TOO_HIGH;
     }
 
     sdendmax = std::min(sdendmax, bound-constraints.bisectionprecision);
@@ -1896,7 +1899,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
     constraints.resprofileslist.push_back(tmpprofile);
     if (resintbw == INT_BOTTOM) {
         std::cout << "[TOPP::VIPBackward] Backward integration hits sd = 0 \n";
-        return 0;
+        return TOPP_BWD_HIT_ZERO;
     }
     // Phi profile reaches s = 0
     else if (resintbw == INT_END && tmpprofile.Evald(0) <= constraints.mvccombined[0]) {
@@ -1924,7 +1927,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
                 dint /= 3.3;
             }
             if (resintfw == INT_BOTTOM || resintfw == INT_MVC || (resintfw == INT_END && tmpprofile.Evald(tmpprofile.duration) < sdendmin))
-                return 0;
+                return TOPP_FWD_FAIL;
         }
     }
 
@@ -1933,7 +1936,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
     if ((resintfw == INT_END && tmpprofile.Evald(tmpprofile.duration) >= sdendmin) || resintfw == INT_PROFILE) {
         constraints.resprofileslist.push_back(tmpprofile);
         sdbegmin = 0;
-        return 1;
+        return TOPP_OK;
     }
 
     // If sdbegmin != 0, determine sdbegmin by bisection
@@ -1952,7 +1955,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
     sdbegmin = sdupper;
     constraints.resprofileslist.push_back(bestprofile);
 
-    return 1;
+    return TOPP_OK;
 }
 
 
