@@ -444,6 +444,17 @@ QuadraticConstraints::QuadraticConstraints(const std::string& constraintsstring)
 }
 
 
+void QuadraticConstraints::CheckInput() {
+    if ((int)vmax.size() != trajectory.dimension) {
+        std::ostringstream msg;
+        msg << "vmax has dimension " << vmax.size()
+            << " but trajectory has dimension " << trajectory.dimension << ".";
+        std::cout << "[TOPP] " << msg.str() << std::endl;
+        throw TOPPException(msg.str());
+    }
+}
+
+
 void QuadraticConstraints::InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c) {
     a.resize(nconstraints);
     b.resize(nconstraints);

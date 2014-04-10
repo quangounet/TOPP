@@ -49,6 +49,7 @@ public:
         else if (problemtype.compare("QuadraticConstraints")==0) {
             pconstraints.reset(new QuadraticConstraints(constraintsstring));
             pconstraints->trajectory = *ptrajectory;
+            pconstraints->CheckInput();
         }
 
 #ifdef WITH_OPENRAVE
