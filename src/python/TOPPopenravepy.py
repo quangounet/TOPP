@@ -152,14 +152,14 @@ def ComputeTorquesConstraints(robot, traj, taumin, taumax, discrtimestep):
             cvect = []
             for i in range(len(taumax)):
                 if abs(taumax[i]) > 1e-10:
-                    avect.append(to[i])
-                    bvect.append(tm[i] + tc[i])
-                    cvect.append(tg[i] - taumax[i])
+                    avect.append(to[robot.GetActiveDOFIndices()[i]])
+                    bvect.append(tm[robot.GetActiveDOFIndices()[i]] + tc[robot.GetActiveDOFIndices()[i]])
+                    cvect.append(tg[robot.GetActiveDOFIndices()[i]] - taumax[i])
             for i in range(len(taumin)):
                 if abs(taumin[i]) > 1e-10:
-                    avect.append(-to[i])
-                    bvect.append(-tm[i] - tc[i])
-                    cvect.append(-tg[i] + taumin[i])
+                    avect.append(-to[robot.GetActiveDOFIndices()[i]])
+                    bvect.append(-tm[robot.GetActiveDOFIndices()[i]] - tc[robot.GetActiveDOFIndices()[i]])
+                    cvect.append(-tg[robot.GetActiveDOFIndices()[i]] + taumin[i])
             constraintstring += "\n" + string.join([str(a) for a in avect])
             constraintstring += "\n" + string.join([str(b) for b in bvect])
             constraintstring += "\n" + string.join([str(c) for c in cvect])

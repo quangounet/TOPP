@@ -55,7 +55,7 @@ for i in range(ndof):
 traj0 = Trajectory.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 # Constraints
-discrtimestep = 0.005
+discrtimestep = 0.01
 vmax = zeros(ndof)
 taumin = zeros(ndof)
 taumax = zeros(ndof)
