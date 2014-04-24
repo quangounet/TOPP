@@ -1163,6 +1163,15 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                 // Now step along the MVCCombined
                 while(true) {
                     snext = scur + dt;
+                    if(snext>constraints.trajectory.duration) {
+                        cont = false;
+                        //std::cout << "End traj\n";
+                        slist.push_back(scur);
+                        sdlist.push_back(sdcur);
+                        sddlist.push_back(0);
+                        returntype = INT_END; // ZLAJPAH END
+                        break;
+                    }
                     sdnext = constraints.SdLimitCombined(snext);
                     //std::cout <<"Next ("<< snext << "," << sdnext << ") \n";
                     int res2 = FlowVsMVC(constraints,snext,sdnext,1,dt);
