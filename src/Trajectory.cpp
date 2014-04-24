@@ -487,7 +487,11 @@ int Trajectory::Reparameterize(Constraints& constraints, Trajectory& restrajecto
         scur = snext;
         sdcur = sdnext2;
     }
-
+    
+    if (newchunkslist.size() < 1) {
+        return -1;
+    }
+    
     restrajectory = Trajectory(newchunkslist);
     return 1;
 }
