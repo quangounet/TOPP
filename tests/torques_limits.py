@@ -30,7 +30,7 @@ from TOPP import Utilities
 
 # Robot (OpenRAVE)
 env = Environment()
-env.Load("robots/twodof.robot.xml")
+env.Load("../robots/twodof.robot.xml")
 env.SetViewer('qtcoin')
 env.GetViewer().SetCamera(array([[ 0.00846067,  0.4334184 , -0.9011531 ,  0.84555054],
        [ 0.99938498,  0.0270039 ,  0.02237072,  0.01155015],

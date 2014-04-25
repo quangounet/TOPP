@@ -62,7 +62,7 @@ taumax = zeros(ndof)
 taumin[0:4] = [-30,-50,-25,-15] # Torque limits, only for the shoulder and elbow joints
 taumax[0:4] = [30,50,25,15]
 constraintstring = str(discrtimestep) + "\n";
-constraintstring += string.join([str(v) for v in vmax])
+constraintstring += string.join([str(v) for v in vmax[0:4]])
 constraintstring += TOPPopenravepy.ComputeTorquesConstraints(robot,topptraj0,taumin,taumax,discrtimestep)
 
 # Run TOPP
