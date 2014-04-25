@@ -18,7 +18,7 @@ The following software is required to install TOPP:
 
 If you need OpenRAVE support (for dynamics computations), the following software is also required:
 
-- OpenRAVE (installed from source, see http://openrave.org/docs/latest_stable/coreapihtml/installation_linux.html NB: one must install from the "master" branch, not the "latest stable", so change <code>git clone --branch latest_stable https://github.com/rdiankov/openrave.git</code> into <code>git clone --branch master https://github.com/rdiankov/openrave.git</code>")
+- OpenRAVE (installed from source, see http://openrave.org/docs/latest_stable/coreapihtml/installation_linux.html **NB**: one must install from the "master" branch, not the "latest stable", so change <code>git clone --branch latest_stable https://github.com/rdiankov/openrave.git</code> into <code>git clone --branch master https://github.com/rdiankov/openrave.git</code>)
 - LAPACK (3.5.0 or above)
 
 Installation
