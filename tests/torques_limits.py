@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+print "\n************************************\nNB: This test file requires OpenRAVE\n************************************\n"
+
 import string
 from pylab import *
 from numpy import *
@@ -94,3 +96,5 @@ else:
 # Execute trajectory
 if(ret == 1):
     TOPPopenravepy.Execute(robot,traj1)
+
+raw_input()
