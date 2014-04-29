@@ -110,24 +110,24 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
 	    }
 
             RaveTransform<dReal> Htray = probot->GetLinks()[traylinkindex]->GetTransform();
-	    Vector Pt = probot->GetLinks()[traylinkindex]->GetGlobalCOM();
-            // Vector nx = Htray.rotate(worldx);
-            // Vector ny = Htray.rotate(worldy);
-            // Vector nz = Htray.rotate(worldz); //normal vector of the tray described in world's frame
+	    // Vector Pt = probot->GetLinks()[traylinkindex]->GetGlobalCOM();
+            Vector nx = Htray.rotate(worldx);
+            Vector ny = Htray.rotate(worldy);
+            Vector nz = Htray.rotate(worldz); //normal vector of the tray described in world's frame
 	    
-	    //calculate Jacobians of the tray
-            probot->CalculateJacobian(traylinkindex, Pt, jacobiant_p);
-            probot->CalculateAngularVelocityJacobian(traylinkindex, jacobiant_o);
+	    // calculate Jacobians of the tray
+            // probot->CalculateJacobian(traylinkindex, Pt, jacobiant_p);
+            // probot->CalculateAngularVelocityJacobian(traylinkindex, jacobiant_o);
 	    
-	    if (!qdiszero) {
-		//******** Set new DOF values and compute derivatives of Jacobians **********
-                probot->SetDOFValues(qplusdeltaqd, CLA_Nothing);
-		//*** tray ***
-                probot->CalculateJacobian(traylinkindex, linksvector[traylinkindex]->GetGlobalCOM(), jacobiant_pdelta);
-                probot->CalculateAngularVelocityJacobian(traylinkindex, jacobiant_odelta);
-                MatrixAdd(jacobiant_pdelta, jacobiant_p, jacobiant_pdiff, norm_qd/delta, -norm_qd/delta);
-                MatrixAdd(jacobiant_odelta, jacobiant_o, jacobiant_odiff, norm_qd/delta, -norm_qd/delta);
-	    }
+	    // if (!qdiszero) {
+	    // 	//******** Set new DOF values and compute derivatives of Jacobians **********
+            //     probot->SetDOFValues(qplusdeltaqd, CLA_Nothing);
+	    // 	//*** tray ***
+            //     probot->CalculateJacobian(traylinkindex, linksvector[traylinkindex]->GetGlobalCOM(), jacobiant_pdelta);
+            //     probot->CalculateAngularVelocityJacobian(traylinkindex, jacobiant_odelta);
+            //     MatrixAdd(jacobiant_pdelta, jacobiant_p, jacobiant_pdiff, norm_qd/delta, -norm_qd/delta);
+            //     MatrixAdd(jacobiant_odelta, jacobiant_o, jacobiant_odiff, norm_qd/delta, -norm_qd/delta);
+	    // }
 	    
 	    // Vector temp1 = MatrixMultVector(jacobiant_o, qd);
             // Vector temp2 = MatrixMultVector(jacobiant_o, qdd) + MatrixMultVector(jacobiant_odiff, qd);
@@ -155,11 +155,7 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
 
 		RaveTransform<dReal> Hbottle = probot->GetLinks()[bottlelinkindex]->GetTransform();
 		Vector Pb = probot->GetLinks()[bottlelinkindex]->GetGlobalCOM();
-
-		Vector nx = Hbottle.rotate(worldx);
-		Vector ny = Hbottle.rotate(worldy);
-		Vector nz = Hbottle.rotate(worldz); //normal vector of the tray described in world's frame
-	    
+		
 		//Calculate Jacobians of the bottle
 		probot->CalculateJacobian(bottlelinkindex, Pb, jacobianb_p);
 		probot->CalculateAngularVelocityJacobian(bottlelinkindex, jacobianb_o);
@@ -186,6 +182,7 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
 		dReal N0 = -mb*nz.dot3(g);
 
 		//**************** CONSTRAINT I : N >= 0 *****************
+		// actually this constraint will never be saturated.
 		a.push_back(-Ns);
 		b.push_back(-Nss);
 		c.push_back(eps - N0);
@@ -225,8 +222,7 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
 		// c.push_back(-nz.dot3(f0) - eps);
 		
 		//******************************************************************************
-		
-		
+				
 		//************************ Calculate the rate of change of the momentum ******************************
 				
 		RaveTransformMatrix<dReal> matIb;
@@ -248,8 +244,8 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
 		Vector Ess = nz.cross(Mss) + mb*bottleh*Pbss;
 		Vector E0 = -mb*bottleh*g;
 		
-		// Vector nxbottle = Hbottle.rotate(worldx);
-		// Vector nybottle = Hbottle.rotate(worldy);
+		Vector nxbottle = Hbottle.rotate(worldx);
+		Vector nybottle = Hbottle.rotate(worldy);
 				
 		Vector Ks = bottleh*Ns*nz - Es;
 		Vector Kss = bottleh*Nss*nz - Ess;
@@ -257,13 +253,13 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
 		
 		//X
 		//************************* CONSTAINT III/I ***************************
-		a.push_back(nx.dot3(Ks) - dx*Ns);
-		b.push_back(nx.dot3(Kss) - dx*Nss);
-		c.push_back(nx.dot3(K0) - dx*N0);
+		a.push_back(nxbottle.dot3(Ks) - dx*Ns);
+		b.push_back(nxbottle.dot3(Kss) - dx*Nss);
+		c.push_back(nxbottle.dot3(K0) - dx*N0);
 		
-		a.push_back(-nx.dot3(Ks) - dx*Ns);
-		b.push_back(-nx.dot3(Kss) - dx*Nss);
-		c.push_back(-nx.dot3(K0) - dx*N0);
+		a.push_back(-nxbottle.dot3(Ks) - dx*Ns);
+		b.push_back(-nxbottle.dot3(Kss) - dx*Nss);
+		c.push_back(-nxbottle.dot3(K0) - dx*N0);
 		
 		//Y
 		//************************ CONSTRAINT III/II **************************
@@ -271,9 +267,9 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
 		b.push_back(ny.dot3(Kss) - dy*Nss);
 		c.push_back(ny.dot3(K0) - dy*N0);
 		
-		a.push_back(-ny.dot3(Ks) - dy*Ns);
-		b.push_back(-ny.dot3(Kss) - dy*Nss);
-		c.push_back(-ny.dot3(K0) - dy*N0);
+		a.push_back(-nybottle.dot3(Ks) - dy*Ns);
+		b.push_back(-nybottle.dot3(Kss) - dy*Nss);
+		c.push_back(-nybottle.dot3(K0) - dy*N0);
 		
 		//std::cout << Ns << "\t" << Nss << "\t" << N0 << "\t" << "\n";
 
