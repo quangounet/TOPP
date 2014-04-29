@@ -368,10 +368,10 @@ enum CLCReturnType {
 };
 
 // Integrate forward from (sstart,sdstart)
-int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, bool testaboveexistingprofiles=true, bool testmvc=true, bool zlajpah=false);
+int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e6, bool testaboveexistingprofiles=true, bool testmvc=true, bool zlajpah=false);
 
 // Integrate backward from (sstart,sdstart)
-int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, bool testaboveexistingprofiles=true, bool testmvc=true, bool zlajpah=false);
+int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e6, bool testaboveexistingprofiles=true, bool testmvc=true, bool zlajpah=false);
 
 // Compute the CLC
 int ComputeLimitingCurves(Constraints& constraints);
