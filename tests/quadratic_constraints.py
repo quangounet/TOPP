@@ -15,7 +15,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import string
+print "\n************************************\nNB: This test file requires OpenRAVE\n************************************\n"
+
+import string,time
 from pylab import *
 from numpy import *
 from openravepy import *
@@ -46,7 +48,8 @@ q0 = zeros(ndof)
 q1 = zeros(ndof)
 qd0 = zeros(ndof)
 qd1 = zeros(ndof)
-q1[0:4] = [2.32883,  1.61082,  0.97706,  1.94169] #Target DOF values for the shoulder and elbow joints
+q0[0:7] = [-2,-1,-1.5,-2.5,0,0,0]
+q1[0:7] = [2,-3,1.5,2,1,1,1]
 T = 1.5
 trajectorystring = "%f\n%d"%(T,ndof)
 for i in range(ndof):
@@ -54,17 +57,20 @@ for i in range(ndof):
     trajectorystring += "\n%f %f %f %f"%(d,c,b,a)
 traj0 = Trajectory.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
+t0 = time.time()
 # Constraints
-discrtimestep = 0.005
+discrtimestep = 0.001
 vmax = zeros(ndof)
 taumin = zeros(ndof)
 taumax = zeros(ndof)
-vmax[0:4] = [2,2,2,2]  # Velocity limits, only for the shoulder and elbow joints
-taumin[0:4] = [-30,-50,-25,-15] # Torque limits, only for the shoulder and elbow joints
-taumax[0:4] = [30,50,25,15]
+vmax[0:7] = 1.5*vel_lim[0:7]  # Velocity limits
+taumin[0:7] = -robot.GetDOFMaxTorque()[0:7] # Torque limits
+taumax[0:7] = robot.GetDOFMaxTorque()[0:7] # Torque limits
 constraintstring = str(discrtimestep) + "\n";
 constraintstring += string.join([str(v) for v in vmax])
 constraintstring += TOPPopenravepy.ComputeTorquesConstraints(robot,traj0,taumin,taumax,discrtimestep)
+
+t1 = time.time()
 
 # Run TOPP
 x = TOPPbindings.TOPPInstance(None,"QuadraticConstraints",constraintstring,trajectorystring);
@@ -76,6 +82,8 @@ x = TOPPbindings.TOPPInstance(None,"QuadraticConstraints",x.outconstraintstring,
 ret = x.RunComputeProfiles(0,0)
 if(ret == 1):
     x.ReparameterizeTrajectory()
+
+print  t1-t0, time.time()-t1
 
 # Display results
 ion()
@@ -98,3 +106,5 @@ else:
 # Execute trajectory
 if(ret == 1):
     TOPPopenravepy.Execute(robot,traj1)
+
+raw_input()

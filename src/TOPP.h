@@ -214,6 +214,9 @@ public:
     Constraints(){
     }
 
+    // Check input after this->trajectory has been set (from TOPPbindings)
+    virtual void CheckInput() {}
+
     // Compute the MVCs and the switchpoints and other initializations
     virtual bool Preprocess();
 
@@ -330,6 +333,7 @@ public:
     //////////////// Overloaded methods //////////////////////
     std::pair<dReal,dReal> SddLimits(dReal s, dReal sd);
     dReal SdLimitBobrowInit(dReal s);
+    void CheckInput();  
     void FindSingularSwitchPoints();
     void ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector);
     void WriteConstraints(std::stringstream& ss);
