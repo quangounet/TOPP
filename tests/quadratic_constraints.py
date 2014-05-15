@@ -75,10 +75,6 @@ t1 = time.time()
 # Run TOPP
 x = TOPPbindings.TOPPInstance(None,"QuadraticConstraints",constraintstring,trajectorystring);
 
-# Testing constraints serialization
-x.WriteConstraints()
-x = TOPPbindings.TOPPInstance(None,"QuadraticConstraints",x.outconstraintstring,trajectorystring);
-
 ret = x.RunComputeProfiles(0,0)
 if(ret == 1):
     x.ReparameterizeTrajectory()
