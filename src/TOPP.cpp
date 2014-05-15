@@ -1455,7 +1455,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
             dReal sdprev = sdcur - dt * alpha;
             scur = sprev;
             sdcur = sdprev;
-            alpha = constraints.SddLimitAlpha(std::max(0.,scur),std::max(0.,sdcur));
+            alpha = constraints.SddLimitAlpha(std::min(constraints.trajectory.duration,std::max(0.,scur)),std::max(0.,sdcur));
             sddlist.push_back(alpha);
         }
     }
