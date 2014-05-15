@@ -834,6 +834,8 @@ dReal BisectionSearch(Constraints& constraints, dReal s, dReal sdbottom, dReal s
 bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint, dReal& sbackward, dReal& sdbackward, dReal& sforward, dReal& sdforward){
     dReal s = switchpoint.s;
     dReal sd = switchpoint.sd;
+    dReal dt = constraints.integrationtimestep;
+    bool testaboveexistingprofiles = false, testmvc = true, zlajpah = false;
     Profile resprofile;
 
     // Singular switchpoints
@@ -841,24 +843,36 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
         dReal bestsstep = 0.1;
         dReal bestslope = 0;
         dReal bestscore = INF;
-        for(dReal sstep = 3.3e-3; sstep <= 0.01; sstep*=3.33) {
+        dReal sstep = 1e-3/3.1;
+        while(sstep <= 0.01) {
+            sstep = sstep * 3.1;
             for(int i = 0; i<int(switchpoint.slopesvector.size()); i++) {
                 sforward = std::min(s + sstep,constraints.trajectory.duration);
                 sbackward = std::max(s - sstep,0.);
                 dReal slope = switchpoint.slopesvector[i];
-                if(std::abs(slope*sstep)>0.1) {
-                    continue;
-                }
+                //if(std::abs(slope*sstep)>0.1) {
+                //    continue;
+                //}
                 sdforward = sd + (sforward-s)*slope;
                 sdbackward = sd - (s-sbackward)*slope;
+                bool canintegrate = false;
+                int ret = IntegrateBackward(constraints,sbackward,sdbackward,dt,resprofile,constraints.passswitchpointnsteps);
+                if(ret==INT_MAXSTEPS||ret==INT_END) {
+                    ret = IntegrateForward(constraints,sforward,sdforward,dt,resprofile,constraints.passswitchpointnsteps,testaboveexistingprofiles, testmvc, zlajpah);
+                    if(ret==INT_MAXSTEPS||ret==INT_END) {
+                        canintegrate = true;
+                    }
+                }
+                if(!canintegrate) {
+                    continue;
+                }
                 dReal alphabackward = constraints.SddLimits(sbackward,sdbackward).first/sd;
                 dReal betaforward = constraints.SddLimits(sforward,sdforward).second/sd;
-                dReal bob1 = constraints.SdLimitBobrow(sbackward)-sdbackward;
-                dReal bob2 = constraints.SdLimitBobrow(sforward)-sdforward;
                 dReal slopediff1 = std::abs(alphabackward-slope);
                 dReal slopediff2 = std::abs(betaforward-slope);
-                if(bob1>=0 && bob2>=0 && sdbackward > 0.01 && sdforward > 0.01) {
-                    dReal score = (slopediff1+slopediff2)/std::abs(std::log(sstep));
+                if(sdbackward > 0.01 && sdforward > 0.01) {
+                    //dReal score = (slopediff1+slopediff2)/std::abs(std::log(sstep));
+                    dReal score = slopediff1+slopediff2;
                     if(score<bestscore) {
                         bestsstep = sstep;
                         bestslope = slope;
@@ -1294,6 +1308,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
     bool cont = true;
     int returntype = INT_END;
     bool searchbackward = true;
+    dReal alphabk = INF;
 
     // Initialize the currentindex of the profiles for search purpose
     if(testaboveexistingprofiles && constraints.resprofileslist.size()>0) {
@@ -1408,12 +1423,16 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
             //std ::pair<dReal,dReal> sddlimits = constraints.SddLimits(scur,sdcur);
             //dReal alpha = sddlimits.first;
             dReal alpha = constraints.SddLimitAlpha(scur,sdcur);
+            if(sddlist.size()==0) {
+                alphabk = alpha;
+            }
             //std::cout << scur << " " << sdcur << " " << alpha << "\n";
-            sddlist.push_back(alpha);
             dReal sprev = scur - dt * sdcur + 0.5*dtsq*alpha;
             dReal sdprev = sdcur - dt * alpha;
             scur = sprev;
             sdcur = sdprev;
+            alpha = constraints.SddLimitAlpha(scur,sdcur);
+            sddlist.push_back(alpha);
         }
     }
     if(sddlist.size()>0) {
@@ -1421,7 +1440,12 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
         sdlist.reverse();
         sddlist.reverse();
         sddlist.pop_front();
-        sddlist.push_back(sddlist.back());
+        if(alphabk == INF) {
+            sddlist.push_back(sddlist.back());
+        }
+        else{
+            sddlist.push_back(alphabk);
+        }
     }
     resprofile = Profile(slist,sdlist,sddlist,dt);
     resprofile.forward = false;
@@ -1474,35 +1498,7 @@ int ComputeLimitingCurves(Constraints& constraints){
 
         // Add middle part
         if (sforward - sbackward > TINY) {
-            dReal sbackward2 = sbackward, sforward2 = sforward, sdbackward2 = sdbackward, sdforward2 = sdforward;
-            dReal searchstep = (sforward-sbackward)/10.;
-            dReal slope = (sdforward-sdbackward)/(sforward-sbackward);
-            // Fix backward stub if necessary
-            if (sdbackward>constraints.SdLimitCombined(sbackward)) {
-                sdbackward = constraints.SdLimitCombined(sbackward);
-                for(sbackward2=sbackward; sbackward2<sswitch; sbackward2+=searchstep) {
-                    dReal sdtmp = sdbackward + slope*(sbackward2-sbackward);
-                    if(sdtmp<constraints.SdLimitCombined(sbackward2)) {
-                        break;
-                    }
-                }
-                sdbackward2 = constraints.SdLimitCombined(sbackward2);
-                constraints.resprofileslist.push_back(StraightProfile(sbackward,sbackward2,sdbackward,sdbackward2));
-            }
-            // Fix forward stub if necessary
-            if (sdforward>constraints.SdLimitCombined(sforward)) {
-                sdforward = constraints.SdLimitCombined(sforward);
-                for(sforward2=sforward; sforward2>sswitch; sforward2-=searchstep) {
-                    dReal sdtmp = sdforward - slope*(sforward-sforward2);
-                    if(sdtmp<constraints.SdLimitCombined(sforward2)) {
-                        break;
-                    }
-                }
-                sdforward2 = constraints.SdLimitCombined(sforward2);
-                constraints.resprofileslist.push_back(StraightProfile(sforward2,sforward,sdforward2,sdforward));
-            }
-            // Add main stub
-            constraints.resprofileslist.push_back(StraightProfile(sbackward2,sforward2,sdbackward2,sdforward2));
+            constraints.resprofileslist.push_back(StraightProfile(sbackward,sforward,sdbackward,sdforward));
             //std::cout << "Main stub : " << constraints.resprofileslist.back().duration << "\n";
 
         }

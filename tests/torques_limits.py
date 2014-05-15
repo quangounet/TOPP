@@ -27,33 +27,34 @@ from TOPP import TOPPopenravepy
 from TOPP import Trajectory
 from TOPP import Utilities
 
-
 # Robot (OpenRAVE)
 env = Environment()
-env.Load("../robots/twodof.robot.xml")
+xml = """
+<Robot name="BarrettWAM">
+  <KinBody file="robots/wam7.kinbody.xml"/>
+</Robot>
+"""
+robot = env.ReadRobotData(xml)
+env.Add(robot)
 env.SetViewer('qtcoin')
-env.GetViewer().SetCamera(array([[ 0.00846067,  0.4334184 , -0.9011531 ,  0.84555054],
-       [ 0.99938498,  0.0270039 ,  0.02237072,  0.01155015],
-       [ 0.03403053, -0.90078814, -0.43292337,  0.65048862],
+env.GetViewer().SetCamera(array([[ 0.92038107,  0.00847738, -0.39093071,  0.69997793],
+       [ 0.39101295, -0.02698477,  0.91998951, -1.71402919],
+       [-0.00275007, -0.9995999 , -0.02815103,  0.40470174],
        [ 0.        ,  0.        ,  0.        ,  1.        ]]))
-robot = env.GetRobots()[0]
-robot.SetTransform(array([[0, 0, 1, 0],
-                          [0, 1, 0, 0],
-                          [-1, 0, 0, 0.3],
-                          [0, 0, 0, 1]]))
-grav = [0, 0, -9.8]
+grav = [0,0,-9.8]
 ndof = robot.GetDOF()
 dof_lim = robot.GetDOFLimits()
 vel_lim = robot.GetDOFVelocityLimits()
-robot.SetDOFLimits(-10 * ones(ndof), 10 * ones(ndof)) # Overrides robot joint limits
-robot.SetDOFVelocityLimits(100 * vel_lim) # Overrides robot velocity limits
+robot.SetDOFLimits(-10*ones(ndof),10*ones(ndof)) # Overrides robot joint limits
+robot.SetDOFVelocityLimits(100*vel_lim) # Override robot velocity limits
 
 # Trajectory
-q0 = [0,0]
-q1 = [5*pi/4,-pi/2]
-qd0 = [1,1]
-qd1 = [1,1]
-T = 2
+q0 = zeros(ndof)
+q1 = zeros(ndof)
+qd0 = zeros(ndof)
+qd1 = zeros(ndof)
+q1[0:7] = [2.32883,  1.61082,  0.97706,  1.94169, 1, 1, 1]
+T = 1.5
 trajectorystring = "%f\n%d"%(T,ndof)
 for i in range(ndof):
     a,b,c,d = Utilities.Interpolate3rdDegree(q0[i],q1[i],qd0[i],qd1[i],T)
@@ -61,10 +62,13 @@ for i in range(ndof):
 traj0 = Trajectory.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 # Constraints
-discrtimestep = 0.002
-vmax = array([5, 5])
-taumin = array([-25, -10])
-taumax = array([25, 10])
+discrtimestep = 0.01
+vmax = zeros(ndof)
+taumin = zeros(ndof)
+taumax = zeros(ndof)
+vmax[0:7] = [2,2,2,2,2,2,2]  # Velocity limits
+taumin[0:7] = [-30,-50,-25,-15,-20,-20,-20] # Torque limits
+taumax[0:7] = [30,50,25,15,20,20,20]
 constraintstring = str(discrtimestep) + "\n";
 constraintstring += string.join([str(v) for v in vmax]) + "\n"
 constraintstring += string.join([str(t) for t in taumin]) + "\n" + string.join([str(t) for t in taumax])
