@@ -1438,6 +1438,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
         else if(!zlajpah && testmvc && sdcur > constraints.SdLimitCombined(scur)+TINY2) {
             slist.push_back(scur);
             sdlist.push_back(sdcur);
+            sddlist.push_back(0);
             returntype = INT_MVC;
             break;
         }
@@ -1450,13 +1451,13 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
             if(sddlist.size()==0) {
                 alphabk = alpha;
             }
+            sddlist.push_back(alpha);
             //std::cout << scur << " " << sdcur << " " << alpha << "\n";
             dReal sprev = scur - dt * sdcur + 0.5*dtsq*alpha;
             dReal sdprev = sdcur - dt * alpha;
             scur = sprev;
             sdcur = sdprev;
-            alpha = constraints.SddLimitAlpha(std::min(constraints.trajectory.duration,std::max(0.,scur)),std::max(0.,sdcur));
-            sddlist.push_back(alpha);
+            //alpha = constraints.SddLimitAlpha(std::min(constraints.trajectory.duration,std::max(0.,scur)),std::max(0.,sdcur));
         }
     }
     if(sddlist.size()>0) {
