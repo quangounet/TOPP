@@ -202,7 +202,7 @@ void Trajectory::FindChunkIndex(dReal s, int& index, dReal& remainder) const {
         remainder = 0;
         return;
     }
-    if(s>=chunkcumulateddurationslist.back()) {
+    if(s >= chunkcumulateddurationslist.back()) {
         index = int(chunkslist.size())-1;
         remainder = chunkslist.back().duration;
         return;
@@ -493,7 +493,6 @@ int Trajectory::Reparameterize(Constraints& constraints, Trajectory& restrajecto
     if (newchunkslist.size() < 1) {
         return -1;
     }
-
     restrajectory = Trajectory(newchunkslist);
     return 1;
 }
