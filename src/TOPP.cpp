@@ -854,9 +854,10 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
                 sforward = std::min(s + sstep,constraints.trajectory.duration);
                 sbackward = std::max(s - sstep,0.);
                 dReal slope = switchpoint.slopesvector[i];
-                //if(std::abs(slope*sstep)>0.1) {
-                //    continue;
-                //}
+                // Avoid too big stubs
+                if(std::abs(slope*sstep)>0.1) {
+                    continue;
+                }
                 sdforward = sd + (sforward-s)*slope;
                 sdbackward = sd - (s-sbackward)*slope;
                 bool canintegrate = false;
