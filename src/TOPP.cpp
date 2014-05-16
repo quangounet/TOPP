@@ -120,7 +120,7 @@ dReal Constraints::SdLimitCombinedInit(dReal s){
     if(hasvelocitylimits) {
         trajectory.Evald(s, qd);
         for(int i=0; i<trajectory.dimension; i++) {
-            if(std::abs(qd[i])>TINY) {
+            if(std::abs(qd[i])>TINY && std::abs(vmax[i])>0) {
                 res = std::min(res,vmax[i]/std::abs(qd[i]));
             }
         }
@@ -164,7 +164,7 @@ void Constraints::WriteMVCDirect(std::stringstream& ss, dReal dt){
         dReal res = INF;
         trajectory.Evald(t, qd);
         for(int i=0; i<trajectory.dimension; i++) {
-            if(std::abs(qd[i])>TINY) {
+            if(std::abs(qd[i])>TINY && std::abs(vmax[i])>0) {
                 res = std::min(res,vmax[i]/std::abs(qd[i]));
             }
         }
