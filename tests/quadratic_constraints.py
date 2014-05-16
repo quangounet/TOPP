@@ -59,7 +59,7 @@ traj0 = Trajectory.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 t0 = time.time()
 # Constraints
-discrtimestep = 0.001
+discrtimestep = 0.01
 vmax = zeros(ndof)
 taumin = zeros(ndof)
 taumax = zeros(ndof)
