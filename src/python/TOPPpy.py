@@ -17,6 +17,7 @@
 
 
 from Utilities import vect2str, BezierToTrajectoryString
+import string
 from pylab import double, array, random
 
 
@@ -98,7 +99,7 @@ def GenerateRandomTrajectory(ncurve, ndof, bound):
     return BezierToTrajectoryString(Tv, p0v, p1v, p2v, p3v)
 
 
-################# Compute constraints #####################
+################# Compute Kinematic Constraints #####################
 
 def ComputeKinematicConstraints(traj, amax, discrtimestep):
     # Sample the dynamics constraints
