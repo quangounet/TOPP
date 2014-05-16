@@ -84,6 +84,9 @@ void TorqueLimits::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector
 
     slopesvector.resize(0);
     for(int i=0; i<trajectory.dimension; i++) {
+        if(std::abs(taumax[i]-taumin[i])<TINY) {
+            continue;
+        }
         ap = (a2[i]-a[i])/delta;
         bp = (b2[i]-b[i])/delta;
         cp = (c2[i]-c[i])/delta;
@@ -105,7 +108,7 @@ std::pair<dReal,dReal> TorqueLimits::SddLimits(dReal s, dReal sd){
     InterpolateDynamics(s,a,b,c);
 
     for(int i=0; i<trajectory.dimension; i++) {
-        if(std::abs(a[i])<TINY) {
+        if(std::abs(a[i])<TINY || std::abs(taumax[i]-taumin[i])<TINY) {
             continue;
         }
         if(a[i]>0) {
@@ -135,6 +138,9 @@ dReal TorqueLimits::SdLimitBobrowInit(dReal s){
     InterpolateDynamics(s,a,b,c);
 
     for(int i=0; i<trajectory.dimension; i++) {
+        if(std::abs(taumax[i]-taumin[i])<TINY) {
+            continue;
+        }
         if(a[i] > 0) {
             tau_alpha[i] = taumin[i];
             tau_beta[i] = taumax[i];
@@ -147,6 +153,9 @@ dReal TorqueLimits::SdLimitBobrowInit(dReal s){
     dReal sdmin = INF;
     for(int k=0; k<trajectory.dimension; k++) {
         for(int m=k+1; m<trajectory.dimension; m++) {
+            if(std::abs(taumax[k]-taumin[k])<TINY || std::abs(taumax[m]-taumin[m])<TINY) {
+                continue;
+            }
             dReal num, denum, r;
             num = a[k]*(tau_alpha[m]-c[m])-a[m]*(tau_beta[k]-c[k]);
             denum = a[k]*b[m]-a[m]*b[k];
@@ -184,6 +193,9 @@ void TorqueLimits::FindSingularSwitchPoints(){
         dReal minsd = mvcbobrow[i];
         bool found = false;
         for(int j=0; j<trajectory.dimension; j++) {
+            if(std::abs(taumax[j]-taumin[j])<TINY) {
+                continue;
+            }
             if(a[j]*aprev[j]<0) {
                 dReal r = (taumin[j]-c[j])/b[j];
                 if(r<0) {
