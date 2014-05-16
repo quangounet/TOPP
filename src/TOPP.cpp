@@ -307,6 +307,7 @@ void Constraints::TrimSwitchPoints() {
     std::list<SwitchPoint>::iterator it = switchpointslist.begin();
 
     // Merge singular points
+    // Find the first singular point, if any
     while(it!=switchpointslist.end()) {
         if(it->switchpointtype == SP_SINGULAR) {
             scur = it->s;
@@ -316,6 +317,7 @@ void Constraints::TrimSwitchPoints() {
         }
         it++;
     }
+    // Merge consecutive singular points that are in a small radius
     if(scur>=0) {
         it++;
         while(it!=switchpointslist.end()) {
@@ -354,7 +356,8 @@ void Constraints::TrimSwitchPoints() {
         }
     }
 
-    // Merge non singular points
+    // Merge non-singular switchpoints
+    // Find the first non singular switchpoint, if any
     it = switchpointslist.begin();
     while(it!=switchpointslist.end()) {
         if(it->switchpointtype != SP_SINGULAR) {
@@ -365,6 +368,7 @@ void Constraints::TrimSwitchPoints() {
         }
         it++;
     }
+    // Merge consecutive non-singular switchpoints that are in a small radius
     if(scur>=0) {
         it++;
         while(it!=switchpointslist.end()) {
@@ -1509,7 +1513,7 @@ int ComputeLimitingCurves(Constraints& constraints){
         switchpointslist0.pop_front();
         sswitch = switchpoint.s;
         sdswitch = switchpoint.sd;
-        if(IsAboveProfilesList(sswitch,sdswitch,constraints.resprofileslist,false,0.1*sdswitch))
+        if(IsAboveProfilesList(sswitch,sdswitch,constraints.resprofileslist,false,0))
             continue;
         if(sdswitch > constraints.SdLimitCombined(sswitch)+TINY2)
             continue;
@@ -1563,8 +1567,8 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
 
     bool retprocess = constraints.Preprocess();
     if(!retprocess) {
-        std::cout << "Trajectory duration too short\n";
-        return TOPP_SHORT_TRAJ;
+        std::cout << "Cannot preprocess\n";
+        return TOPP_CANNOT_PREPROCESS;
     }
 
     if(VectorMin(constraints.mvcbobrow) <= TINY) {
@@ -1791,8 +1795,8 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
 
     bool retprocess = constraints.Preprocess();
     if(!retprocess) {
-        std::cout << "Trajectory duration too short\n";
-        return TOPP_SHORT_TRAJ;
+        std::cout << "Cannot preprocess\n";
+        return TOPP_CANNOT_PREPROCESS;
     }
 
     if(VectorMin(constraints.mvcbobrow) <= TINY) {
@@ -1899,8 +1903,8 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
 
     bool retprocess = constraints.Preprocess();
     if(!retprocess) {
-        std::cout << "Trajectory duration too short\n";
-        return TOPP_SHORT_TRAJ;
+        std::cout << "Cannot preprocess\n";
+        return TOPP_CANNOT_PREPROCESS;
     }
 
     if(VectorMin(constraints.mvcbobrow) <= TINY) {
