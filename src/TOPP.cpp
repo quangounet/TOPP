@@ -1519,18 +1519,35 @@ int ComputeLimitingCurves(Constraints& constraints){
         if(sdswitch > constraints.SdLimitCombined(sswitch)+TINY2)
             continue;
 
-        //std::cout << sswitch << "\n";
-
         // Address Switch Point
         if (!AddressSwitchPoint(constraints, switchpoint, sbackward,
                                 sdbackward, sforward, sdforward))
             continue;
 
-        // Add middle part
-        if (sforward - sbackward > TINY) {
-            constraints.resprofileslist.push_back(StraightProfile(sbackward,sforward,sdbackward,sdforward));
-            //std::cout << "Main stub : " << constraints.resprofileslist.back().duration << "\n";
+        bool shiller = false;
+        bool rescale = false;
 
+        if(!shiller) {
+            // Add middle part
+            if(rescale) {
+                dReal slope = (sdforward-sdbackward)/(sforward-sbackward);
+                sbackward = sswitch - constraints.integrationtimestep;
+                sforward = sswitch + constraints.integrationtimestep;
+                sdbackward = sdswitch - slope*constraints.integrationtimestep;
+                sdforward = sdswitch + slope*constraints.integrationtimestep;
+                std::cout << "toto " << constraints.integrationtimestep << "\n";
+            }
+            if (sforward - sbackward > TINY) {
+                constraints.resprofileslist.push_back(StraightProfile(sbackward,sforward,sdbackward,sdforward));
+            }
+        }
+        else{
+            sbackward = sswitch - constraints.integrationtimestep;
+            sforward = sswitch + constraints.integrationtimestep;
+            sdbackward = constraints.SdLimitCombined(sbackward);
+            sdforward = constraints.SdLimitCombined(sforward);
+            constraints.resprofileslist.push_back(StraightProfile(sswitch,sforward,sdswitch,sdforward));
+            constraints.resprofileslist.push_back(StraightProfile(sbackward,sswitch,sdbackward,sdswitch));
         }
 
         // Integrate backward
@@ -1538,7 +1555,6 @@ int ComputeLimitingCurves(Constraints& constraints){
                                             constraints.integrationtimestep, tmpprofile);
         if(tmpprofile.nsteps>2) {
             constraints.resprofileslist.push_back(tmpprofile);
-            //std::cout << "Backward : "  << tmpprofile.nsteps << " " << tmpprofile.duration << "\n";
         }
 
         if(integratestatus == INT_BOTTOM)

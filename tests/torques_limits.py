@@ -66,8 +66,8 @@ taumin[0:7] = -robot.GetDOFMaxTorque()[0:7] # Torque limits
 taumax[0:7] = robot.GetDOFMaxTorque()[0:7] # Torque limits
 
 # Set up the TOPP problem
-discrtimestep = 0.01
-uselegacy = False
+discrtimestep = 0.001
+uselegacy = True
 t0 = time.time()
 if uselegacy: #Using the legacy TorqueLimits (faster but not fully supported)
     constraintstring = str(discrtimestep)
@@ -113,7 +113,7 @@ else:
     print "Trajectory is not time-parameterizable"
 
 # Execute trajectory
-if(ret == 1):
-    TOPPopenravepy.Execute(robot,traj1)
+# if(ret == 1):
+#     TOPPopenravepy.Execute(robot,traj1)
 
 raw_input()
