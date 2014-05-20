@@ -642,6 +642,47 @@ dReal QuadraticConstraints::SdLimitBobrowInit(dReal s){
 }
 
 
+dReal QuadraticConstraints::SdLimitBobrowExclude(dReal s, int iexclude){
+    std::vector<dReal> a, b, c;
+    InterpolateDynamics(s,a,b,c);
+    if(VectorNorm(a)<TINY) {
+        if(s<1e-2) {
+            s+=1e-3;
+        }
+        else{
+            s-=1e-3;
+        }
+        InterpolateDynamics(s,a,b,c);
+    }
+    std::pair<dReal,dReal> sddlimits = SddLimits(s,0);
+    if(sddlimits.first > sddlimits.second) {
+        return 0;
+    }
+
+    dReal sdmin = INF;
+    for(int k=0; k<nconstraints; k++) {
+        for(int m=k+1; m<nconstraints; m++) {
+            if (k==iexclude || m==iexclude) {
+                continue;
+            }
+            dReal num, denum, r;
+            // If we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
+            if(a[k]*a[m]<0) {
+                num = a[k]*c[m]-a[m]*c[k];
+                denum = -a[k]*b[m]+a[m]*b[k];
+                if(std::abs(denum)>TINY) {
+                    r = num/denum;
+                    if(r>=0) {
+                        sdmin = std::min(sdmin,sqrt(r));
+                    }
+                }
+            }
+        }
+    }
+    return sdmin;
+}
+
+
 void QuadraticConstraints::FindSingularSwitchPoints() {
     if(ndiscrsteps<3) {
         return;
@@ -658,8 +699,13 @@ void QuadraticConstraints::FindSingularSwitchPoints() {
         for(int j=0; j< int(a.size()); j++) {
             if(a[j]*aprev[j]<0) {
                 if(c[j]/b[j]<0) {
+                    dReal sdstar = sqrt(-c[j]/b[j]);
+                    dReal sdplus = SdLimitBobrowExclude(discrsvect[i],j);
+                    if(sdplus >0 && sdplus < sdstar) {
+                        continue;
+                    }
                     found = true;
-                    minsd = std::min(minsd,sqrt(-c[j]/b[j]));
+                    minsd = std::min(minsd,sdstar);
                 }
             }
         }
@@ -669,6 +715,7 @@ void QuadraticConstraints::FindSingularSwitchPoints() {
         aprev = a;
     }
 }
+
 
 
 ////////////////////////////////////////////////////////////////////
@@ -890,6 +937,7 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
         sbackward = std::max(s - bestsstep,0.);
         sdforward = sd + (sforward-s)*bestslope;
         sdbackward = sd - (s-sbackward)*bestslope;
+        constraints.nsingulartreated++;
         return bestscore<INF;
     }
     // Tangent, Discontinuous and Zlajpah switchpoints
@@ -902,6 +950,7 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
         sforward = s;
         sdbackward = sdtop;
         sdforward = sdtop;
+        constraints.ntangenttreated++;
         return true;
     }
     return false;
@@ -1484,6 +1533,8 @@ int ComputeLimitingCurves(Constraints& constraints){
     dReal sswitch, sdswitch, sbackward, sdbackward, sforward, sdforward;
     int integratestatus;
     bool testaboveexistingprofiles = true, testmvc = true, zlajpah = false;
+    constraints.ntangenttreated = 0;
+    constraints.nsingulartreated = 0;
 
     while(switchpointslist0.size() > 0) {
         SwitchPoint switchpoint = switchpointslist0.front();

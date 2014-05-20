@@ -31,3 +31,12 @@ def Interpolate3rdDegree(q0, q1, qd0, qd1, T):
 
 def vect2str(v):
     return ' '.join(map(str, v))
+
+
+def vect2str_mintos(v):
+    ndof = len(v)
+    s = str(ndof)
+    for a in v:
+        s += ' %f' % a
+    return s
+

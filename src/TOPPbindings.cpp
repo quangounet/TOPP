@@ -106,6 +106,8 @@ public:
     std::string resextrastring;
     std::string resprofilesliststring;
     std::string switchpointsliststring;
+    int ntangenttreated;
+    int nsingulartreated;
     TOPP::dReal resduration;
     TOPP::dReal sdendmin, sdendmax;
     TOPP::dReal sdbegmin, sdbegmax;
@@ -206,7 +208,7 @@ public:
     }
 
     void WriteProfilesList(){
-      std::list<Profile>::iterator itprofile = pconstraints->resprofileslist.begin();
+        std::list<Profile>::iterator itprofile = pconstraints->resprofileslist.begin();
         //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         std::stringstream ss; ss << std::setprecision(11);
         TOPP::dReal dt = 1e-4;
@@ -225,18 +227,20 @@ public:
     void WriteSwitchPointsList(){
         //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         std::stringstream ss; ss << std::setprecision(11);
-	std::list<SwitchPoint>::iterator itsw = pconstraints->switchpointslist.begin();
+        std::list<SwitchPoint>::iterator itsw = pconstraints->switchpointslist.begin();
         while(itsw != pconstraints->switchpointslist.end()) {
             ss << itsw->s << " " << itsw->sd << " " << itsw->switchpointtype << "\n";
             itsw++;
         }
         switchpointsliststring = ss.str();
+        ntangenttreated = pconstraints->ntangenttreated;
+        nsingulartreated = pconstraints->nsingulartreated;
     }
 
     // Extra string, such as the coordinates of the ZMP (depending on the application)
     void WriteExtra(){
         //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
-	std::stringstream ss; ss << std::setprecision(11);
+        std::stringstream ss; ss << std::setprecision(11);
         pconstraints->WriteExtra(ss);
         resextrastring = ss.str();
 
@@ -257,6 +261,8 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def_readonly("resprofilesliststring", &TOPPInstance::resprofilesliststring)
     .def_readonly("resextrastring", &TOPPInstance::resextrastring)
     .def_readonly("switchpointsliststring", &TOPPInstance::switchpointsliststring)
+    .def_readonly("ntangenttreated", &TOPPInstance::ntangenttreated)
+    .def_readonly("nsingulartreated", &TOPPInstance::nsingulartreated)
     .def_readonly("resduration", &TOPPInstance::resduration)
     .def_readonly("sdbegmin", &TOPPInstance::sdbegmin)
     .def_readonly("sdbegmax", &TOPPInstance::sdbegmax)

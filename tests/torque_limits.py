@@ -66,7 +66,7 @@ taumin[0:7] = -robot.GetDOFMaxTorque()[0:7] # Torque limits
 taumax[0:7] = robot.GetDOFMaxTorque()[0:7] # Torque limits
 
 # Set up the TOPP problem
-discrtimestep = 0.01
+discrtimestep = 0.005
 uselegacy = False
 t0 = time.time()
 if uselegacy: #Using the legacy TorqueLimits (faster but not fully supported)
