@@ -122,7 +122,7 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=None):
     profileslist = list(profileslist0)
     if figstart is not None:
         figure(figstart)
-    clf()
+        clf()
     hold('on')
     mvcbobrow = profileslist.pop(0)
     plot(mvcbobrow[2], mvcbobrow[3], 'm--', linewidth=4)
