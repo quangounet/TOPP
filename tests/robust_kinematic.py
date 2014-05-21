@@ -30,7 +30,7 @@ RaveSetDebugLevel(0)
 ion()
 
 
-ntraj = 100
+ntraj = 1000
 ndof = 7
 ncurve = 1
 discrtimestep = 0.005
