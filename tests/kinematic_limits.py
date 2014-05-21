@@ -45,7 +45,7 @@ vmax = 2*ones(ndof)  # Velocity limits
 amax = 10*ones(ndof) # Acceleration limits
 
 # Set up the TOPP instance
-discrtimestep = 0.001
+discrtimestep = 0.005
 uselegacy = True
 t0 = time.time()
 if uselegacy: #Using the legacy KinematicLimits (a bit faster but not fully supported)
