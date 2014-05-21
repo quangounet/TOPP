@@ -1,15 +1,29 @@
-import string,time,pickle,os
-from pylab import *
-from numpy import *
-from openravepy import *
-from TOPP import TOPPbindings
-from TOPP import TOPPpy
-from TOPP import TOPPopenravepy
-from TOPP import Trajectory
-from TOPP import Utilities
+# -*- coding: utf-8 -*-
+# Copyright (C) 2013 Quang-Cuong Pham <cuong.pham@normalesup.org>
+#
+# This file is part of the Time-Optimal Path Parameterization (TOPP) library.
+# TOPP is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 print "\n**********************************\nNB: This test file requires MINTOS\n**********************************\n"
 
+import string,time,os
+from pylab import *
+from numpy import *
+from TOPP import TOPPbindings
+from TOPP import TOPPpy
+from TOPP import Trajectory
+from TOPP import Utilities
 
 ion()
 

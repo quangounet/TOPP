@@ -16,17 +16,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import string,time,pickle
+import string,time
 from pylab import *
 from numpy import *
-from openravepy import *
 from TOPP import TOPPbindings
 from TOPP import TOPPpy
-from TOPP import TOPPopenravepy
 from TOPP import Trajectory
 from TOPP import Utilities
 
-RaveSetDebugLevel(0)
 ion()
 
 
