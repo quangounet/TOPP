@@ -17,8 +17,9 @@
 
 
 from Utilities import vect2str, BezierToTrajectoryString
+import string
 from pylab import double, array, random
-
+from TOPPbindings import TOPPInstance
 
 ################# Reading from string #####################
 
@@ -98,7 +99,7 @@ def GenerateRandomTrajectory(ncurve, ndof, bound):
     return BezierToTrajectoryString(Tv, p0v, p1v, p2v, p3v)
 
 
-################# Compute constraints #####################
+################# Compute Kinematic Constraints #####################
 
 def ComputeKinematicConstraints(traj, amax, discrtimestep):
     # Sample the dynamics constraints
@@ -116,10 +117,11 @@ def ComputeKinematicConstraints(traj, amax, discrtimestep):
 
 ######################## Plots ############################
 
-def PlotProfiles(profileslist0, switchpointslist=[], figstart=1):
+def PlotProfiles(profileslist0, switchpointslist=[], figstart=None):
     from pylab import figure, clf, hold, plot, gca, axis, title, xlabel, ylabel
     profileslist = list(profileslist0)
-    figure(figstart)
+    if figstart is not None:
+        figure(figstart)
     clf()
     hold('on')
     mvcbobrow = profileslist.pop(0)
@@ -175,13 +177,13 @@ def PlotAlphaBeta(topp_inst, prec=30):
     sd_coord = linspace(sdmin, sdmax, prec)
     ds0 = s_coord[1] - s_coord[0]
     dsd0 = sd_coord[1] - sd_coord[0]
-    nalpha = lambda s, sd: topp_inst.GetAlpha(s, sd) / sd
-    nbeta = lambda s, sd: topp_inst.GetBeta(s, sd) / sd
+    alpha = lambda s, sd: topp_inst.GetAlpha(s, sd) / sd
+    beta = lambda s, sd: topp_inst.GetBeta(s, sd) / sd
     yscl = dsd0 / ds0
     for s in s_coord:
         for sd in sd_coord:
             ds = ds0 / 2
-            a, b = nalpha(s, sd), nbeta(s, sd)
+            a, b = alpha(s, sd), beta(s, sd)
             na, nb = 1. / sqrt(1. + a ** 2), 1. / sqrt(1. + b ** 2)
             na = 1 / sqrt(1 + (a / yscl) ** 2)
             nb = 1 / sqrt(1 + (b / yscl) ** 2)

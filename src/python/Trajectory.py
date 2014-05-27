@@ -6,9 +6,6 @@ import StringIO
 
 from pylab import arange, array, double, plot, zeros
 
-class NoTrajectoryFound(Exception):
-    pass
-
 
 class Polynomial(object):
     @staticmethod
@@ -37,6 +34,9 @@ class Polynomial(object):
 
     def Evaldd(self, s):
         return self.qdd(s)
+
+    def Evaldn(self, s, n):
+        return pylab.polyder(self.q,n)(s)
 
     def __str__(self):
         return ' '.join(map(str, self.coeff_list))
@@ -71,6 +71,13 @@ class Chunk():
         for i in range(self.dimension):
             qdd[i] = self.polynomialsvector[i].Evaldd(s)
         return qdd
+
+    def Evaldn(self, s, n):
+        qdn = zeros(self.dimension)
+        for i in range(self.dimension):
+            qdn[i] = self.polynomialsvector[i].Evaldn(s,n)
+        return qdn
+
 
     def __str__(self):
         chunks_str = '\n'.join(map(str, self.polynomialsvector))
@@ -119,6 +126,10 @@ class PiecewisePolynomialTrajectory():
     def Evaldd(self, s):
         i, remainder = self.FindChunkIndex(s)
         return self.chunkslist[i].Evaldd(remainder)
+
+    def Evaldn(self, s, n):
+        i, remainder = self.FindChunkIndex(s)
+        return self.chunkslist[i].Evaldn(remainder,n)
 
     def Plot(self, dt, f=''):
         tvect = arange(0, self.duration + dt, dt)

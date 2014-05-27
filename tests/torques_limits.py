@@ -15,7 +15,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import string
+print "\n************************************\nNB: This test file requires OpenRAVE\n************************************\n"
+
+import string,time
 from pylab import *
 from numpy import *
 from openravepy import *
@@ -25,33 +27,30 @@ from TOPP import TOPPopenravepy
 from TOPP import Trajectory
 from TOPP import Utilities
 
-
 # Robot (OpenRAVE)
 env = Environment()
-env.Load("robots/twodof.robot.xml")
+env.Load("robots/barrettwam.robot.xml")
 env.SetViewer('qtcoin')
-env.GetViewer().SetCamera(array([[ 0.00846067,  0.4334184 , -0.9011531 ,  0.84555054],
-       [ 0.99938498,  0.0270039 ,  0.02237072,  0.01155015],
-       [ 0.03403053, -0.90078814, -0.43292337,  0.65048862],
+env.GetViewer().SetCamera(array([[ 0.92038107,  0.00847738, -0.39093071,  0.69997793],
+       [ 0.39101295, -0.02698477,  0.91998951, -1.71402919],
+       [-0.00275007, -0.9995999 , -0.02815103,  0.40470174],
        [ 0.        ,  0.        ,  0.        ,  1.        ]]))
-robot = env.GetRobots()[0]
-robot.SetTransform(array([[0, 0, 1, 0],
-                          [0, 1, 0, 0],
-                          [-1, 0, 0, 0.3],
-                          [0, 0, 0, 1]]))
-grav = [0, 0, -9.8]
-ndof = robot.GetDOF()
-dof_lim = robot.GetDOFLimits()
-vel_lim = robot.GetDOFVelocityLimits()
-robot.SetDOFLimits(-10 * ones(ndof), 10 * ones(ndof)) # Overrides robot joint limits
-robot.SetDOFVelocityLimits(100 * vel_lim) # Overrides robot velocity limits
+robot=env.GetRobots()[0]
+grav=[0,0,-9.8]
+ndof=robot.GetDOF()
+dof_lim=robot.GetDOFLimits()
+vel_lim=robot.GetDOFVelocityLimits()
+robot.SetDOFLimits(-10*ones(ndof),10*ones(ndof)) # Overrides robot joint limits for TOPP computations
+robot.SetDOFVelocityLimits(100*vel_lim) # Override robot velocity limits for TOPP computations
 
 # Trajectory
-q0 = [0,0]
-q1 = [5*pi/4,-pi/2]
-qd0 = [1,1]
-qd1 = [1,1]
-T = 2
+q0 = zeros(ndof)
+q1 = zeros(ndof)
+qd0 = ones(ndof)
+qd1 = -ones(ndof)
+q0[0:7] = [-2,0.5,1,3,-3,-2,-2]
+q1[0:7] = [2,-0.5,-1,-1,1,1,1]
+T = 1.5
 trajectorystring = "%f\n%d"%(T,ndof)
 for i in range(ndof):
     a,b,c,d = Utilities.Interpolate3rdDegree(q0[i],q1[i],qd0[i],qd1[i],T)
@@ -59,19 +58,41 @@ for i in range(ndof):
 traj0 = Trajectory.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 # Constraints
-discrtimestep = 0.002
-vmax = array([5, 5])
-taumin = array([-25, -10])
-taumax = array([25, 10])
-constraintstring = str(discrtimestep) + "\n";
-constraintstring += string.join([str(v) for v in vmax]) + "\n"
-constraintstring += string.join([str(t) for t in taumin]) + "\n" + string.join([str(t) for t in taumax])
+vmax = zeros(ndof)
+taumin = zeros(ndof)
+taumax = zeros(ndof)
+vmax[0:7] = vel_lim[0:7]  # Velocity limits
+taumin[0:7] = -robot.GetDOFMaxTorque()[0:7] # Torque limits
+taumax[0:7] = robot.GetDOFMaxTorque()[0:7] # Torque limits
 
-#Run TOPP
-x = TOPPbindings.TOPPInstance(robot,"TorqueLimitsRave", constraintstring, trajectorystring)
+# Set up the TOPP problem
+discrtimestep = 0.01
+uselegacy = False
+t0 = time.time()
+if uselegacy: #Using the legacy TorqueLimits (faster but not fully supported)
+    constraintstring = str(discrtimestep)
+    constraintstring += "\n" + string.join([str(v) for v in vmax])
+    constraintstring += "\n" + string.join([str(t) for t in taumin]) 
+    constraintstring += "\n" + string.join([str(t) for t in taumax]) 
+    x = TOPPbindings.TOPPInstance(robot,"TorqueLimitsRave", constraintstring, trajectorystring)
+else: #Using the general QuadraticConstraints (fully supported)
+    constraintstring = str(discrtimestep)
+    constraintstring += "\n" + string.join([str(v) for v in vmax])
+    constraintstring += TOPPopenravepy.ComputeTorquesConstraints(robot,traj0,taumin,taumax,discrtimestep)
+    x = TOPPbindings.TOPPInstance(None,"QuadraticConstraints",constraintstring,trajectorystring);
+
+# Run TOPP
+t1 = time.time()
 ret = x.RunComputeProfiles(0,0)
 if(ret == 1):
     x.ReparameterizeTrajectory()
+t2 = time.time()
+
+print "Using legacy:", uselegacy
+print "Discretization step:", discrtimestep
+print "Setup TOPP:", t1-t0
+print "Run TOPP:", t2-t1
+print "Total:", t2-t0
 
 # Display results
 ion()
@@ -94,3 +115,5 @@ else:
 # Execute trajectory
 if(ret == 1):
     TOPPopenravepy.Execute(robot,traj1)
+
+raw_input()

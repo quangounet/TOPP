@@ -22,19 +22,18 @@ import time
 import Trajectory
 import TOPPbindings
 
+from QuadraticConstraints import QuadraticConstraints
 from pylab import arange, array, cross, dot, inv, norm, random, zeros
 from pylab import arcsin, arctan2, cos, pi, sin
-from Trajectory import PiecewisePolynomialTrajectory
-from Trajectory import NoTrajectoryFound
 
 
-class RAVEBindings(object):
+class RAVEBindings(QuadraticConstraints):
     """Wrapper around TOPPbindings for OpenRAVE robot models.
 
-    robot - - OpenRAVE robot object
-    pbname-- string identifier of the underlying TOPPbindings problem
-    constring - - constraints string (problem - dependant)
-    trajstring - - trajectory string
+    robot -- OpenRAVE robot object
+    pbname -- string identifier of the underlying TOPPbindings problem
+    constring -- constraints string (problem - dependant)
+    trajstring -- trajectory string
 
     """
 
@@ -48,33 +47,6 @@ class RAVEBindings(object):
         self.integrationtimestep = integrationtimestep
         self.solver = TOPPbindings.TOPPInstance(robot, pbname, constring,
                                                 trajstring)
-
-    def AVP(self, sdmin, sdmax):
-        return self.GetAVP(sdmin, sdmax)
-
-    def GetTrajectory(self, sdbeg=0., sdend=0.):
-        return_code = self.solver.RunComputeProfiles(sdbeg, sdend)
-        if return_code != 1:
-            raise NoTrajectoryFound
-
-        return_code = self.solver.ReparameterizeTrajectory()
-        if return_code < 0:
-            raise NoTrajectoryFound
-
-        self.solver.WriteResultTrajectory()
-        traj_str = self.solver.restrajectorystring
-        return PiecewisePolynomialTrajectory.FromString(traj_str)
-
-    def GetAVP(self, sdmin, sdmax):
-        return_code = self.solver.RunVIP(sdmin, sdmax)
-        if return_code == 0:
-            raise NoTrajectoryFound
-        sdendmin = self.solver.sdendmin
-        sdendmax = self.solver.sdendmax
-        return (sdendmin, sdendmax)
-
-    def Reparameterize(self, sdbegmin, sdbegmax):
-        return self.GetTrajectory(sdbegmin, sdbegmax)
 
 
 def ToRaveTraj(robot, spec, traj):
@@ -163,28 +135,6 @@ def ComputeTorquesConstraints(robot, traj, taumin, taumax, discrtimestep):
             constraintstring += "\n" + string.join([str(a) for a in avect])
             constraintstring += "\n" + string.join([str(b) for b in bvect])
             constraintstring += "\n" + string.join([str(c) for c in cvect])
-    return constraintstring
-
-
-def ComputeTorquesConstraintsLegacy(robot, traj, taumin, taumax,
-                                    discrtimestep):
-    """Sample the dynamics constraints."""
-    ndiscrsteps = int((traj.duration + 1e-10) / discrtimestep) + 1
-    constraintstring = ""
-    for i in range(ndiscrsteps):
-        t = i * discrtimestep
-        q = traj.Eval(t)
-        qd = traj.Evald(t)
-        qdd = traj.Evaldd(t)
-        with robot:
-            robot.SetDOFValues(q)
-            robot.SetDOFVelocities(qd)
-            tm, tc, tg = robot.ComputeInverseDynamics(qdd, None,
-                                                      returncomponents=True)
-            to = robot.ComputeInverseDynamics(qd) - tc - tg
-            constraintstring += "\n" + string.join([str(x) for x in to])
-            constraintstring += "\n" + string.join([str(x) for x in tm + tc])
-            constraintstring += "\n" + string.join([str(x) for x in tg])
     return constraintstring
 
 

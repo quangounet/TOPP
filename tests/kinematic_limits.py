@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import string
+import string, time
 from pylab import *
 from numpy import *
 from TOPP import TOPPbindings
@@ -38,20 +38,38 @@ trajectorystring = """1.0
 0.187321 -0.157326 -0.355785 0.111770
 -0.471667 -2.735793 7.490559 -4.501124
 0.034761 0.188049 -1.298730 1.553443"""
-
+traj0 = Trajectory.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 
 # Constraints
-discrtimestep = 0.001
 vmax = 2*ones(ndof)  # Velocity limits
 amax = 10*ones(ndof) # Acceleration limits
-constraintstring = str(discrtimestep) + "\n";  # Discretization time step
-constraintstring += string.join([str(v) for v in vmax]) + "\n"
-constraintstring += string.join([str(a) for a in amax])
+
+# Set up the TOPP instance
+discrtimestep = 0.001
+uselegacy = True
+t0 = time.time()
+if uselegacy: #Using the legacy KinematicLimits (a bit faster but not fully supported)
+    constraintstring = str(discrtimestep)
+    constraintstring += "\n" + string.join([str(v) for v in vmax])
+    constraintstring += "\n" + string.join([str(a) for a in amax])
+    x = TOPPbindings.TOPPInstance(None,"KinematicLimits",constraintstring,trajectorystring);
+else: #Using the general QuadraticConstraints (fully supported)
+    constraintstring = str(discrtimestep)
+    constraintstring += "\n" + string.join([str(v) for v in vmax])
+    constraintstring += TOPPpy.ComputeKinematicConstraints(traj0, amax, discrtimestep) 
+    x = TOPPbindings.TOPPInstance(None,"QuadraticConstraints",constraintstring,trajectorystring);
 
 # Run TOPP
-x = TOPPbindings.TOPPInstance(None,"KinematicLimits",constraintstring,trajectorystring);
+t1 = time.time()
 ret = x.RunComputeProfiles(0,0)
 x.ReparameterizeTrajectory()
+t2 = time.time()
+
+print "Using legacy:", uselegacy
+print "Discretization step:", discrtimestep
+print "Setup TOPP:", t1-t0
+print "Run TOPP:", t2-t1
+print "Total:", t2-t0
 
 # Display results
 ion()
@@ -62,8 +80,9 @@ switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
 TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
 x.WriteResultTrajectory()
 traj1 = Trajectory.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
-traj0 = Trajectory.PiecewisePolynomialTrajectory.FromString(trajectorystring)
 dtplot = 0.01
 TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax,amax)
 print "Trajectory duration before TOPP: ", traj0.duration
 print "Trajectory duration after TOPP: ", traj1.duration
+
+raw_input()

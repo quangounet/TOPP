@@ -91,36 +91,36 @@ Chunk::Chunk(dReal duration0, const std::vector<Polynomial>& polynomialsvector0)
     polynomialsvector = polynomialsvector0;
     dimension = polynomialsvector.size();
     duration = duration0;
-    BOOST_ASSERT(dimension > 0);
+    assert(dimension > 0);
     degree = polynomialsvector[0].degree;
     for(int i = 1; i < dimension; i++)
         if (polynomialsvector[i].degree > degree)
             degree = polynomialsvector[i].degree;
     // All polynomials must have the same degree
     for(int i = 1; i < dimension; i++)
-        BOOST_ASSERT(degree == polynomialsvector[i].degree);
+        assert(degree == polynomialsvector[i].degree);
 }
 
 
 void Chunk::Eval(dReal s, std::vector<dReal>&q) const {
-    BOOST_ASSERT(s >= -TINY);
-    BOOST_ASSERT(s <= duration+TINY);
+    assert(s >= -TINY);
+    assert(s <= duration+TINY);
     for(int i = 0; i < dimension; i++)
         q[i] = polynomialsvector[i].Eval(s);
 }
 
 
 void Chunk::Evald(dReal s, std::vector<dReal>&qd) const {
-    BOOST_ASSERT(s >= -TINY);
-    BOOST_ASSERT(s <= duration+TINY);
+    assert(s >= -TINY);
+    assert(s <= duration+TINY);
     for(int i = 0; i < dimension; i++)
         qd[i] = polynomialsvector[i].Evald(s);
 }
 
 
 void Chunk::Evaldd(dReal s, std::vector<dReal>&qdd) const {
-    BOOST_ASSERT(s >= -TINY);
-    BOOST_ASSERT(s <= duration+TINY);
+    assert(s >= -TINY);
+    assert(s <= duration+TINY);
     for(int i = 0; i < dimension; i++)
         qdd[i] = polynomialsvector[i].Evaldd(s);
 }
@@ -141,7 +141,7 @@ void Chunk::Write(std::stringstream& ss) {
 
 void Trajectory::InitFromChunksList(const std::list<Chunk>&chunkslist0) {
     chunkslist = chunkslist0;
-    BOOST_ASSERT(chunkslist.size()>0);
+    assert(chunkslist.size()>0);
     dimension = chunkslist.front().dimension;
     degree = chunkslist.front().degree;
 
@@ -150,7 +150,6 @@ void Trajectory::InitFromChunksList(const std::list<Chunk>&chunkslist0) {
     chunkcumulateddurationslist.resize(0);
     std::list<Chunk>::iterator itchunk = chunkslist.begin();
     while(itchunk != chunkslist.end()) {
-        //BOOST_ASSERT(degree == itchunk->degree);
         dReal chunkduration = itchunk->duration;
         if(chunkduration > TINY) {
             chunkdurationslist.push_back(chunkduration);
@@ -203,7 +202,7 @@ void Trajectory::FindChunkIndex(dReal s, int& index, dReal& remainder) const {
         remainder = 0;
         return;
     }
-    if(s>=chunkcumulateddurationslist.back()) {
+    if(s >= chunkcumulateddurationslist.back()) {
         index = int(chunkslist.size())-1;
         remainder = chunkslist.back().duration;
         return;
@@ -214,16 +213,16 @@ void Trajectory::FindChunkIndex(dReal s, int& index, dReal& remainder) const {
         it++;
     }
     index--;
-    BOOST_ASSERT(index<=int(chunkslist.size())-1);
+    assert(index<=int(chunkslist.size())-1);
     it--;
     remainder = s-*it;
 }
 
 
 void Trajectory::Eval(dReal s, std::vector<dReal>&q) const {
-    BOOST_ASSERT(s >= -TINY);
-    BOOST_ASSERT(s <= duration+TINY);
-    BOOST_ASSERT(dimension == int(q.size()));
+    assert(s >= -TINY);
+    assert(s <= duration+TINY);
+    assert(dimension == int(q.size()));
     int index;
     dReal remainder;
     FindChunkIndex(s,index,remainder);
@@ -234,9 +233,9 @@ void Trajectory::Eval(dReal s, std::vector<dReal>&q) const {
 
 
 void Trajectory::Evald(dReal s, std::vector<dReal>&qd) const {
-    BOOST_ASSERT(s >= 0-TINY);
-    BOOST_ASSERT(s <= duration+TINY);
-    BOOST_ASSERT(dimension == int(qd.size()));
+    assert(s >= 0-TINY);
+    assert(s <= duration+TINY);
+    assert(dimension == int(qd.size()));
     int index;
     dReal remainder;
     FindChunkIndex(s,index,remainder);
@@ -247,8 +246,8 @@ void Trajectory::Evald(dReal s, std::vector<dReal>&qd) const {
 
 
 void Trajectory::Evaldd(dReal s, std::vector<dReal>&qdd) const {
-    BOOST_ASSERT(s >= -TINY);
-    BOOST_ASSERT(s <= duration+TINY);
+    assert(s >= -TINY);
+    assert(s <= duration+TINY);
     int index;
     dReal remainder;
     FindChunkIndex(s,index,remainder);
@@ -257,132 +256,135 @@ void Trajectory::Evaldd(dReal s, std::vector<dReal>&qdd) const {
     itchunk->Evaldd(remainder,qdd);
 }
 
-void Trajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal
-                              sdd, const Chunk& currentchunk, Chunk& newchunk) {
-    
-    BOOST_ASSERT(currentchunk.degree <= 5);
-    std::vector<dReal> a, b, c, d, e, coefficientsvector;
-    std::vector<Polynomial> polynomialsvector;
+void Trajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal sdd,
+                              const Chunk& currentchunk, Chunk& newchunk) {
+
+    int n = currentchunk.degree;
+    int ndof = currentchunk.dimension;
+    std::vector<dReal> a, rescoeffs;
+    // coeffsvect[i] contains coefficients list for s^i
     std::vector<std::vector<dReal> > coeffsvects;
-    // current chunk : u0 + u1*s + u2*s^2 + u3*s^3 + u4*s^4 + u5*s^5
+    std::vector<Polynomial> polynomialsvector;
+
+    // currentchunk : sum_{i = 0}^{n} (u_i)(s^i)
     // profile : s + sd*t + 0.5*sdd*t^2
-    // new chunk : v0 + v1*t + v2*t^2 + v3*t^3 + v4*t^4 + v5*t^5 + v6*t^6 + v7*t^ + v8*t^8 + v9*t^9 + v10*t^10;
-    
-    if (currentchunk.degree >= 1) {
-	a.resize(0);
-	a.push_back(s + sd*t0 + 0.5*sdd*t0*t0);
-	a.push_back(sd + sdd*t0);
-	a.push_back(0.5*sdd);
-	coeffsvects.push_back(a);
+    // new chunk : sum_{j = 0}^{2n} (v_j)(t^j)
+
+    a.resize(0);
+    a.push_back(s + sd*t0 + 0.5*sdd*t0*t0);
+    a.push_back(sd + sdd*t0);
+    a.push_back(0.5*sdd);
+    coeffsvects.push_back(a);
+
+    std::vector<dReal> tmpvect;
+
+    if (n >= 1) {
+        for (int i = 1; i < n; i++) {
+            tmpvect.resize(0);
+            tmpvect.resize(2*i + 3, 0);
+            for (int j = 0; j < 2*i + 1; j++) {
+                tmpvect[j] += a[0]*coeffsvects[i - 1][j];
+                tmpvect[j + 1] += a[1]*coeffsvects[i - 1][j];
+                tmpvect[j + 2] += a[2]*coeffsvects[i - 1][j];
+            }
+            coeffsvects.push_back(tmpvect);
+        }
     }
-    if (currentchunk.degree >= 2) {
-	b.resize(0);
-	b.push_back(a[0]*a[0]);
-	b.push_back(2*a[0]*a[1]);
-	b.push_back(2*a[0]*a[2] + a[1]*a[1]);
-	b.push_back(2*a[1]*a[2]);
-	b.push_back(a[2]*a[2]);
-	coeffsvects.push_back(b);
-    }
-    if(currentchunk.degree >= 3) {
-	c.push_back(b[0]*a[0]);
-	c.push_back(b[1]*a[0] + b[0]*a[1]);
-	c.push_back(b[2]*a[0] + b[1]*a[1] + b[0]*a[2]);
-	c.push_back(b[3]*a[0] + b[2]*a[1] + b[1]*a[2]);
-	c.push_back(b[4]*a[0] + b[3]*a[1] + b[2]*a[2]);
-	c.push_back(b[4]*a[1] + b[3]*a[2]);
-	c.push_back(b[4]*a[2]);
-	coeffsvects.push_back(c);
-    }
-    if(currentchunk.degree >= 4) {
-	d.push_back(b[0]*b[0]);
-	d.push_back(2*b[0]*b[1]);
-	d.push_back(2*b[0]*b[2] + b[1]*b[1]);
-	d.push_back(2*(b[0]*b[3] + b[1]*b[2]));
-	d.push_back(2*(b[0]*b[4] + b[1]*b[3]) + b[2]*b[2]);
-	d.push_back(2*(b[1]*b[4] + b[2]*b[3]));
-	d.push_back(2*b[2]*b[4] + b[3]*b[3]);
-	d.push_back(2*b[3]*b[4]);
-	d.push_back(b[4]*b[4]);
-	coeffsvects.push_back(d);
-    }
-    if(currentchunk.degree >= 5) {
-	e.push_back(a[0]*d[0]);
-	e.push_back(d[1]*a[0] + d[0]*a[1]);
-	e.push_back(d[2]*a[0] + d[1]*a[1] + d[0]*a[2]);
-	e.push_back(d[3]*a[0] + d[2]*a[1] + d[1]*a[2]);
-	e.push_back(d[4]*a[0] + d[3]*a[1] + d[2]*a[2]);
-	e.push_back(d[5]*a[0] + d[4]*a[1] + d[3]*a[2]);
-	e.push_back(d[6]*a[0] + d[5]*a[1] + d[4]*a[2]);
-	e.push_back(d[7]*a[0] + d[6]*a[1] + d[5]*a[2]);
-	e.push_back(d[8]*a[0] + d[7]*a[1] + d[6]*a[2]);
-	e.push_back(d[8]*a[1] + d[7]*a[2]);
-	e.push_back(d[8]*a[2]);
-	coeffsvects.push_back(e);
-    }
-    
-    for(int i = 0; i < currentchunk.dimension; i++) {
-	coefficientsvector.resize(0);
-	coefficientsvector.push_back(currentchunk.polynomialsvector[i].coefficientsvector[0]);
-	for(int k = 1; k <= currentchunk.degree; k++){
-	    coefficientsvector.resize(2*k + 1, 0);
-	    dReal u = currentchunk.polynomialsvector[i].coefficientsvector[k];
-	    int l = 2*k + 1;
-	    for(int j = 0; j < l; j++) {
-		coefficientsvector[j] += u*coeffsvects[k - 1][j];
-	    }
-	}
-	polynomialsvector.push_back(Polynomial(coefficientsvector));	
+
+    for (int i = 0; i < ndof; i++) {
+        rescoeffs.resize(0);
+        rescoeffs.push_back(currentchunk.polynomialsvector[i].coefficientsvector[0]);
+        rescoeffs.resize(2*n + 1, 0);
+        for (int k = 1; k <= n; k++) {
+            dReal u = currentchunk.polynomialsvector[i].coefficientsvector[k];
+            int l = 2*k + 1;
+            for (int j = 0; j < l; j++) {
+                rescoeffs[j] += u*coeffsvects[k - 1][j];
+            }
+        }
+        polynomialsvector.push_back(Polynomial(rescoeffs));
     }
     newchunk = Chunk(tnext - t0, polynomialsvector);
 }
 
-// void Trajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal
-//                               sdd, const Chunk& currentchunk, Chunk& newchunk) {
-//     BOOST_ASSERT(currentchunk.degree <= 3);
-//     dReal a0, a1, a2, b0, b1, b2, b3, b4, c0, c1, c2, c3, c4, c5, c6, u0, u1, u2, u3;
-//     std::vector<dReal> coefficientsvector;
+// void Trajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal sdd,
+//                const Chunk& currentchunk, Chunk& newchunk) {
+
+//     assert(currentchunk.degree <= 5);
+//     std::vector<dReal> a, b, c, d, e, coefficientsvector;
 //     std::vector<Polynomial> polynomialsvector;
-//     // current chunk : u0 + u1*s + u2*s^2 + u3*s^3
+//     std::vector<std::vector<dReal> > coeffsvects;
+//     // current chunk : u0 + u1*s + u2*s^2 + u3*s^3 + u4*s^4 + u5*s^5
 //     // profile : s + sd*t + 0.5*sdd*t^2
-//     // new chunk : v0 + v1*t + v2*t^2 + v3*t^3 + v4*t^4 + v5*t^5 + v6*t^6;
-//     a0 = s + sd*t0 + 0.5*sdd*t0*t0;
-//     a1 = sd + sdd*t0;
-//     a2 = 0.5*sdd;
-//     b0 = a0*a0;
-//     b1 = 2*a0*a1;
-//     b2 = 2*a0*a2+a1*a1;
-//     b3 = 2*a1*a2;
-//     b4 = a2*a2;
-//     c0 = b0*a0;
-//     c1 = b1*a0 + b0*a1;
-//     c2 = b2*a0 + b1*a1 + b0*a2;
-//     c3 = b3*a0 + b2*a1 + b1*a2;
-//     c4 = b4*a0 + b3*a1 + b2*a2;
-//     c5 = b4*a1 + b3*a2;
-//     c6 = b4*a2;
-//     for(int i=0; i<currentchunk.dimension; i++) {
-//         u0 = currentchunk.polynomialsvector[i].coefficientsvector[0];
-//         u1 = 0;
-//         if(currentchunk.degree >= 1)
-//             u1 = currentchunk.polynomialsvector[i].coefficientsvector[1];
-//         u2 = 0;
-//         if(currentchunk.degree >= 2)
-//             u2 = currentchunk.polynomialsvector[i].coefficientsvector[2];
-//         u3 = 0;
-//         if(currentchunk.degree >= 3)
-//             u3 = currentchunk.polynomialsvector[i].coefficientsvector[3];
-//         coefficientsvector.resize(0);
-//         coefficientsvector.push_back(u3*c0 + u2*b0 + u1*a0 + u0); // v0
-//         coefficientsvector.push_back(u3*c1 + u2*b1 + u1*a1);      // v1
-//         coefficientsvector.push_back(u3*c2 + u2*b2 + u1*a2);      // v2
-//         coefficientsvector.push_back(u3*c3 + u2*b3);              // v3
-//         coefficientsvector.push_back(u3*c4 + u2*b4);              // v4
-//         coefficientsvector.push_back(u3*c5);                      // v5
-//         coefficientsvector.push_back(u3*c6);                      // v6
-//         polynomialsvector.push_back(Polynomial(coefficientsvector));
+//     // new chunk : v0 + v1*t + v2*t^2 + v3*t^3 + v4*t^4 + v5*t^5 + v6*t^6 + v7*t^ + v8*t^8 + v9*t^9 + v10*t^10;
+
+//     if (currentchunk.degree >= 1) {
+//  a.resize(0);
+//  a.push_back(s + sd*t0 + 0.5*sdd*t0*t0);
+//  a.push_back(sd + sdd*t0);
+//  a.push_back(0.5*sdd);
+//  coeffsvects.push_back(a);
 //     }
-//     newchunk = Chunk(tnext-t0, polynomialsvector);
+//     if (currentchunk.degree >= 2) {
+//  b.resize(0);
+//  b.push_back(a[0]*a[0]);
+//  b.push_back(2*a[0]*a[1]);
+//  b.push_back(2*a[0]*a[2] + a[1]*a[1]);
+//  b.push_back(2*a[1]*a[2]);
+//  b.push_back(a[2]*a[2]);
+//  coeffsvects.push_back(b);
+//     }
+//     if(currentchunk.degree >= 3) {
+//  c.push_back(b[0]*a[0]);
+//  c.push_back(b[1]*a[0] + b[0]*a[1]);
+//  c.push_back(b[2]*a[0] + b[1]*a[1] + b[0]*a[2]);
+//  c.push_back(b[3]*a[0] + b[2]*a[1] + b[1]*a[2]);
+//  c.push_back(b[4]*a[0] + b[3]*a[1] + b[2]*a[2]);
+//  c.push_back(b[4]*a[1] + b[3]*a[2]);
+//  c.push_back(b[4]*a[2]);
+//  coeffsvects.push_back(c);
+//     }
+//     if(currentchunk.degree >= 4) {
+//  d.push_back(b[0]*b[0]);
+//  d.push_back(2*b[0]*b[1]);
+//  d.push_back(2*b[0]*b[2] + b[1]*b[1]);
+//  d.push_back(2*(b[0]*b[3] + b[1]*b[2]));
+//  d.push_back(2*(b[0]*b[4] + b[1]*b[3]) + b[2]*b[2]);
+//  d.push_back(2*(b[1]*b[4] + b[2]*b[3]));
+//  d.push_back(2*b[2]*b[4] + b[3]*b[3]);
+//  d.push_back(2*b[3]*b[4]);
+//  d.push_back(b[4]*b[4]);
+//  coeffsvects.push_back(d);
+//     }
+//     if(currentchunk.degree >= 5) {
+//  e.push_back(a[0]*d[0]);
+//  e.push_back(d[1]*a[0] + d[0]*a[1]);
+//  e.push_back(d[2]*a[0] + d[1]*a[1] + d[0]*a[2]);
+//  e.push_back(d[3]*a[0] + d[2]*a[1] + d[1]*a[2]);
+//  e.push_back(d[4]*a[0] + d[3]*a[1] + d[2]*a[2]);
+//  e.push_back(d[5]*a[0] + d[4]*a[1] + d[3]*a[2]);
+//  e.push_back(d[6]*a[0] + d[5]*a[1] + d[4]*a[2]);
+//  e.push_back(d[7]*a[0] + d[6]*a[1] + d[5]*a[2]);
+//  e.push_back(d[8]*a[0] + d[7]*a[1] + d[6]*a[2]);
+//  e.push_back(d[8]*a[1] + d[7]*a[2]);
+//  e.push_back(d[8]*a[2]);
+//  coeffsvects.push_back(e);
+//     }
+
+//     for(int i = 0; i < currentchunk.dimension; i++) {
+//  coefficientsvector.resize(0);
+//  coefficientsvector.push_back(currentchunk.polynomialsvector[i].coefficientsvector[0]);
+//  for(int k = 1; k <= currentchunk.degree; k++){
+//      coefficientsvector.resize(2*k + 1, 0);
+//      dReal u = currentchunk.polynomialsvector[i].coefficientsvector[k];
+//      int l = 2*k + 1;
+//      for(int j = 0; j < l; j++) {
+//      coefficientsvector[j] += u*coeffsvects[k - 1][j];
+//      }
+//  }
+//  polynomialsvector.push_back(Polynomial(coefficientsvector));
+//     }
+//     newchunk = Chunk(tnext - t0, polynomialsvector);
 // }
 
 void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
@@ -401,7 +403,7 @@ void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
     while(currentchunkindex<chunkindex) {
         if(itcurrentchunk->duration-processedcursor>=TINY) {
             bool res = SolveQuadraticEquation(s-itcurrentchunk->send,sd,0.5*sdd,tnext,t,T);
-            BOOST_ASSERT(res);
+            assert(res);
             ComputeChunk(t,tnext,s-itcurrentchunk->sbegin,sd,sdd,*itcurrentchunk,newchunk);
             chunkslist.push_back(newchunk);
             t = tnext;
@@ -413,7 +415,7 @@ void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
 
     // Process current chunk
     bool res = SolveQuadraticEquation((s-itcurrentchunk->sbegin)-remainder,sd,0.5*sdd,tnext,t,T);
-    BOOST_ASSERT(res);
+    assert(res);
     ComputeChunk(t,tnext,s-itcurrentchunk->sbegin,sd,sdd,*itcurrentchunk,newchunk);
     chunkslist.push_back(newchunk);
     processedcursor = remainder;
@@ -488,6 +490,9 @@ int Trajectory::Reparameterize(Constraints& constraints, Trajectory& restrajecto
         sdcur = sdnext2;
     }
 
+    if (newchunkslist.size() < 1) {
+        return -1;
+    }
     restrajectory = Trajectory(newchunkslist);
     return 1;
 }

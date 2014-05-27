@@ -52,6 +52,7 @@ public:
         else if (problemtype.compare("QuadraticConstraints")==0) {
             pconstraints.reset(new QuadraticConstraints(constraintsstring));
             pconstraints->trajectory = *ptrajectory;
+            pconstraints->CheckInput();
         }
 
 #ifdef WITH_OPENRAVE
@@ -207,6 +208,7 @@ public:
         ConvertToOpenRAVETrajectory(restrajectory, ptraj, _probot->GetActiveConfigurationSpecification());
         return openravepy::toPyTrajectory(ptraj, opyenv);
     }
+
 #endif
 
     TOPP::dReal RunEmergencyStop(TOPP::dReal sdbeg){
@@ -221,7 +223,8 @@ public:
     }
 
     void WriteResultTrajectory(){
-        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        // std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        std::stringstream ss; ss << std::setprecision(11);
         // printf("WriteResultTrajectory: %d %f %d blah\n",
         //        restrajectory.dimension, restrajectory.duration,
         //        restrajectory.degree);
@@ -230,8 +233,9 @@ public:
     }
 
     void WriteProfilesList(){
-        std::list<Profile>::iterator itprofile = pconstraints->resprofileslist.begin();
-        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+      std::list<Profile>::iterator itprofile = pconstraints->resprofileslist.begin();
+        //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        std::stringstream ss; ss << std::setprecision(11);
         TOPP::dReal dt = 1e-4;
         pconstraints->WriteMVCBobrow(ss,dt);
         ss << "\n";
@@ -252,8 +256,9 @@ public:
     }
 
     void WriteSwitchPointsList(){
-        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
-        std::list<SwitchPoint>::iterator itsw = pconstraints->switchpointslist.begin();
+        //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        std::stringstream ss; ss << std::setprecision(11);
+	std::list<SwitchPoint>::iterator itsw = pconstraints->switchpointslist.begin();
         while(itsw != pconstraints->switchpointslist.end()) {
             ss << itsw->s << " " << itsw->sd << " " << itsw->switchpointtype << "\n";
             itsw++;
@@ -271,7 +276,8 @@ public:
 
     // Extra string, such as the coordinates of the ZMP (depending on the application)
     void WriteExtra(){
-        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+	std::stringstream ss; ss << std::setprecision(11);
         pconstraints->WriteExtra(ss);
         resextrastring = ss.str();
     }

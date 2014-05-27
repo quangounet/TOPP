@@ -33,6 +33,7 @@
 #include <cstdlib>
 #include <cassert>
 
+#include "Errors.h"
 #include "Trajectory.h"
 
 #include <boost/lexical_cast.hpp>
@@ -213,6 +214,9 @@ public:
     Constraints(){
     }
 
+    // Check input after this->trajectory has been set (from TOPPbindings)
+    virtual void CheckInput() {}
+
     // Compute the MVCs and the switchpoints and other initializations
     virtual bool Preprocess();
 
@@ -329,6 +333,7 @@ public:
     //////////////// Overloaded methods //////////////////////
     std::pair<dReal,dReal> SddLimits(dReal s, dReal sd);
     dReal SdLimitBobrowInit(dReal s);
+    void CheckInput();  
     void FindSingularSwitchPoints();
     void ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector);
     void WriteConstraints(std::stringstream& ss);
@@ -367,10 +372,10 @@ enum CLCReturnType {
 };
 
 // Integrate forward from (sstart,sdstart)
-int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, bool testaboveexistingprofiles=true, bool testmvc=true, bool zlajpah=false);
+int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e6, bool testaboveexistingprofiles=true, bool testmvc=true, bool zlajpah=false);
 
 // Integrate backward from (sstart,sdstart)
-int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e5, bool testaboveexistingprofiles=true, bool testmvc=true, bool zlajpah=false);
+int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e6, bool testaboveexistingprofiles=true, bool testmvc=true, bool zlajpah=false);
 
 // Compute the CLC
 int ComputeLimitingCurves(Constraints& constraints);

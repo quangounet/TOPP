@@ -15,20 +15,31 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+error_msg = [  # needs to be in sync with Errors.h
+    "unspecified error",
+    "everything OK",
+    "trajectory too short",
+    "MVC hit the sd=0 axis",
+    "some CLC error",
+    "sdbegmin is too high",
+    "sdendmin is too high",
+    "forward integration hit the sd=0 axis",
+    "backward integration hit the sd=0 axis",
+    "forward integration failed",
+    "backward integration failed",
+]
 
-from TOPPopenravepy import RAVEBindings
-from Utilities import vect2str
 
+class NoTrajectoryFound(Exception):
+    def __init__(self, error_code=None, wrapper=None):
+        """Report when no trajectory is found.
 
-class TorqueLimits(RAVEBindings):
-    """Bindings for the 'TorqueLimitsRave' problem."""
+        error_code -- return code from ComputeProfiles
+        wrapper -- TOPP python wrapper (e.g. QuadraticConstraints object)
 
-    def __init__(self, robot, traj, taumin, taumax, vmax, discrtimestep=None,
-                 integrationtimestep=None):
-        constring = str(discrtimestep) + "\n"
-        constring += vect2str(taumin) + "\n"
-        constring += vect2str(taumax) + "\n"
-        constring += vect2str([0, 0])  # TODO: non-zero vmax
-        trajstring = str(traj)
-        super(TorqueLimits, self).__init__(
-            robot, "TorqueLimitsRave", constring, trajstring)
+        """
+        self.error_code = error_code
+        self.wrapper = wrapper
+
+    def __str__(self):
+        return error_msg[self.error_code]

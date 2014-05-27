@@ -13,13 +13,12 @@ Requirements
 
 The following software is required to install TOPP:
 
-- Boost (1.47 or above) with Boost.Python
+- Boost (1.46 or above) with Boost.Python
 - Python (2.7 or above)
 
 If you need OpenRAVE support (for dynamics computations), the following software is also required:
 
-- OpenRAVE (installed from source, see http://openrave.org/docs/latest_stable/coreapihtml/installation_linux.html)
-- LAPACK (3.5.0 or above)
+- OpenRAVE (installed from source, "master" branch, see http://openrave.org/docs/latest_stable/coreapihtml/installation_linux.html **NB**: one must install from the "master" branch, not the "latest stable" branch, so change <code>git clone --branch latest_stable https://github.com/rdiankov/openrave.git</code> into <code>git clone --branch master https://github.com/rdiankov/openrave.git</code>)
 
 Installation
 ------------

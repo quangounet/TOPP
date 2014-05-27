@@ -36,7 +36,6 @@ using namespace OpenRAVE;
 namespace TOPP {
 
 ZMPTorqueLimits::ZMPTorqueLimits(RobotBasePtr probot0, std::string& constraintsstring, Trajectory* ptraj){
-
     trajectory = *ptraj;
     probot = probot0;
 
@@ -65,25 +64,25 @@ ZMPTorqueLimits::ZMPTorqueLimits(RobotBasePtr probot0, std::string& constraintss
     hasvelocitylimits = VectorMax(vmax) > TINY;
     activelinks = activelinks0;
 
-    // Check soundness
-    BOOST_ASSERT(int(activedofs.size()) == probot->GetDOF());
-    BOOST_ASSERT(int(qdefault.size()) == probot->GetDOF());
-    BOOST_ASSERT(activelinks.size() == probot->GetLinks().size());
-    BOOST_ASSERT(zmplimits.size() == 4);
-
-    // DOFs
-    for(int i=0; i<int(activedofs.size()); i++) {
-        if(activedofs[i]>TINY) {
+    for(int i=0; i<int(activedofs.size()); i++)
+        if(activedofs[i]>TINY)
             dofsvector.push_back(i);
-        }
-    }
     ndof = int(dofsvector.size());
-    BOOST_ASSERT(ndof == ptraj->dimension);
+
+    // Check soundness
+    assert(int(activedofs.size()) == probot->GetDOF());
+    assert(int(qdefault.size()) == probot->GetDOF());
+    assert(activelinks.size() == probot->GetLinks().size());
+    assert(zmplimits.size() == 4);
+    assert(ndof == ptraj->dimension);
+    assert((int)taumax.size() == ndof);
+    assert((int)taumin.size() == ndof);
 
     // Links
     nlink0 = int(activelinks.size());
     linksvector = probot->GetLinks();
 
+    totalmass = 0.;
     for(int i=0; i < nlink0; i++) {
         mass.push_back(linksvector[i]->GetMass());
         totalmass += mass[i];
@@ -143,6 +142,15 @@ ZMPTorqueLimits::ZMPTorqueLimits(RobotBasePtr probot0, std::string& constraintss
             this->ComputeInverseDynamicsSingleSupport(tmp0, qdfilled); // Mqd + Cqd + gq
             this->ComputeInverseDynamicsSingleSupport(tmp1, zero); // Cqd + gq
             VectorAdd(tmp0,tmp1,Mqd,1,-1); // Mqd = tmp0 - tmp1
+            //
+            // Note: this is wrong when the speed of the base link is not zero,
+            // because in this case contact forces are not the same for
+            // tau=tmp0 and tau=tmp1:
+            //     tmp0 + J.T f0 = Mqd + Cqd + gq
+            //     tmp1 + J.T f1 =       Cqd + gq
+            // so
+            //     tmp0 - tmp1 = Mqd + J.T (f1 - f0)
+            //
             probot->SetDOFVelocities(zero,CLA_Nothing);
             this->ComputeInverseDynamicsSingleSupport(gq, zero); // gq
             VectorAdd(tmp1,gq,Cqd,1,-1); // Cqd = tmp1 - gq
@@ -249,6 +257,7 @@ ZMPTorqueLimits::ZMPTorqueLimits(RobotBasePtr probot0, std::string& constraintss
                 b.push_back(b_ymin);
                 c.push_back(c_ymin);
             }
+
             avect.push_back(a);
             bvect.push_back(b);
             cvect.push_back(c);
@@ -257,7 +266,6 @@ ZMPTorqueLimits::ZMPTorqueLimits(RobotBasePtr probot0, std::string& constraintss
     }
 
     nconstraints = int(avect.front().size());
-
 }
 
 
@@ -278,7 +286,7 @@ Vector ZMPTorqueLimits::COM(std::vector<dReal>& qfilled){
 
 
 Vector ZMPTorqueLimits::ZMP(std::vector<dReal>& qfilled, std::vector<dReal>& qdfilled, std::vector<dReal>& qddfilled, bool withangularmomentum){
-    BOOST_ASSERT(!withangularmomentum);  // not implemented
+    assert(!withangularmomentum);  // not implemented
     Vector tau0;
     Vector g = probot->GetEnv()->GetPhysicsEngine()->GetGravity();
     dReal f02 = totalmass * g[2];
@@ -368,7 +376,7 @@ void ZMPTorqueLimits::WriteExtra(std::stringstream& ss){
 
 Vector ZMPTorqueLimits::MatrixMultVector(const boost::multi_array<dReal,2>& M, const std::vector<dReal>& v){
     Vector res;
-    BOOST_ASSERT(M.shape()[0] == 3);
+    assert(M.shape()[0] == 3);
     for(int i=0; i<3; i++) {
         res[i] = 0;
         for(int j=0; j<int(v.size()); j++) {
