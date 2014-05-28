@@ -85,6 +85,7 @@ typedef double dReal;
 #define TINY2 1e-5
 #define INF 1.0e15
 #define MAXSD 200
+#define BOBROWEXCLUDENOTDEFINED -1
 
 /// \brief Exception that all OpenRAVE internal methods throw; the error codes are held in \ref OpenRAVEErrorCode.
 class TOPPException : public std::exception
@@ -215,7 +216,8 @@ public:
     }
 
     // Check input after this->trajectory has been set (from TOPPbindings)
-    virtual void CheckInput() {}
+    virtual void CheckInput() {
+    }
 
     // Compute the MVCs and the switchpoints and other initializations
     virtual bool Preprocess();
@@ -247,6 +249,9 @@ public:
 
     // Upper limit on sd given by acceleration constraints (Bobrow)
     virtual dReal SdLimitBobrow(dReal s);
+    dReal SdLimitBobrowExclude(dReal s, int iexclude){
+        return BOBROWEXCLUDENOTDEFINED;
+    }
 
     // Compute the maximum velocity curve due to dynamics at s
     // Called at initialization
@@ -273,6 +278,9 @@ public:
 
 
     ///////////////////////// Switch Points ///////////////////////
+
+    int ntangenttreated; //number of tangent switchpoints that are treated (for stats purpose)
+    int nsingulartreated;  //number of singular switchpoints that are treated (for stats purpose)
 
     // Find all switch points, add them to switchpointslist
     virtual void FindSwitchPoints();
@@ -333,7 +341,8 @@ public:
     //////////////// Overloaded methods //////////////////////
     std::pair<dReal,dReal> SddLimits(dReal s, dReal sd);
     dReal SdLimitBobrowInit(dReal s);
-    void CheckInput();  
+    dReal SdLimitBobrowExclude(dReal s, int iexclude);
+    void CheckInput();
     void FindSingularSwitchPoints();
     void ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector);
     void WriteConstraints(std::stringstream& ss);
