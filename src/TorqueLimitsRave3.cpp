@@ -78,39 +78,45 @@ TorqueLimitsRave3::TorqueLimitsRave3(RobotBasePtr probot, OpenRAVE::TrajectoryBa
         trajectory.Evaldd(s,qdd);
         probot->SetActiveDOFValues(q,KinBody::CLA_Nothing);
         probot->SetActiveDOFVelocities(qd,KinBody::CLA_Nothing);
-        for(int idof = 0; idof < ndof; ++idof) {
-            vfullvalues[probot->GetActiveDOFIndices()[idof]] = qd[idof];
-        }
-        probot->ComputeInverseDynamics(torquesimple,vfullvalues);
+        // Torque components with qdd
         for(int idof = 0; idof < ndof; ++idof) {
             vfullvalues[probot->GetActiveDOFIndices()[idof]] = qdd[idof];
         }
         probot->ComputeInverseDynamics(torquecomponents,vfullvalues);
+        // Torque simple with qd
+        for(int idof = 0; idof < ndof; ++idof) {
+            vfullvalues[probot->GetActiveDOFIndices()[idof]] = qd[idof];
+        }
+        probot->ComputeInverseDynamics(torquesimple,vfullvalues);
         // Note that the a,b,c in QuadraticConstraints are not the same as those in TorqueLimits
+        // See TOPPopenravepy.ComputeTorquesConstraints for details
         avect[i].resize(ndof*2);
         bvect[i].resize(ndof*2);
         cvect[i].resize(ndof*2);
         // Constraints tau < taumax
         for(int idof = 0; idof < ndof; ++idof) {
+            dReal a = torquesimple[idof] - torquecomponents[1][idof] - torquecomponents[2][idof];
+            dReal b = torquecomponents[0][idof] + torquecomponents[1][idof];
+            dReal c = torquecomponents[2][idof];
             if( avect[i][idof] >= 0 ) {
                 // upper limits
-                avect[i][idof] = torquesimple[idof] - torquecomponents[1][idof] - torquecomponents[2][idof];
-                bvect[i][idof] = torquecomponents[0][idof] + torquecomponents[1][idof];
-                cvect[i][idof] = torquecomponents[2][idof] - taumax[idof];
+                avect[i][idof] = a;
+                bvect[i][idof] = b;
+                cvect[i][idof] = c - taumax[idof];
                 // lower limits
-                avect[i][ndof+idof] = -(torquesimple[idof] - torquecomponents[1][idof] - torquecomponents[2][idof]);
-                bvect[i][ndof+idof] = -(torquecomponents[0][idof] + torquecomponents[1][idof]);
-                cvect[i][ndof+idof] = -(torquecomponents[2][idof] - taumin[idof]);
+                avect[i][ndof+idof] = -a;
+                bvect[i][ndof+idof] = -b;
+                cvect[i][ndof+idof] = -c + taumin[idof];
             }
             else {
                 // upper limits
-                avect[i][idof] = torquesimple[idof] - torquecomponents[1][idof] - torquecomponents[2][idof];
-                bvect[i][idof] = torquecomponents[0][idof] + torquecomponents[1][idof];
-                cvect[i][idof] = torquecomponents[2][idof] - taumin[idof];
+                avect[i][idof] = a;
+                bvect[i][idof] = b;
+                cvect[i][idof] = c - taumin[idof];
                 // lower limits
-                avect[i][ndof+idof] = -(torquesimple[idof] - torquecomponents[1][idof] - torquecomponents[2][idof]);
-                bvect[i][ndof+idof] = -(torquecomponents[0][idof] + torquecomponents[1][idof]);
-                cvect[i][ndof+idof] = -(torquecomponents[2][idof] - taumax[idof]);
+                avect[i][ndof+idof] = -a;
+                bvect[i][ndof+idof] = -b;
+                cvect[i][ndof+idof] = -c + taumax[idof];
             }
         }
     }
