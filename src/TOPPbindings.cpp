@@ -204,13 +204,19 @@ public:
     }
 
 #ifdef WITH_OPENRAVE
+    object GetOpenRAVEResultTrajectoryRaw(object opyenv)
+    {
+        OpenRAVE::TrajectoryBasePtr ptraj = OpenRAVE::RaveCreateTrajectory(_probot->GetEnv());
+        //ConvertToOpenRAVETrajectory(pconstraints->trajectory, ptraj, _probot->GetActiveConfigurationSpecification());
+        return openravepy::toPyTrajectory(ptraj, opyenv);
+    }
+
     object GetOpenRAVEResultTrajectory(object opyenv)
     {
         OpenRAVE::TrajectoryBasePtr ptraj = OpenRAVE::RaveCreateTrajectory(_probot->GetEnv());
         ConvertToOpenRAVETrajectory(restrajectory, ptraj, _probot->GetActiveConfigurationSpecification());
         return openravepy::toPyTrajectory(ptraj, opyenv);
     }
-
 #endif
 
     TOPP::dReal RunEmergencyStop(TOPP::dReal sdbeg){
@@ -326,7 +332,8 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def("WriteSwitchPointsList",&TOPPInstance::WriteSwitchPointsList)
     .def("SerializeInputTrajectory", &TOPPInstance::SerializeInputTrajectory)
 #ifdef WITH_OPENRAVE
-    .def("GetOpenRAVEResultTrajectory", &TOPPInstance::GetOpenRAVEResultTrajectory, args("pyenv"))
+    .def("GetOpenRAVEResultTrajectoryRaw", &TOPPInstance::GetOpenRAVEResultTrajectoryRaw, args("pyenv"), "the raw solved trajectory (degree is twice that of input trajectory degree)")
+    .def("GetOpenRAVEResultTrajectory", &TOPPInstance::GetOpenRAVEResultTrajectory, args("pyenv"), "resulting re-parameterized trajectory")
 #endif
     ;
 }
