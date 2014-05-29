@@ -102,9 +102,10 @@ for j in range(ntraj):
         print x.ntangenttreated, x.nsingulartreated, ntangenttreateds, nsingulartreateds
     else:
         nfail += 1
-        print ">>>>>>>>>>>>>>>>>>> TOPP could retime ", nfail
-        #TOPPopenravepy.PlotTorques(robot,traj0,traj1,0.01,taumin,taumax,3)
-        #raw_input()
+        print ">>>>>>>>>>>>>>>>>>> TOPP could not retime ", nfail
+        TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
+        TOPPopenravepy.PlotTorques(robot,traj0,traj1,0.01,taumin,taumax,3)
+        raw_input()
 
       
 print "\nNumber of failures:", nfail
