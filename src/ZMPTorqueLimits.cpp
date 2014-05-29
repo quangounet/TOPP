@@ -45,19 +45,19 @@ ZMPTorqueLimits::ZMPTorqueLimits(RobotBasePtr probot0, std::string& constraintss
     getline(iss, buff, '\n');
     discrtimestep = atof(buff.c_str());
     getline(iss, buff, '\n');
-    VectorFromString(std::string(buff),activedofs);
+    VectorFromString(buff,activedofs);
     getline(iss, buff, '\n');
-    VectorFromString(std::string(buff),activelinks0);
+    VectorFromString(buff,activelinks0);
     getline(iss, buff, '\n');
-    VectorFromString(std::string(buff),vmax);
+    VectorFromString(buff,vmax);
     getline(iss, buff, '\n');
-    VectorFromString(std::string(buff),taumin);
+    VectorFromString(buff,taumin);
     getline(iss, buff, '\n');
-    VectorFromString(std::string(buff),taumax);
+    VectorFromString(buff,taumax);
     getline(iss, buff, '\n');
-    VectorFromString(std::string(buff),zmplimits);
+    VectorFromString(buff,zmplimits);
     getline(iss, buff, '\n');
-    VectorFromString(std::string(buff),qdefault);
+    VectorFromString(buff,qdefault);
     getline(iss, buff, '\n');
     supportfootlinkname = std::string(buff);
 

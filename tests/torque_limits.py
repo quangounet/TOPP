@@ -113,7 +113,7 @@ else:
     print "Trajectory is not time-parameterizable"
 
 # Execute trajectory
-if(ret == 1):
-    TOPPopenravepy.Execute(robot,traj1)
+# if(ret == 1):
+#     TOPPopenravepy.Execute(robot,traj1)
 
 raw_input()

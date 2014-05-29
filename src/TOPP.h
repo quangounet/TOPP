@@ -414,7 +414,7 @@ dReal VectorNorm(const std::vector<dReal>&v);
 void PrintVector(const std::vector<dReal>& v);
 
 // Read a vector of dReal from a space-separated string
-void VectorFromString(const std::string& s,std::vector<dReal>&resvect);
+void VectorFromString(std::string& s,std::vector<dReal>&resvect);
 
 /// \brief read N items from a stream and put them into vector
 void ReadVectorFromStream(std::istream& s, size_t N, std::vector<dReal>& resvect);

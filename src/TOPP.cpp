@@ -1012,7 +1012,7 @@ dReal ComputeSlidesdd(Constraints& constraints, dReal s, dReal sd, dReal dt) {
     sdnext_mvc = constraints.SdLimitCombined(snext);
     if(sdnext_mvc < sdnext_int) {
         //std::cout << "Cannot slide alpha \n";
-        return 0;
+        return INF;
     }
 
     //Check beta
@@ -1025,7 +1025,7 @@ dReal ComputeSlidesdd(Constraints& constraints, dReal s, dReal sd, dReal dt) {
     sdnext_mvc = constraints.SdLimitCombined(snext);
     if(sdnext_mvc > sdnext_int) {
         //std::cout << "Cannot slide beta \n";
-        return 0;
+        return beta;
     }
 
     //Determine the optimal acceleration by bisection
@@ -1063,7 +1063,7 @@ dReal ComputeSlidesddBackward(Constraints& constraints, dReal s, dReal sd, dReal
     sdprev_mvc = constraints.SdLimitCombined(sprev);
     if(sdprev_mvc > sdprev_int) {
         //std::cout << "Cannot slide alpha \n";
-        return 0;
+        return alpha;
     }
 
     //Check beta
@@ -1076,7 +1076,7 @@ dReal ComputeSlidesddBackward(Constraints& constraints, dReal s, dReal sd, dReal
     sdprev_mvc = constraints.SdLimitCombined(sprev);
     if(sdprev_mvc < sdprev_int) {
         //std::cout << "Cannot slide beta \n";
-        return 0;
+        return INF;
     }
 
     //Determine the optimal acceleration by bisection
@@ -1330,6 +1330,14 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                         break;
                     }
                     dReal slidesdd = ComputeSlidesdd(constraints,scur,sdcur,dt);
+                    if(slidesdd == INF) {
+                        cont = false;
+                        slist.push_back(scur);
+                        sdlist.push_back(sdcur);
+                        sddlist.push_back(0);
+                        returntype = INT_MVC;
+                        break;
+                    }
                     snext = scur + dt * sdcur + 0.5*dtsq*slidesdd;
                     sdnext = sdcur + dt * slidesdd;
                     slist.push_back(scur);
@@ -1476,6 +1484,14 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
                 }
                 //std::cout <<"Slide from ("<< scur << "," << sdcur << ") \n";
                 dReal slidesdd = ComputeSlidesddBackward(constraints,scur,sdcur,dt);
+                if(slidesdd == INF) {
+                    cont = false;
+                    slist.push_back(scur);
+                    sdlist.push_back(sdcur);
+                    sddlist.push_back(0);
+                    returntype = INT_MVC;
+                    break;
+                }
                 dReal sprev = scur - dt * sdcur + 0.5*dtsq*slidesdd;
                 dReal sdprev = sdcur - dt * slidesdd;
                 slist.push_back(scur);
@@ -1578,18 +1594,35 @@ int ComputeLimitingCurves(Constraints& constraints){
         if(sdswitch > constraints.SdLimitCombined(sswitch)+TINY2)
             continue;
 
-        //std::cout << sswitch << "\n";
-
         // Address Switch Point
         if (!AddressSwitchPoint(constraints, switchpoint, sbackward,
                                 sdbackward, sforward, sdforward))
             continue;
 
-        // Add middle part
-        if (sforward - sbackward > TINY) {
-            constraints.resprofileslist.push_back(StraightProfile(sbackward,sforward,sdbackward,sdforward));
-            //std::cout << "Main stub : " << constraints.resprofileslist.back().duration << "\n";
+        bool shiller = false;
+        bool rescale = false;
 
+        if(!shiller) {
+            // Add middle part
+            if(rescale) {
+                dReal slope = (sdforward-sdbackward)/(sforward-sbackward);
+                sbackward = sswitch - constraints.integrationtimestep;
+                sforward = sswitch + constraints.integrationtimestep;
+                sdbackward = sdswitch - slope*constraints.integrationtimestep;
+                sdforward = sdswitch + slope*constraints.integrationtimestep;
+                std::cout << "toto " << constraints.integrationtimestep << "\n";
+            }
+            if (sforward - sbackward > TINY) {
+                constraints.resprofileslist.push_back(StraightProfile(sbackward,sforward,sdbackward,sdforward));
+            }
+        }
+        else{
+            sbackward = sswitch - constraints.integrationtimestep;
+            sforward = sswitch + constraints.integrationtimestep;
+            sdbackward = constraints.SdLimitCombined(sbackward);
+            sdforward = constraints.SdLimitCombined(sforward);
+            constraints.resprofileslist.push_back(StraightProfile(sswitch,sforward,sdswitch,sdforward));
+            constraints.resprofileslist.push_back(StraightProfile(sbackward,sswitch,sdbackward,sdswitch));
         }
 
         // Integrate backward
@@ -1597,7 +1630,6 @@ int ComputeLimitingCurves(Constraints& constraints){
                                             constraints.integrationtimestep, tmpprofile);
         if(tmpprofile.nsteps>2) {
             constraints.resprofileslist.push_back(tmpprofile);
-            //std::cout << "Backward : "  << tmpprofile.nsteps << " " << tmpprofile.duration << "\n";
         }
 
         if(integratestatus == INT_BOTTOM)
@@ -2177,7 +2209,8 @@ dReal EmergencyStop(Constraints& constraints, dReal sdbeg, Trajectory& restrajec
 ////////////////////////////////////////////////////////////////////
 
 
-void VectorFromString(const std::string& s,std::vector<dReal>&resvect){
+void VectorFromString(std::string& s,std::vector<dReal>&resvect){
+    s.erase(std::find_if(s.rbegin(), s.rend(), std::bind1st(std::not_equal_to<char>(), ' ')).base(), s.end()); //remove trailing spaces
     std::istringstream iss(s);
     std::string sub;
     dReal value;
@@ -2189,7 +2222,8 @@ void VectorFromString(const std::string& s,std::vector<dReal>&resvect){
     }
 }
 
-void ReadVectorFromStream(std::istream& s, size_t N, std::vector<dReal>& resvect)
+
+void ReadVectorFromStream(std::istream& s, size_t N, std::vector<dReal>&resvect)
 {
     resvect.resize(N);
     for(size_t i = 0; i < N; ++i) {
@@ -2218,7 +2252,7 @@ dReal VectorMax(const std::vector<dReal>&v){
 }
 
 
-void PrintVector(const std::vector<dReal>& v){
+void PrintVector(const std::vector<dReal>&v){
     std::cout << "[";
     for(int i=0; i<int(v.size()); i++) {
         std::cout<< v[i] << ", ";
@@ -2327,7 +2361,7 @@ bool FindLowestProfile(dReal s, Profile& profile, dReal& tres, std::list<Profile
 }
 
 
-void CheckInsert(std::list<std::pair<dReal,dReal> >& reslist, std::pair<dReal,dReal> e, bool inverse){
+void CheckInsert(std::list<std::pair<dReal,dReal> >&reslist, std::pair<dReal,dReal> e, bool inverse){
     std::list<std::pair<dReal,dReal> >::iterator it = reslist.begin();
     while(it != reslist.end()) {
         if(inverse) {
@@ -2357,7 +2391,7 @@ void CheckInsert(std::list<std::pair<dReal,dReal> >& reslist, std::pair<dReal,dR
 }
 
 
-void FindMaxima(const std::list<std::pair<dReal,dReal> >& origlist, std::list<std::pair<dReal,dReal> >& reslist, bool inverse){
+void FindMaxima(const std::list<std::pair<dReal,dReal> >&origlist, std::list<std::pair<dReal,dReal> >&reslist, bool inverse){
     reslist.resize(0);
     if(origlist.size()==0) {
         return;

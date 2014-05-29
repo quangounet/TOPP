@@ -11,7 +11,7 @@ class Constraints;  // defined in TOPP.h
 class Polynomial {
 public:
     Polynomial(const std::vector<dReal>& coefficientsvector);
-    Polynomial(const std::string& s);
+    Polynomial(std::string& s);
     Polynomial(){
     }
     void InitFromCoefficientsVector(const std::vector<dReal>&coefficientsvector);

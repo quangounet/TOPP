@@ -45,7 +45,7 @@ Polynomial::Polynomial(const std::vector<dReal>& coefficientsvector0) {
 }
 
 
-Polynomial::Polynomial(const std::string& s) {
+Polynomial::Polynomial(std::string& s) {
     VectorFromString(s,coefficientsvector);
     InitFromCoefficientsVector(coefficientsvector);
 
