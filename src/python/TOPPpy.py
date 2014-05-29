@@ -117,11 +117,12 @@ def ComputeKinematicConstraints(traj, amax, discrtimestep):
 
 ######################## Plots ############################
 
-def PlotProfiles(profileslist0, switchpointslist=[], figstart=1):
+def PlotProfiles(profileslist0, switchpointslist=[], figstart=None):
     from pylab import figure, clf, hold, plot, gca, axis, title, xlabel, ylabel
     profileslist = list(profileslist0)
-    figure(figstart)
-    clf()
+    if figstart is not None:
+        figure(figstart)
+        clf()
     hold('on')
     mvcbobrow = profileslist.pop(0)
     plot(mvcbobrow[2], mvcbobrow[3], 'm--', linewidth=4)

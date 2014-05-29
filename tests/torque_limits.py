@@ -66,8 +66,13 @@ taumin[0:7] = -robot.GetDOFMaxTorque()[0:7] # Torque limits
 taumax[0:7] = robot.GetDOFMaxTorque()[0:7] # Torque limits
 
 # Set up the TOPP problem
+<<<<<<< HEAD:tests/torques_limits.py
 discrtimestep = 0.001
 uselegacy = True
+=======
+discrtimestep = 0.005
+uselegacy = False
+>>>>>>> master:tests/torque_limits.py
 t0 = time.time()
 if uselegacy: #Using the legacy TorqueLimits (faster but not fully supported)
     constraintstring = str(discrtimestep)

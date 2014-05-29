@@ -71,7 +71,7 @@ class QuadraticConstraints(object):
         profileslist = ProfilesFromString(self.solver.resprofilesliststring)
         switchpointslist = SwitchPointsFromString(
             self.solver.switchpointsliststring)
-        PlotProfiles(profileslist, switchpointslist, 4)
+        PlotProfiles(profileslist, switchpointslist)
 
     def PlotAlphaBeta(self):
         return TOPPpy.PlotAlphaBeta(self.solver)

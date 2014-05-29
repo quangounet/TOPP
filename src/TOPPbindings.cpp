@@ -261,7 +261,6 @@ public:
         switchpointsliststring = ss.str();
         ntangenttreated = pconstraints->ntangenttreated;
         nsingulartreated = pconstraints->nsingulartreated;
-
     }
 
     // Write Constraints (currently works only for QuadraticConstraints)
@@ -269,7 +268,6 @@ public:
         std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         pconstraints->WriteConstraints(ss);
         outconstraintstring = ss.str();
-
     }
 
     // Extra string, such as the coordinates of the ZMP (depending on the application)
