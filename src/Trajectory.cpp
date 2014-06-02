@@ -103,24 +103,24 @@ Chunk::Chunk(dReal duration0, const std::vector<Polynomial>& polynomialsvector0)
 
 
 void Chunk::Eval(dReal s, std::vector<dReal>&q) const {
-    assert(s >= -TINY);
-    assert(s <= duration+TINY);
+    assert(s >= -TINY2);
+    assert(s <= duration+TINY2);
     for(int i = 0; i < dimension; i++)
         q[i] = polynomialsvector[i].Eval(s);
 }
 
 
 void Chunk::Evald(dReal s, std::vector<dReal>&qd) const {
-    assert(s >= -TINY);
-    assert(s <= duration+TINY);
+    assert(s >= -TINY2);
+    assert(s <= duration+TINY2);
     for(int i = 0; i < dimension; i++)
         qd[i] = polynomialsvector[i].Evald(s);
 }
 
 
 void Chunk::Evaldd(dReal s, std::vector<dReal>&qdd) const {
-    assert(s >= -TINY);
-    assert(s <= duration+TINY);
+    assert(s >= -TINY2);
+    assert(s <= duration+TINY2);
     for(int i = 0; i < dimension; i++)
         qdd[i] = polynomialsvector[i].Evaldd(s);
 }

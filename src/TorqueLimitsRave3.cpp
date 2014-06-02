@@ -64,7 +64,9 @@ TorqueLimitsRave3::TorqueLimitsRave3(RobotBasePtr probot, OpenRAVE::TrajectoryBa
 
     // Define the avect, bvect, cvect
     int ndiscrsteps = int((trajectory.duration+1e-10)/discrtimestep)+1;
-    discrtimestep = trajectory.duration/(ndiscrsteps-1);
+    if( ndiscrsteps > 1 ) {
+        discrtimestep = trajectory.duration/(ndiscrsteps-1);
+    }
     std::vector<dReal> q(ndof), qd(ndof), qdd(ndof), vfullvalues(probot->GetDOF()), torquesimple;
     probot->GetDOFValues(vfullvalues);
     boost::array< std::vector< dReal >, 3 > torquecomponents;

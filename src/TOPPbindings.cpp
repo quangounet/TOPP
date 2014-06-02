@@ -204,10 +204,10 @@ public:
     }
 
 #ifdef WITH_OPENRAVE
-    object GetOpenRAVEResultTrajectoryRaw(object opyenv)
+    object ExtractOpenRAVETrajectoryFromProfiles(object opyenv)
     {
         OpenRAVE::TrajectoryBasePtr ptraj = OpenRAVE::RaveCreateTrajectory(_probot->GetEnv());
-        //ConvertToOpenRAVETrajectory(pconstraints->trajectory, ptraj, _probot->GetActiveConfigurationSpecification());
+        TOPP::ExtractOpenRAVETrajectoryFromProfiles(*pconstraints, 0, ptraj);
         return openravepy::toPyTrajectory(ptraj, opyenv);
     }
 
@@ -232,7 +232,7 @@ public:
 
     void WriteResultTrajectory(){
         // std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
-        std::stringstream ss; ss << std::setprecision(11);
+        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         // printf("WriteResultTrajectory: %d %f %d blah\n",
         //        restrajectory.dimension, restrajectory.duration,
         //        restrajectory.degree);
@@ -243,7 +243,7 @@ public:
     void WriteProfilesList(){
         std::list<Profile>::iterator itprofile = pconstraints->resprofileslist.begin();
         //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
-        std::stringstream ss; ss << std::setprecision(11);
+        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         TOPP::dReal dt = 1e-4;
         pconstraints->WriteMVCBobrow(ss,dt);
         ss << "\n";
@@ -265,7 +265,7 @@ public:
 
     void WriteSwitchPointsList(){
         //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
-        std::stringstream ss; ss << std::setprecision(11);
+        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         std::list<SwitchPoint>::iterator itsw = pconstraints->switchpointslist.begin();
         while(itsw != pconstraints->switchpointslist.end()) {
             ss << itsw->s << " " << itsw->sd << " " << itsw->switchpointtype << "\n";
@@ -285,8 +285,7 @@ public:
 
     // Extra string, such as the coordinates of the ZMP (depending on the application)
     void WriteExtra(){
-        //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
-        std::stringstream ss; ss << std::setprecision(11);
+        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         pconstraints->WriteExtra(ss);
         resextrastring = ss.str();
     }
@@ -331,7 +330,7 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def("WriteSwitchPointsList",&TOPPInstance::WriteSwitchPointsList)
     .def("SerializeInputTrajectory", &TOPPInstance::SerializeInputTrajectory)
 #ifdef WITH_OPENRAVE
-    .def("GetOpenRAVEResultTrajectoryRaw", &TOPPInstance::GetOpenRAVEResultTrajectoryRaw, args("pyenv"), "the raw solved trajectory (degree is twice that of input trajectory degree)")
+    .def("ExtractOpenRAVETrajectoryFromProfiles", &TOPPInstance::ExtractOpenRAVETrajectoryFromProfiles, args("pyenv"), "extract openrave trajectory directly from profiles without reparameterizing")
     .def("GetOpenRAVEResultTrajectory", &TOPPInstance::GetOpenRAVEResultTrajectory, args("pyenv"), "resulting re-parameterized trajectory")
 #endif
     ;

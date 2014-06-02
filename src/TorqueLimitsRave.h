@@ -34,11 +34,21 @@ void ConvertToTOPPTrajectory(OpenRAVE::TrajectoryBaseConstPtr pintraj, const Ope
 /// posspec.GetDOF() has to equal intraj.dimension
 void ConvertToOpenRAVETrajectory(const TOPP::Trajectory& intraj, OpenRAVE::TrajectoryBasePtr pouttraj, const OpenRAVE::ConfigurationSpecification& posspec);
 
+/// \brief Processes the lowest profiles and extracts the new retimed openrave trajectory without extra reparameterizing.
+///
+/// Basic algorithm is to follow the lowest profile until there's a lower one. Have to compute the intersection of the profiles accurately or otherwise velocity/torque limits will not be met anymore.
+/// \brief intraj[in] The original openrave trajectory of the path
+/// \brief constraints[in] The constraints holding the resulting profiles
+/// \brief smax[in] create a trajectory from [0,smax]. If smax is 0, then initialize to final s value of the original trajectory.
+/// \brief outtraj[out] The new retimed openrave trajectory
+//OpenRAVE::TrajectoryBaseConstPtr intraj
+bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal smax, OpenRAVE::TrajectoryBasePtr outtraj);
+
 /// \brief simple version of torque limits
 class TorqueLimitsRave : public TorqueLimits {
 public:
     TorqueLimitsRave(OpenRAVE::RobotBasePtr probot, std::string& constraintsstring, Trajectory* ptraj);
-
+    
 };
 
 /// \brief gets all the information from OpenRAVE structures. Use the active DOFs of the robot
