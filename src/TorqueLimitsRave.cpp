@@ -198,14 +198,18 @@ void ConvertToOpenRAVETrajectory(const Trajectory& intraj, OpenRAVE::TrajectoryB
 }
 
 //OpenRAVE::TrajectoryBaseConstPtr intraj, 
-bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal smax, OpenRAVE::TrajectoryBasePtr outtraj)
+bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal smax, const OpenRAVE::ConfigurationSpecification& posspec, OpenRAVE::TrajectoryBasePtr pouttraj)
 {
-    if (constraints.resprofileslist.size() < 1) {
+    if (constraints.resprofileslist.size() == 0) {
         return false;
     }
 
+    const Trajectory& intraj = constraints.trajectory;
+    if( intraj.chunkslist.size() == 0) {
+        return false;
+    }
     if( smax == 0 ) {
-        smax = constraints.trajectory.duration;//intraj->GetDuration();
+        smax = intraj.duration;//intraj->GetDuration();
     }
     
     //std::deque<dReal> vsampledpoints; // s, sd, sdd, deltatime
@@ -415,6 +419,112 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
         }
         
         sample = checksample;
+    }
+
+    int dof = posspec.GetDOF();
+    
+    // have to resample the original trajectory and add to the new
+    OpenRAVE::ConfigurationSpecification newposspec = posspec;
+    if( intraj.degree == 1  ) {
+        FOREACH(itgroup, newposspec._vgroups) {
+            itgroup->interpolation = "linear";
+        }
+    }
+    else if( intraj.degree == 2  ) {
+        FOREACH(itgroup, newposspec._vgroups) {
+            itgroup->interpolation = "quadratic";
+        }
+    }
+    else if( intraj.degree == 3  ) {
+        FOREACH(itgroup, newposspec._vgroups) {
+            itgroup->interpolation = "cubic";
+        }
+    }
+    else if( intraj.degree == 4  ) {
+        FOREACH(itgroup, newposspec._vgroups) {
+            itgroup->interpolation = "quadric";
+        }
+    }
+    else if( intraj.degree == 5  ) {
+        FOREACH(itgroup, newposspec._vgroups) {
+            itgroup->interpolation = "quintic";
+        }
+    }
+    else if( intraj.degree == 5  ) {
+        FOREACH(itgroup, newposspec._vgroups) {
+            itgroup->interpolation = "quintic";
+        }
+    }
+    else if( intraj.degree == 6  ) {
+        FOREACH(itgroup, newposspec._vgroups) {
+            itgroup->interpolation = "sextic";
+        }
+    }
+    else {
+        FOREACH(itgroup, newposspec._vgroups) {
+            itgroup->interpolation = str(boost::format("degree%d")%intraj.degree);
+        }
+    }
+
+    // go up to jerks
+    std::vector<ConfigurationSpecification> derivspecs(std::min(intraj.degree*2,4));
+    derivspecs[0] = newposspec;
+    ConfigurationSpecification totalspec = newposspec;
+    for(size_t i = 1; i < derivspecs.size(); ++i) {
+        derivspecs[i] = newposspec.ConvertToDerivativeSpecification(i);
+        totalspec += derivspecs[i];
+    }
+    totalspec.AddDeltaTimeGroup();
+    
+    pouttraj->Init(totalspec);
+    std::vector<dReal> v(totalspec.GetDOF(),0);
+    std::vector<dReal> p(intraj.dimension, 0), pd(intraj.dimension, 0), pdd(intraj.dimension, 0), pddd(intraj.dimension, 0);
+
+    // have a composite function q(t) = p(s(t)) where p is the original trajectory, s is the new retiming, q is the new trajectory. sddd = 0. Then
+    // qd = pd * sd
+    // qdd = pdd*sd*sd + pd * sdd
+    // qddd = pddd*sd*sd*sd + 3*pdd*sd*sdd
+    std::list<Chunk>::const_iterator itchunk = intraj.chunkslist.begin();
+    size_t sindex = 0;
+    dReal curchunktime = 0; // s
+    while(itchunk != intraj.chunkslist.end() && sindex < vsampledpoints.size()) {
+        dReal s = vsampledpoints[sindex], sd = vsampledpoints[sindex+1], sdd = vsampledpoints[sindex+2], tdelta = vsampledpoints[sindex+3];
+        dReal sd2 = sd*sd;
+        dReal sd3 = sd2*sd;
+        while(s > curchunktime + itchunk->duration + TINY) {
+            curchunktime += itchunk->duration;
+            ++itchunk;
+            if( itchunk == intraj.chunkslist.end() ) {
+                break;
+            }
+        }
+        if( itchunk == intraj.chunkslist.end() ) {
+            break;
+        }
+        
+        itchunk->Eval(s - curchunktime, p);
+        std::copy(p.begin(), p.end(), v.begin());
+        if( intraj.degree > 0 ) {
+            itchunk->Eval(s - curchunktime, pd);
+            for(size_t i = 0; i < pd.size(); ++i) {
+                v[dof+i] = pd[i] * sd;
+            }
+            if( intraj.degree > 1 ) {
+                itchunk->Eval(s - curchunktime, pdd);
+                for(size_t i = 0; i < pdd.size(); ++i) {
+                    v[2*dof+i] = pdd[i]*sd2 + pd[i]*sdd;
+                }
+                if( intraj.degree > 2 ) {
+                    itchunk->Eval(s - curchunktime, pddd);
+                    for(size_t i = 0; i < pdd.size(); ++i) {
+                        v[3*dof+i] = pddd[i]*sd3 + 3*pdd[i]*sd*sdd;
+                    }
+                }
+            }
+        }
+        v[totalspec.GetDOF()-1] = tdelta;
+        pouttraj->Insert(pouttraj->GetNumWaypoints(), v);
+        sindex += 4;
     }
 
 //    RAVELOG_INFO_FORMAT("success in extracting profiles (%d)!", vsampledpoints.size());

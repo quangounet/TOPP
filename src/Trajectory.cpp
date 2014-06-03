@@ -76,6 +76,14 @@ dReal Polynomial::Evaldd(dReal s) const {
     return res;
 }
 
+dReal Polynomial::Evalddd(dReal s) const
+{
+    dReal res = 0;
+    for(int i = degree - 2; i>=1; i--) {
+        res = res*s + coefficientsvectordd[i]*i;
+    }
+    return res;
+}
 
 void Polynomial::Write(std::stringstream& ss) {
     ss << std::setprecision(17) << coefficientsvector[0];
@@ -125,6 +133,12 @@ void Chunk::Evaldd(dReal s, std::vector<dReal>&qdd) const {
         qdd[i] = polynomialsvector[i].Evaldd(s);
 }
 
+void Chunk::Evalddd(dReal s, std::vector<dReal>&qddd) const {
+    assert(s >= -TINY2);
+    assert(s <= duration+TINY2);
+    for(int i = 0; i < dimension; i++)
+        qddd[i] = polynomialsvector[i].Evalddd(s);
+}
 
 void Chunk::Write(std::stringstream& ss) {
     ss << std::setprecision(17) <<  duration << "\n";
