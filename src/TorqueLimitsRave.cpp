@@ -213,7 +213,7 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
     
     //std::deque<dReal> vsampledpoints; // s, sd, sdd, deltatime
     std::vector<dReal> vsampledpoints;
-    vsampledpoints.reserve(4*20000); // no idea how many points, but guessing a lot if integrationstep is 0.001 and duration is 10s
+    %vsampledpoints.reserve(4*20000); // no idea how many points, but guessing a lot if integrationstep is 0.001 and duration is 10s
     
     ProfileSample sample = FindLowestProfileFast(0, 1e30, constraints.resprofileslist);
     if( sample.itprofile == constraints.resprofileslist.end() ) {
@@ -856,7 +856,7 @@ void TorqueLimitsRave2::FindDiscontinuousSwitchPoints() {
             // if the trajectory degree is <= 3, then the accelerations will not be differentiable at the trajectory chunk edges.
             // therefore add those discontinuity points.
             // perhaps there's a better way to compute this, but the above threshold doesn't catch it.
-            if( itchuckstart != trajectory.chunkcumulateddurationslist.end() && *itchuckstart < discrsvect[i+2] ) {
+            if( itchuckstart != trajectory.chunkcumulateddurationslist.end() && *itchuckstart <= discrsvect[i+2]+TINY ) {
                 if( nLastAddedSwitchIndex < i+1 ) {
                     AddSwitchPoint(i+1,SP_DISCONTINUOUS);
                     nLastAddedSwitchIndex = i+1;
