@@ -2419,7 +2419,7 @@ ProfileSample FindLowestProfileFast(dReal scur, dReal sdmax, const std::list<Pro
 
                 // have to take the sign such that 0 <= t <= integrationtimestep
                 // test lowest sd first
-                if( sddcur >= 0 ) {
+                if( sddcur > TINY ) {
                     tcur = (-sd + discr)/sddcur;
                     if( tcur < 0 || tcur > itprofile->integrationtimestep ) {
                         tcur =(-sd - discr)/sddcur;
@@ -2433,7 +2433,7 @@ ProfileSample FindLowestProfileFast(dReal scur, dReal sdmax, const std::list<Pro
                         sdcur = discr;
                     }
                 }
-                else {
+                else if( sddcur < -TINY ) {
                     tcur = (-sd - discr)/sddcur;
                     if( tcur < 0 || tcur > itprofile->integrationtimestep ) {
                         tcur =(-sd + discr)/sddcur;
@@ -2446,6 +2446,14 @@ ProfileSample FindLowestProfileFast(dReal scur, dReal sdmax, const std::list<Pro
                     else {
                         sdcur = -discr;
                     }
+                }
+                else {
+                    // sdd is very close to 0, so ignore
+                    tcur = (scur - itprofile->svect.at(index-1))/sd;
+                    if( tcur < 0 || tcur > itprofile->integrationtimestep ) {
+                        continue;
+                    }
+                    sdcur = sd;
                 }
 
                 index -= 1;

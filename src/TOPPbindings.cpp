@@ -207,7 +207,10 @@ public:
     object ExtractOpenRAVETrajectoryFromProfiles(object opyenv)
     {
         OpenRAVE::TrajectoryBasePtr ptraj = OpenRAVE::RaveCreateTrajectory(_probot->GetEnv());
-        TOPP::ExtractOpenRAVETrajectoryFromProfiles(*pconstraints, 0, _probot->GetActiveConfigurationSpecification(), ptraj);
+        bool bsuccess = TOPP::ExtractOpenRAVETrajectoryFromProfiles(*pconstraints, 0, _probot->GetActiveConfigurationSpecification(), ptraj);
+        if( !bsuccess ) {
+            return object();
+        }
         return openravepy::toPyTrajectory(ptraj, opyenv);
     }
 
