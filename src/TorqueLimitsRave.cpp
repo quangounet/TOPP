@@ -197,7 +197,6 @@ void ConvertToOpenRAVETrajectory(const Trajectory& intraj, OpenRAVE::TrajectoryB
     }
 }
 
-//OpenRAVE::TrajectoryBaseConstPtr intraj, 
 bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal smax, const OpenRAVE::ConfigurationSpecification& posspec, OpenRAVE::TrajectoryBasePtr pouttraj)
 {
     if (constraints.resprofileslist.size() == 0) {
@@ -425,44 +424,45 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
     
     // have to resample the original trajectory and add to the new
     OpenRAVE::ConfigurationSpecification newposspec = posspec;
-    if( intraj.degree == 1  ) {
+    int resdegree = intraj.degree*2;
+    if( resdegree == 1  ) {
         FOREACH(itgroup, newposspec._vgroups) {
             itgroup->interpolation = "linear";
         }
     }
-    else if( intraj.degree == 2  ) {
+    else if( resdegree == 2  ) {
         FOREACH(itgroup, newposspec._vgroups) {
             itgroup->interpolation = "quadratic";
         }
     }
-    else if( intraj.degree == 3  ) {
+    else if( resdegree == 3  ) {
         FOREACH(itgroup, newposspec._vgroups) {
             itgroup->interpolation = "cubic";
         }
     }
-    else if( intraj.degree == 4  ) {
+    else if( resdegree == 4  ) {
         FOREACH(itgroup, newposspec._vgroups) {
             itgroup->interpolation = "quadric";
         }
     }
-    else if( intraj.degree == 5  ) {
+    else if( resdegree == 5  ) {
         FOREACH(itgroup, newposspec._vgroups) {
             itgroup->interpolation = "quintic";
         }
     }
-    else if( intraj.degree == 5  ) {
+    else if( resdegree == 5  ) {
         FOREACH(itgroup, newposspec._vgroups) {
             itgroup->interpolation = "quintic";
         }
     }
-    else if( intraj.degree == 6  ) {
+    else if( resdegree == 6  ) {
         FOREACH(itgroup, newposspec._vgroups) {
             itgroup->interpolation = "sextic";
         }
     }
     else {
         FOREACH(itgroup, newposspec._vgroups) {
-            itgroup->interpolation = str(boost::format("degree%d")%intraj.degree);
+            itgroup->interpolation = str(boost::format("degree%d")%resdegree);
         }
     }
 

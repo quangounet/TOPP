@@ -41,7 +41,6 @@ void ConvertToOpenRAVETrajectory(const TOPP::Trajectory& intraj, OpenRAVE::Traje
 /// \brief constraints[in] The constraints holding the resulting profiles
 /// \brief smax[in] create a trajectory from [0,smax]. If smax is 0, then initialize to final s value of the original trajectory.
 /// \brief outtraj[out] The new retimed openrave trajectory
-//OpenRAVE::TrajectoryBaseConstPtr intraj
 bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal smax, const OpenRAVE::ConfigurationSpecification& posspec, OpenRAVE::TrajectoryBasePtr outtraj);
 
 /// \brief simple version of torque limits
