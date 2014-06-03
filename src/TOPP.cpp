@@ -540,20 +540,22 @@ void QuadraticConstraints::FixStart(dReal& sstart,dReal& sdstart){
     sstart = 0;
     dReal delta=TINY2, ap, bp, cp, slope;
     InterpolateDynamics(0,a,b,c);
-    InterpolateDynamics(delta,a2,b2,c2);
-    dReal sdcurrent = INF;
+    dReal sdcurrent2 = INF; // squared
     int indexcurrent = 0;
     for(int j=0; j<int(a.size()); j++) {
         if(std::abs(a[j])<TINY2) {
-            if(c[j]*b[j]<0) {
-                if(sqrt(-c[j]/b[j])<sdcurrent) {
-                    sdcurrent = sqrt(-c[j]/b[j]);
+            dReal f = -c[j]/b[j];
+            if(f > 0) {
+                if(f<sdcurrent2) {
+                    sdcurrent2 = f;
                     indexcurrent = j;
                 }
             }
         }
     }
-    if(sdcurrent<1e3) {
+    if(sdcurrent2<1e6) {
+        dReal sdcurrent = sqrt(sdcurrent2);
+        InterpolateDynamics(delta,a2,b2,c2);
         sstart = integrationtimestep;
         ap = (a2[indexcurrent]-a[indexcurrent])/delta;
         bp = (b2[indexcurrent]-b[indexcurrent])/delta;
@@ -1750,7 +1752,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
             bound = constraints.mvccombined[0];
         }
         if(sdstartnew > bound) {
-            message = str(boost::format("Sdbeg (%.15e) > CLC or MVC (%.15e)")%sdstartnew%bound);
+            message = str(boost::format("Sdbeg (%.15e) > CLC or MVC (%.15e), s=%.15e")%sdstartnew%bound%sstartnew);
             std::cout << message << std::endl;
             integrateprofilesstatus = false;
             continue;

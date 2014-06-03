@@ -213,7 +213,7 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
     
     //std::deque<dReal> vsampledpoints; // s, sd, sdd, deltatime
     std::vector<dReal> vsampledpoints;
-    %vsampledpoints.reserve(4*20000); // no idea how many points, but guessing a lot if integrationstep is 0.001 and duration is 10s
+    vsampledpoints.reserve(4*20000); // no idea how many points, but guessing a lot if integrationstep is 0.001 and duration is 10s
     
     ProfileSample sample = FindLowestProfileFast(0, 1e30, constraints.resprofileslist);
     if( sample.itprofile == constraints.resprofileslist.end() ) {
