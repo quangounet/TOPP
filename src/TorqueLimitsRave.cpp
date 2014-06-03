@@ -514,18 +514,18 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
         
         itchunk->Eval(s - curchunktime, p);
         std::copy(p.begin(), p.end(), v.begin());
-        if( intraj.degree > 0 ) {
-            itchunk->Eval(s - curchunktime, pd);
+        if( resdegree > 0 ) {
+            itchunk->Evald(s - curchunktime, pd);
             for(size_t i = 0; i < pd.size(); ++i) {
                 v[dof+i] = pd[i] * sd;
             }
-            if( intraj.degree > 1 ) {
-                itchunk->Eval(s - curchunktime, pdd);
+            if( resdegree > 1 ) {
+                itchunk->Evaldd(s - curchunktime, pdd);
                 for(size_t i = 0; i < pdd.size(); ++i) {
                     v[2*dof+i] = pdd[i]*sd2 + pd[i]*sdd;
                 }
-                if( intraj.degree > 2 ) {
-                    itchunk->Eval(s - curchunktime, pddd);
+                if( resdegree > 2 ) {
+                    itchunk->Evalddd(s - curchunktime, pddd);
                     for(size_t i = 0; i < pdd.size(); ++i) {
                         v[3*dof+i] = pddd[i]*sd3 + 3*pdd[i]*sd*sdd;
                     }
@@ -840,7 +840,7 @@ void TorqueLimitsRave2::FindDiscontinuousSwitchPoints() {
     // also look for the start of the chucks for the trajectory
     std::list<dReal>::const_iterator itchuckstart = trajectory.chunkcumulateddurationslist.begin();
     int nLastAddedSwitchIndex = -1;
-    for(int i=0; i<ndiscrsteps-3; i++) {
+    for(int i=0; i<ndiscrsteps-2; i++) {
         sdnn = SdLimitBobrow(discrsvect[i+2]);
         if(std::abs(sdnn-sdn)>100*std::abs(sdn-sd)) {
             if(sdn<sdnn) {

@@ -997,7 +997,15 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
     }
     // Tangent, Discontinuous and Zlajpah switchpoints
     else{
-        dReal sdtop = BisectionSearch(constraints,s,sd*constraints.loweringcoef,sd,constraints.integrationtimestep,0);
+        dReal sdtop = -1;
+        dReal testsd = sd;
+        for(int itry = 0; itry < 5; ++itry) {
+            testsd *= constraints.loweringcoef;
+            sdtop = BisectionSearch(constraints,s,testsd,sd,constraints.integrationtimestep,0);
+            if(sdtop>0) {
+                break;
+            }
+        }
         if(sdtop<=0) {
             return false;
         }
@@ -1754,8 +1762,15 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         if(sdstartnew > bound) {
             message = str(boost::format("Sdbeg (%.15e) > CLC or MVC (%.15e), s=%.15e")%sdstartnew%bound%sstartnew);
             std::cout << message << std::endl;
-            integrateprofilesstatus = false;
-            continue;
+            sdstartnew = bound;
+
+//            integrateprofilesstatus = false;
+//            continue;
+//            }
+            // set the new sd
+            //sdstartnew = bound;
+            // this is a HACK in order to get things working.
+            constraints.resprofileslist.push_back(StraightProfile(0,sstartnew,0,bound));
         }
         // Integrate from s = 0
         ret = IntegrateForward(constraints,sstartnew,sdstartnew,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
