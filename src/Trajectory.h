@@ -25,6 +25,8 @@ public:
     dReal Evaldd(dReal s) const;
     /// \brief use derivative of coefficientsvectordd to evalute
     dReal Evalddd(dReal s) const;
+    /// \brief use second derivative of coefficientsvectordd to evalute
+    dReal Evaldddd(dReal s) const;
     void Write(std::stringstream& ss);
 };
 
@@ -44,6 +46,8 @@ public:
     void Evaldd(dReal s, std::vector<dReal>&qdd) const;
     /// \brief use derivative of coefficientsvectordd to evalute
     void Evalddd(dReal s, std::vector<dReal>&qddd) const;
+    /// \brief use second derivative of coefficientsvectordd to evalute
+    void Evaldddd(dReal s, std::vector<dReal>&qddd) const;
     void Write(std::stringstream& ss);
 };
 

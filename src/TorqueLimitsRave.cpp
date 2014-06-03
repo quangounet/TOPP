@@ -477,23 +477,25 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
     }
 
     // go up to jerks
-    std::vector<ConfigurationSpecification> derivspecs(std::min(intraj.degree*2,4));
+    std::vector<ConfigurationSpecification> derivspecs(std::min(intraj.degree*2,5));
     derivspecs[0] = newposspec;
     ConfigurationSpecification totalspec = newposspec;
     for(size_t i = 1; i < derivspecs.size(); ++i) {
         derivspecs[i] = newposspec.ConvertToDerivativeSpecification(i);
         totalspec += derivspecs[i];
     }
-    totalspec.AddDeltaTimeGroup();
+    int timegroupindex = totalspec.AddDeltaTimeGroup();
+    int sgroupindex = totalspec.AddGroup("originaltime", 1, "linear");
     
     pouttraj->Init(totalspec);
     std::vector<dReal> v(totalspec.GetDOF(),0);
-    std::vector<dReal> p(intraj.dimension, 0), pd(intraj.dimension, 0), pdd(intraj.dimension, 0), pddd(intraj.dimension, 0);
+    std::vector<dReal> p(intraj.dimension, 0), pd(intraj.dimension, 0), pdd(intraj.dimension, 0), pddd(intraj.dimension, 0), pdddd(intraj.dimension, 0);
 
     // have a composite function q(t) = p(s(t)) where p is the original trajectory, s is the new retiming, q is the new trajectory. sddd = 0. Then
     // qd = pd * sd
-    // qdd = pdd*sd*sd + pd * sdd
-    // qddd = pddd*sd*sd*sd + 3*pdd*sd*sdd
+    // qdd = pdd*sd**2 + pd * sdd
+    // qddd = pddd*sd**3 + 3*pdd*sd*sdd
+    // qdddd = pdddd*sd**4 + 4*pddd*sd**2*sdd + 3*pdd*sdd**2
     std::list<Chunk>::const_iterator itchunk = intraj.chunkslist.begin();
     size_t sindex = 0;
     dReal curchunktime = 0; // s
@@ -514,25 +516,32 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
         
         itchunk->Eval(s - curchunktime, p);
         std::copy(p.begin(), p.end(), v.begin());
-        if( resdegree > 0 ) {
+        if( derivspecs.size() > 1 ) {
             itchunk->Evald(s - curchunktime, pd);
             for(size_t i = 0; i < pd.size(); ++i) {
                 v[dof+i] = pd[i] * sd;
             }
-            if( resdegree > 1 ) {
+            if( derivspecs.size() > 2 ) {
                 itchunk->Evaldd(s - curchunktime, pdd);
                 for(size_t i = 0; i < pdd.size(); ++i) {
                     v[2*dof+i] = pdd[i]*sd2 + pd[i]*sdd;
                 }
-                if( resdegree > 2 ) {
+                if( derivspecs.size() > 3 ) {
                     itchunk->Evalddd(s - curchunktime, pddd);
-                    for(size_t i = 0; i < pdd.size(); ++i) {
+                    for(size_t i = 0; i < pddd.size(); ++i) {
                         v[3*dof+i] = pddd[i]*sd3 + 3*pdd[i]*sd*sdd;
+                    }
+                    if( derivspecs.size() > 4 ) {
+                        itchunk->Evaldddd(s - curchunktime, pdddd);
+                        for(size_t i = 0; i < pdddd.size(); ++i) {
+                            v[4*dof+i] = pdddd[i]*sd2*sd2 + 4*pddd[i]*sd2*sdd + 3*pdd[i]*sdd*sdd;
+                        }
                     }
                 }
             }
         }
-        v[totalspec.GetDOF()-1] = tdelta;
+        v[timegroupindex] = tdelta;
+        v[sgroupindex] = s;
         pouttraj->Insert(pouttraj->GetNumWaypoints(), v);
         sindex += 4;
     }
