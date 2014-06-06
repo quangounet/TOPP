@@ -160,12 +160,11 @@ public:
     dReal duration; ///< duration of the profile (svect.size()-1)*integrationtimestep
     bool forward; ///< if 1 then forward integrate in time, if 0 then backward integrate
     int nsteps; ///< svect.size()-1
-    mutable int currentindex; ///< used for caching the results of Invert operation!
 
     bool FindTimestepIndex(dReal t, int &index, dReal& remainder) const;
     // Find t such that Eval(t) = s
     // Return false if no such t
-    bool Invert(dReal s,  dReal& t, bool searchbackward=false) const;
+    bool Invert(dReal s,  dReal& t) const;
     dReal Eval(dReal t) const;
     dReal Evald(dReal t) const;
     dReal Evaldd(dReal t) const;
@@ -454,6 +453,13 @@ public:
 /// \param scur the s where to look for a low sd
 /// \param sdmax need to look for sd that are <= this value
 ProfileSample FindLowestProfileFast(dReal scur, dReal sdmax, const std::list<Profile>& resprofileslist);
+
+/// \brief finds if any profiles in resprofileslist intersect with ramp [s, sd, sdd] during times [0, tmax].
+///
+/// \param tintersect The time to the intersection point computed as sstart + tintersect*(sdstart + tintersect*0.5*sddstart)
+/// \param itprofileexclude profile to exclude for intersection, usually the profile that [sstart, sdstart, sddstart] come from.
+/// \return the intersection sample point
+ProfileSample FindEarliestProfileIntersection(dReal sstart, dReal sdstart, dReal sddstart, dReal tmax, const std::list<Profile>& resprofileslist, std::list<Profile>::const_iterator itprofileexclude, dReal& tintersect);
 
 void CheckInsert(std::list<std::pair<dReal,dReal> >& reslist, std::pair<dReal,dReal> e, bool inverse = false);
 void FindMaxima(const std::list<std::pair<dReal,dReal> >& origlist, std::list<std::pair<dReal,dReal> >& reslist, bool inverse = false);

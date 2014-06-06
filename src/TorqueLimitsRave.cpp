@@ -233,7 +233,7 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
         dReal sprev = sample.s, sdprev = sample.sd, sddprev = sample.sdd;
         dReal tprev = sample.t;
         int sindex = sample.sindex+1;
-        ProfileSample checksample;
+        ProfileSample checksample, checksample2;
         checksample.itprofile = constraints.resprofileslist.end();
         while(sindex < (int)profile.svect.size() && sprev < smax-TINY) {
             dReal s = profile.svect.at(sindex);
@@ -251,87 +251,114 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                 // found new profile, so need to use it instead.
                 // have to merge with old profile by finding an intersection point.
                 dReal sintersect = 0, sdintersect = 0, sddintersect = 0, tintersect = 0;
-                while(1) {
-
-                    if( fabs(sddprev) <= TINY ) {
-                        RAVELOG_ERROR_FORMAT("sprev=%.%15e, sdprev=%.15e, sddprev=%.15e, sdd is close to 0, don't know that to do", sprev%sdprev%sddprev);
-                        return false;
+                if( fabs(sddprev) <= TINY ) {
+                    RAVELOG_ERROR_FORMAT("sprev=%.%15e, sdprev=%.15e, sddprev=%.15e, sdd is close to 0, don't know that to do", sprev%sdprev%sddprev);
+                    return false;
+                }
+                else {
+                    if( fabs(checksample.sdd) <= TINY ) {
+                        tintersect = (checksample.sd - sdprev)/sddprev;
+                        sintersect = sprev + tintersect * (sdprev + tintersect*sddprev*0.5);
+                        sddintersect = sddprev;
+                        sdintersect = sdprev;
                     }
                     else {
-                        if( fabs(checksample.sdd) <= TINY ) {
-                            tintersect = (checksample.sd - sdprev)/sddprev;
-                            sintersect = sprev + tintersect * (sdprev + tintersect*sddprev*0.5);
-                            sddintersect = sddprev;
-                            sdintersect = sdprev;
+                        // s(sd) = sprev + (sd*sd - sdprev*sdprev)/(2*sddprev) => aprev * sd*sd + cprev
+                        dReal aprev = 1/(2*sddprev), cprev = (sprev - sdprev*sdprev/(2*sddprev));
+                        dReal anext = 1/(2*checksample.sdd), cnext = (checksample.s - checksample.sd*checksample.sd/(2*checksample.sdd));
+                        dReal ad = aprev - anext;
+                        if( fabs(ad) <= TINY ) {
+                            RAVELOG_ERROR_FORMAT("two profiles have same accel at s=%.15e, don't know that to do", s);
+                            return false;
                         }
                         else {
-                            // s(sd) = sprev + (sd*sd - sdprev*sdprev)/(2*sddprev) => aprev * sd*sd + cprev
-                            dReal aprev = 1/(2*sddprev), cprev = (sprev - sdprev*sdprev/(2*sddprev));
-                            dReal anext = 1/(2*checksample.sdd), cnext = (checksample.s - checksample.sd*checksample.sd/(2*checksample.sdd));
-                            dReal ad = aprev - anext;
-                            if( fabs(ad) <= TINY ) {
-                                RAVELOG_ERROR("two profiles have same accel, don't know that to do\n");
+                            dReal sdintersect2 = (cnext-cprev)/ad;
+                            if( sdintersect2 < 0 ) {
+                                RAVELOG_ERROR("two profiles never intersect!\n");
                                 return false;
                             }
-                            else {
-                                dReal sdintersect2 = (cnext-cprev)/ad;
-                                if( sdintersect2 < 0 ) {
-                                    RAVELOG_ERROR("two profiles never intersect!\n");
-                                    return false;
-                                }
-                                sdintersect = sqrt(sdintersect2);
-                                sintersect = aprev*sdintersect2 + cprev;
-                                sddintersect = sddprev;
-                                tintersect = (sdintersect-sdprev)/sddprev;
-                            }
+                            sdintersect = sqrt(sdintersect2);
+                            sintersect = aprev*sdintersect2 + cprev;
+                            sddintersect = sddprev;
+                            tintersect = (sdintersect-sdprev)/sddprev;
                         }
                     }
 
                     if( tintersect >= 0 ) {
-                        break;
+                        // if here then found an intersection
+                        BOOST_ASSERT(sprev < sintersect);
+                        vsampledpoints.push_back(sintersect);
+                        vsampledpoints.push_back(checksample.sd);  // needs to be checksample since interpolation goes forward
+                        vsampledpoints.push_back(checksample.sdd); // needs to be checksample since interpolation goes forward
+                        vsampledpoints.push_back(tintersect);
+                        dReal t2 = (sdintersect-checksample.sd)/checksample.sdd;
+                        //                if( t2 > TINY ) {
+                        //                    RAVELOG_ERROR_FORMAT("unexpted got time %f", t2);
+                        //                    return false;
+                        //                }
+                        checksample.t += t2; // go back in time
+                        checksample.s = sintersect;
                     }
-
-
-                    if( vsampledpoints.size() < 8 ) {
-                        RAVELOG_ERROR("time intersection is negative and too foo points\n");
-                        return false;
+                    else {
+                        // there's negative intersection, which means there must be a closer profile that collides
+                        tintersect=1e30;
+                        dReal tdelta = 0.01*profile.integrationtimestep;
+                        checksample2 = FindEarliestProfileIntersection(vsampledpoints.at(vsampledpoints.size()-4) + tdelta*(vsampledpoints.at(vsampledpoints.size()-3) + tdelta*0.5*vsampledpoints.at(vsampledpoints.size()-2)), vsampledpoints.at(vsampledpoints.size()-3) + tdelta*vsampledpoints.at(vsampledpoints.size()-2), vsampledpoints.at(vsampledpoints.size()-2), profile.integrationtimestep, constraints.resprofileslist, sample.itprofile, tintersect);
+                        if( checksample2.itprofile != constraints.resprofileslist.end()) {
+                            vsampledpoints.at(vsampledpoints.size()-1) = tintersect; // have to overwrite with the new time
+                            checksample = checksample2;
+                        }
+                        else {
+                            RAVELOG_ERROR_FORMAT("time intersection at s=%.15e is negative", s);
+                            return false;
+                        }
                     }
-                    // go back a sample point!
-                    RAVELOG_INFO("negative time, so removing last sample\n");
-                    vsampledpoints.resize(vsampledpoints.size()-4);
-                    sprev = vsampledpoints.at(vsampledpoints.size()-4);
-                    sdprev = vsampledpoints.at(vsampledpoints.size()-3);
-                    sddprev = vsampledpoints.at(vsampledpoints.size()-2);
                 }
 
-                // if here then found an intersection
-                BOOST_ASSERT(sprev < sintersect);
-                vsampledpoints.push_back(sintersect);
-                vsampledpoints.push_back(checksample.sd);  // needs to be checksample since interpolation goes forward
-                vsampledpoints.push_back(checksample.sdd); // needs to be checksample since interpolation goes forward
-                vsampledpoints.push_back(tintersect);
-                dReal t2 = (sdintersect-checksample.sd)/checksample.sdd;
-                if( t2 > TINY ) {
-                    RAVELOG_ERROR_FORMAT("unexpted got time %f", t2);
-                    return false;
-                }
-                checksample.t += t2; // go back in time
-                checksample.s = sintersect;
+//                    if( tintersect >= 0 ) {
+//                        break;
+//                    }
+//
+//
+//                    // perhaps there is a s value between sprev and s that will provide a lower ramp.
+//                    // get all ramps that have values between this range and test if they ever become lower
+//                    if( vsampledpoints.size() < 8 ) {
+//                        RAVELOG_ERROR("time intersection is negative and too foo points\n");
+//                        return false;
+//                    }
+//                    // go back a sample point!
+//                    RAVELOG_INFO_FORMAT("negative time, so removing last sample %.15e", vsampledpoints.at(vsampledpoints.size()-4));
+//                    vsampledpoints.resize(vsampledpoints.size()-4);
+//                    sprev = vsampledpoints.at(vsampledpoints.size()-4);
+//                    sdprev = vsampledpoints.at(vsampledpoints.size()-3);
+//                    sddprev = vsampledpoints.at(vsampledpoints.size()-2);
+//                    checksample = FindLowestProfileFast(sprev, sd-TINY, constraints.resprofileslist);
+//                    if( checksample.itprofile == constraints.resprofileslist.end() ) {
+//                        RAVELOG_ERROR("could not find lower profile");
+//                        return false;
+//                    }
+//                }
+
                 sprev = checksample.s;
                 sdprev = checksample.sd;
                 sddprev = checksample.sdd;
                 badded = true;
                 break;
             }
-
-            BOOST_ASSERT(sprev < s);
+            
+            BOOST_ASSERT( sprev <= s );
             BOOST_ASSERT(profile.integrationtimestep-tprev > 0);
             vsampledpoints.push_back(s);
             vsampledpoints.push_back(sd);
             vsampledpoints.push_back(sdd);
             vsampledpoints.push_back(profile.integrationtimestep-tprev);
+//        }
+//        else if( sprev > s ) {
+//                // skip the point...?
+//
+//            }
             badded = true;
-
+            
             // increase the point and try again
             tprev = 0;
             sprev = s;
@@ -414,51 +441,61 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                     sddprev = sample.itprofile->sddvect.at(sample.itprofile->svect.size()-2);
                 }
 
-                dReal snext = itprofilemin->svect.at(sconnectindexmin);
-                dReal sdnext = itprofilemin->sdvect.at(sconnectindexmin);
-                dReal sddnext = itprofilemin->sddvect.at(sconnectindexmin);
                 dReal sintersect = 0, sdintersect = 0, sddintersect = 0, tintersect = 0;
+                dReal snext, sdnext, sddnext;
+                while(sconnectindexmin < itprofilemin->svect.size()) {
+                    snext = itprofilemin->svect.at(sconnectindexmin);
+                    sdnext = itprofilemin->sdvect.at(sconnectindexmin);
+                    sddnext = itprofilemin->sddvect.at(sconnectindexmin);
 
-                if( fabs(sddprev) <= TINY ) {
-                    if( fabs(sddnext) <= TINY ) {
-                        RAVELOG_ERROR_FORMAT("sddprev and sddnext are both close to 0 at s=%.15e, don't know that to do", sprev);
-                        return false;
-                    }
-                    dReal t = (sdprev - sdnext)/sddnext;
-                    sintersect = snext + t * (sdnext + t*sddnext*0.5);
-                    sddintersect = sddprev;
-                    sdintersect = sdprev;
-                    tintersect = (sintersect - sprev)/sdprev;
-                }
-                else if( fabs(sddnext) <= TINY ) {
-                    //RAVELOG_ERROR_FORMAT("check sddprev is close to 0 at s=%.15e, don't know that to do", snext);
-                    //return false;
-                    tintersect = (sdnext - sdprev)/sddprev;
-                    sintersect = sprev + tintersect * (sdprev + tintersect*sddprev*0.5);
-                    sddintersect = sddprev;
-                    sdintersect = sdprev;
-                }
-                else {
-                    // s(sd) = sprev + (sd*sd - sdprev*sdprev)/(2*sddprev) => aprev * sd*sd + cprev
-                    dReal aprev = 1/(2*sddprev), cprev = (sprev - sdprev*sdprev/(2*sddprev));
-                    dReal anext = 1/(2*sddnext), cnext = (snext - sdnext*sdnext/(2*sddnext));
-                    dReal ad = aprev - anext;
-                    if( fabs(ad) <= TINY ) {
-                        RAVELOG_ERROR("two profiles have same accel, don't know that to do\n");
-                        return false;
-                    }
-                    else {
-                        dReal sdintersect2 = (cnext-cprev)/ad;
-                        if( sdintersect2 < 0 ) {
-                            RAVELOG_ERROR("two profiles never intersect!\n");
+                    if( fabs(sddprev) <= TINY ) {
+                        if( fabs(sddnext) <= TINY ) {
+                            RAVELOG_ERROR_FORMAT("sddprev and sddnext are both close to 0 at s=%.15e, don't know that to do", sprev);
                             return false;
                         }
-                        sdintersect = sqrt(sdintersect2);
-                        sintersect = aprev*sdintersect2 + cprev;
+                        dReal t = (sdprev - sdnext)/sddnext;
+                        sintersect = snext + t * (sdnext + t*sddnext*0.5);
                         sddintersect = sddprev;
-                        tintersect = (sdintersect-sdprev)/sddprev;
+                        sdintersect = sdprev;
+                        tintersect = (sintersect - sprev)/sdprev;
                     }
+                    else if( fabs(sddnext) <= TINY ) {
+                        //RAVELOG_ERROR_FORMAT("check sddprev is close to 0 at s=%.15e, don't know that to do", snext);
+                        //return false;
+                        tintersect = (sdnext - sdprev)/sddprev;
+                        sintersect = sprev + tintersect * (sdprev + tintersect*sddprev*0.5);
+                        sddintersect = sddprev;
+                        sdintersect = sdnext;
+                    }
+                    else {
+                        // s(sd) = sprev + (sd*sd - sdprev*sdprev)/(2*sddprev) => aprev * sd*sd + cprev
+                        dReal aprev = 1/(2*sddprev), cprev = (sprev - sdprev*sdprev/(2*sddprev));
+                        dReal anext = 1/(2*sddnext), cnext = (snext - sdnext*sdnext/(2*sddnext));
+                        dReal ad = aprev - anext;
+                        if( fabs(ad) <= TINY ) {
+                            RAVELOG_ERROR("two profiles have same accel, don't know that to do\n");
+                            return false;
+                        }
+                        else {
+                            dReal sdintersect2 = (cnext-cprev)/ad;
+                            if( sdintersect2 < 0 ) {
+                                RAVELOG_ERROR("two profiles never intersect!\n");
+                                return false;
+                            }
+                            sdintersect = sqrt(sdintersect2);
+                            sintersect = aprev*sdintersect2 + cprev;
+                            sddintersect = sddprev;
+                            tintersect = (sdintersect-sdprev)/sddprev;
+                        }
+                    }
+
+                    if( tintersect > 0 ) {
+                        break;
+                    }
+                    ++sconnectindexmin;
                 }
+
+                BOOST_ASSERT(sconnectindexmin < itprofilemin->svect.size());
 
                 vsampledpoints.push_back(sintersect);
                 vsampledpoints.push_back(sdnext); // speed needs to be sddnext since interpolating forward sddintersect);
@@ -468,23 +505,53 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
 
                 // if sconnectindexmin is the last in the profile, need to add it directly
                 if( sconnectindexmin+1 >= itprofilemin->svect.size() ) {
-                    dReal t2 = (sdnext-sdintersect)/sddnext;
-                    BOOST_ASSERT(t2>=0);
-                    vsampledpoints.push_back(snext);
-                    vsampledpoints.push_back(sdnext);
-                    vsampledpoints.push_back(sddnext);
-                    vsampledpoints.push_back(t2);
+                    dReal t2;
+                    if( fabs(sddnext) > 0 ) {
+                        t2 = (sdnext-sdintersect)/sddnext;
+                        BOOST_ASSERT(t2>=0);
+                        vsampledpoints.push_back(snext);
+                        vsampledpoints.push_back(sdnext);
+                        vsampledpoints.push_back(sddnext);
+                        vsampledpoints.push_back(t2);
+                    }
+                    else {
+                        t2 = (snext-sintersect)/sdnext;
+                        BOOST_ASSERT(t2>=0);
+                        vsampledpoints.push_back(snext);
+                        vsampledpoints.push_back(sdnext);
+                        vsampledpoints.push_back(sddnext);
+                        vsampledpoints.push_back(t2);
+                    }
 
                     if( snext >= smax-TINY ) {
                         bsuccess = true;
                         break;
                     }
 
-                    // need to run the curve finder
+//                    if( sconnectindexmin+1 >= itprofilemin->svect.size() ) {
+//                        // at the end of the ramp, so have to add
+//                        vsampledpoints.push_back(snext);
+//                        vsampledpoints.push_back(sdnext);
+//                        vsampledpoints.push_back(sddnext);
+//                        BOOST_ASSERT(itprofilemin->integrationtimestep - t2 >= 0);
+//                        vsampledpoints.push_back(itprofilemin->integrationtimestep - t2);
+//                        bfindconnection = true;
+//                        sample.itprofile = itprofilemin;
+//                        sample.sindex = sconnectindexmin;
+//                        sample.s = itprofilemin->svect.at(sconnectindexmin);
+//                        sample.sd = itprofilemin->sdvect.at(sconnectindexmin);
+//                        sample.sdd = itprofilemin->sddvect.at(sconnectindexmin);
+//                        sample.t = itprofilemin->integrationtimestep - t2;
+//                        sprev = sample.s;
+//                        sdprev = sample.sd;
+//                        sddprev = sample.sdd;
+//                    }
+//                    else {
+                    // need to run the curve finder again
                     bfindconnection = true;
                     sample.itprofile = itprofilemin;
                     sample.sindex = sconnectindexmin;
-                    sample.s = sintersect;
+                    sample.s = snext;
                     sample.sd = sdnext;
                     sample.sdd = sddnext;
                     sample.t = t2;
@@ -501,7 +568,7 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                     checksample.sdd = sddnext;
                     checksample.t = t2;
                     // there are cases where sintersect is greater than itprofilemin->svect[sconnectindexmin+1], which causes asserts
-                    while(checksample.sindex+1 < itprofilemin->svect.size()) {
+                    while(checksample.sindex+1 < (int)itprofilemin->svect.size()) {
                         if( sintersect+TINY <= itprofilemin->svect[checksample.sindex+1] ) {
                             break;
                         }

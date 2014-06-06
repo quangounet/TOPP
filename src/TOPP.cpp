@@ -805,51 +805,29 @@ bool Profile::FindTimestepIndex(dReal t, int &index, dReal& remainder) const {
 }
 
 
-bool Profile::Invert(dReal s,  dReal& t, bool searchbackward) const {
-    if(currentindex<0 || currentindex>nsteps-1) {
+bool Profile::Invert(dReal s,  dReal& t) const {
+    if( svect.size() == 0 ) {
         return false;
     }
-    if(s<svect[0]-TINY || s>svect[nsteps-1]+TINY) {
+    if(s<svect[0]-TINY || s>svect.back()+TINY) {
         return false;
     }
-    if(not searchbackward) {
-        if(svect[currentindex]>s) {
-            return false;
-        }
-        while(currentindex+1<=nsteps-1 && svect[currentindex+1]<s) {
-            currentindex++;
-        }
-        if(currentindex+1>nsteps-1) {
-            return false;
-        }
-        dReal tres;
-        if(!SolveQuadraticEquation(svect[currentindex]-s,sdvect[currentindex],0.5*sddvect[currentindex],tres,0,integrationtimestep)) {
-            //std::cout << "***************** Inversion warning: tres=" << tres << " while integrationtimestep= "<< integrationtimestep << "****************\n";
-            SolveQuadraticEquation(svect[currentindex]-s,sdvect[currentindex],0.5*sddvect[currentindex],tres,0,integrationtimestep);
-        }
-        t = currentindex*integrationtimestep + tres;
-        return true;
+    std::vector<dReal>::const_iterator it = std::lower_bound(svect.begin(), svect.end(), s);
+    size_t index = it - svect.begin();
+    if( index == 0 ) {
+        t = 0;
     }
-    else{
-        if(currentindex==0 || svect[currentindex]<s) {
-            return false;
-        }
-        while(currentindex-1>=0 && svect[currentindex-1]>s) {
-            currentindex--;
-        }
-        if(currentindex-1<0) {
-            return false;
-        }
+    else {
+        index -= 1;
         dReal tres;
-        if(!SolveQuadraticEquation(svect[currentindex-1]-s,sdvect[currentindex-1],0.5*sddvect[currentindex-1],tres,0,integrationtimestep)) {
+        if(!SolveQuadraticEquation(svect[index]-s,sdvect[index],0.5*sddvect[index],tres,0,integrationtimestep)) {
             //std::cout << "***************** Inversion warning: tres=" << tres << " while integrationtimestep= "<< integrationtimestep << "****************\n";
-            SolveQuadraticEquation(svect[currentindex-1]-s,sdvect[currentindex-1],0.5*sddvect[currentindex-1],tres,0,integrationtimestep);
+            SolveQuadraticEquation(svect[index]-s,sdvect[index],0.5*sddvect[index],tres,0,integrationtimestep);
         }
-        t = (currentindex-1)*integrationtimestep + tres;
-        return true;
+        t = index*integrationtimestep + tres;
     }
+    return true;
 }
-
 
 dReal Profile::Eval(dReal t) const {
     int index;
@@ -1197,14 +1175,13 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
     bool cont = true;
     int returntype = -1; // should be changed
 
-    // Initialize the currentindex of the profiles for search purpose
-    if(testaboveexistingprofiles && constraints.resprofileslist.size()>0) {
-        std::list<Profile>::iterator it = constraints.resprofileslist.begin();
-        while(it != constraints.resprofileslist.end()) {
-            it->currentindex = 0;
-            it++;
-        }
-    }
+//    // Initialize the currentindex of the profiles for search purpose
+//    if(testaboveexistingprofiles && constraints.resprofileslist.size()>0) {
+//        std::list<Profile>::iterator it = constraints.resprofileslist.begin();
+//        while(it != constraints.resprofileslist.end()) {
+//            it++;
+//        }
+//    }
 
     // Integrate forward
     while(cont) {
@@ -1436,14 +1413,13 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
     bool searchbackward = true;
     dReal alphabk = INF;
 
-    // Initialize the currentindex of the profiles for search purpose
-    if(testaboveexistingprofiles && constraints.resprofileslist.size()>0) {
-        std::list<Profile>::iterator it = constraints.resprofileslist.begin();
-        while(it != constraints.resprofileslist.end()) {
-            it->currentindex = it->nsteps-1;
-            it++;
-        }
-    }
+//    // Initialize the currentindex of the profiles for search purpose
+//    if(testaboveexistingprofiles && constraints.resprofileslist.size()>0) {
+//        std::list<Profile>::iterator it = constraints.resprofileslist.begin();
+//        while(it != constraints.resprofileslist.end()) {
+//            it++;
+//        }
+//    }
 
     // Integrate backward
     while(cont) {
@@ -1861,10 +1837,8 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
 
 
         /////////////////////  Final checks /////////////////////////
-        // Reset currentindex
         std::list<Profile>::iterator it = constraints.resprofileslist.begin();
         while(it != constraints.resprofileslist.end()) {
-            it->currentindex = 0;
             it++;
         }
 
@@ -2370,14 +2344,7 @@ bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal& sol, dReal lowe
 bool IsAboveProfilesList(dReal s, dReal sd, const std::list<Profile>&resprofileslist, bool searchbackward, dReal softborder){
     dReal t;
     for(std::list<Profile>::const_iterator it = resprofileslist.begin(); it != resprofileslist.end(); ++it) {
-        if(searchbackward) {
-            it->currentindex = it->nsteps-1;
-        }
-        else{
-            it->currentindex = 0;
-        }
-
-        if(it->Invert(s,t,searchbackward)) {
+        if(it->Invert(s,t)) {
             if(sd > it->Evald(t) + softborder) {
                 return true;
             }
@@ -2500,6 +2467,119 @@ ProfileSample FindLowestProfileFast(dReal scur, dReal sdmax, const std::list<Pro
             }
         }
     }
+    return bestprofile;
+}
+
+ProfileSample FindEarliestProfileIntersection(dReal sstart, dReal sdstart, dReal sddstart, dReal tmax, const std::list<Profile>& resprofileslist, std::list<Profile>::const_iterator itprofileexclude, dReal& tintersect)
+{
+    dReal smax = sstart + tmax*(sdstart + 0.5*tmax*sddstart);
+    //dReal sdmax = sdstart + tmax*sddstart;
+    
+    ProfileSample bestprofile;
+    bestprofile.itprofile = resprofileslist.end();
+    for(std::list<Profile>::const_iterator itprofile = resprofileslist.begin(); itprofile != resprofileslist.end(); ++itprofile) {
+        if( itprofile == itprofileexclude ) {
+            continue;
+        }
+        if( smax >= itprofile->svect.at(0) && sstart < itprofile->svect.back()-TINY ) {
+            std::vector<dReal>::const_iterator its0 = std::lower_bound(itprofile->svect.begin(), itprofile->svect.end(), sstart);
+            size_t index0 = its0 - itprofile->svect.begin();
+            if( index0 == 0 ) {
+                // only reason this would happen is if s and itprofile->svect[0] are close
+                if( fabs(sstart-itprofile->svect.at(0)) <= TINY && fabs(sdstart-itprofile->sdvect.at(0)) <= TINY ) {
+                    bestprofile.s = itprofile->svect.at(0);
+                    bestprofile.sd = itprofile->sdvect.at(0);
+                    bestprofile.sdd = itprofile->sddvect.at(0);
+                    bestprofile.sindex = 0;
+                    bestprofile.t = 0;
+                    bestprofile.itprofile = itprofile;
+                    return bestprofile;
+                }
+            }
+            else {
+                --index0;
+            }
+            
+            std::vector<dReal>::const_iterator its1 = std::lower_bound(itprofile->svect.begin(), itprofile->svect.end(), smax);
+            size_t index1 = its1 - itprofile->svect.begin();
+            
+            // need to check all segments in [index0, index1) for intersection with [sstart, sdstart, sddstart]
+            for(size_t index = index0; index < index1; ++index) {
+                dReal snext = itprofile->svect.at(index);
+                dReal sdnext = itprofile->sdvect.at(index);
+                dReal sddnext = itprofile->sddvect.at(index);
+                tintersect=1e30; // time from sstart
+                if( fabs(sddstart) <= TINY ) {
+                    if( fabs(sddnext) <= TINY ) {
+                        if( fabs(sdstart-sdnext) > TINY ) {
+                            RAVELOG_ERROR_FORMAT("sddstart and sddnext are both close to 0 at s=%.15e, sd diff=%.15e, don't know that to do", sstart%fabs(sdstart-sdnext));
+                            continue;
+                        }
+                        else {
+                            dReal t = (snext - sstart)/sdstart;
+                            if( t >= 0 && t <= tmax ) {
+                                bestprofile.s = snext;
+                                bestprofile.sd = sdnext;
+                                bestprofile.sdd = sddnext;
+                                bestprofile.sindex = index;
+                                bestprofile.t = 0;
+                                bestprofile.itprofile = itprofile;
+                                return bestprofile;
+                            }
+                            else {
+                                continue;
+                            }
+                        }
+                    }
+                    bestprofile.t = (sdstart - sdnext)/sddnext;
+                    bestprofile.s = snext + bestprofile.t * (sdnext + bestprofile.t*sddnext*0.5);
+                    bestprofile.sd = sdstart;
+                    bestprofile.sdd = sddnext;
+                    tintersect = (bestprofile.s - sstart)/sdstart;
+                }
+                else if( fabs(sddnext) <= TINY ) {
+                    tintersect = (sdnext - sdstart)/sddstart;
+                    bestprofile.s = sstart + tintersect * (sdstart + tintersect*sddstart*0.5);
+                    bestprofile.sd = sdnext;
+                    bestprofile.sdd = sddnext;
+                    bestprofile.t = (bestprofile.s - snext)/sdnext;
+                }
+                else if( fabs(sddstart-sddnext) <= TINY ) {
+                    // two profiles will never intersect
+                    continue;
+                }
+                else {
+                    // s(sd) = sstart + (sd*sd - sdstart*sdstart)/(2*sddstart) => astart * sd*sd + cstart
+                    dReal astart = 1/(2*sddstart), cstart = (sstart - sdstart*sdstart/(2*sddstart));
+                    dReal anext = 1/(2*sddnext), cnext = (snext - sdnext*sdnext/(2*sddnext));
+                    dReal ad = astart - anext;
+                    dReal sd2 = (cnext-cstart)/ad;
+                    if( sd2 < 0 ) {
+                        // two profiles never intersect!
+                        continue;
+                    }
+                    bestprofile.sd = sqrt(sd2);
+                    bestprofile.s = astart*sd2 + cstart;
+                    bestprofile.sdd = sddnext;
+                    tintersect = (bestprofile.sd-sdstart)/sddstart;
+                    bestprofile.t = (bestprofile.sd - sdnext)/sddnext;
+                }
+                
+                if( tintersect >= 0 && tintersect <= tmax ) {
+                    if( bestprofile.t < 0 ) {
+                        //std::cerr << "best profile is negative" << std::endl;
+                        continue;
+                    }
+                    bestprofile.itprofile = itprofile;
+                    bestprofile.sindex = index;
+                    return bestprofile;
+                }
+            }
+        }
+    }
+    
+    // reached end, so didn't find any intersections
+    bestprofile.itprofile = resprofileslist.end();
     return bestprofile;
 }
 

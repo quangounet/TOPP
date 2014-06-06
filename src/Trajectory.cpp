@@ -485,13 +485,6 @@ int Trajectory::Reparameterize(Constraints& constraints, Trajectory& restrajecto
     int currentchunkindex = 0;
     dReal processedcursor = 0;
 
-    // Reset currentindex
-    std::list<Profile>::iterator it = constraints.resprofileslist.begin();
-    while(it != constraints.resprofileslist.end()) {
-        it->currentindex = 0;
-        it++;
-    }
-
     scur = 0;
     dReal t = 0;
     FindLowestProfile(scur, profile, tres, constraints.resprofileslist);
