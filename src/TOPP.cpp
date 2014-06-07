@@ -2565,7 +2565,7 @@ ProfileSample FindEarliestProfileIntersection(dReal sstart, dReal sdstart, dReal
                     bestprofile.t = (bestprofile.sd - sdnext)/sddnext;
                 }
                 
-                if( tintersect >= 0 && tintersect <= tmax ) {
+                if( tintersect >= 0 && tintersect <= tmax && bestprofile.t >= 0 && bestprofile.t <= itprofile->integrationtimestep+TINY && bestprofile.s > sstart ) {
                     if( bestprofile.t < 0 ) {
                         //std::cerr << "best profile is negative" << std::endl;
                         continue;

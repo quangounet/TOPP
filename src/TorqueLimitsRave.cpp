@@ -248,6 +248,7 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                     return false;
                 }
 
+                bool busechecksample = true;
                 // found new profile, so need to use it instead.
                 // have to merge with old profile by finding an intersection point.
                 dReal sintersect = 0, sdintersect = 0, sddintersect = 0, tintersect = 0;
@@ -284,7 +285,7 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                         }
                     }
 
-                    if( tintersect >= 0 ) {
+                    if( tintersect >= 0 && sintersect <= s) {
                         // if here then found an intersection
                         BOOST_ASSERT(sprev < sintersect);
                         vsampledpoints.push_back(sintersect);
@@ -301,49 +302,29 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                     }
                     else {
                         // there's negative intersection, which means there must be a closer profile that collides
-                        tintersect=1e30;
-                        dReal tdelta = 0.01*profile.integrationtimestep;
-                        checksample2 = FindEarliestProfileIntersection(vsampledpoints.at(vsampledpoints.size()-4) + tdelta*(vsampledpoints.at(vsampledpoints.size()-3) + tdelta*0.5*vsampledpoints.at(vsampledpoints.size()-2)), vsampledpoints.at(vsampledpoints.size()-3) + tdelta*vsampledpoints.at(vsampledpoints.size()-2), vsampledpoints.at(vsampledpoints.size()-2), profile.integrationtimestep, constraints.resprofileslist, sample.itprofile, tintersect);
+                        dReal tintersect2=1e30;
+                        dReal tdelta = 0;//0.01*profile.integrationtimestep;
+                        checksample2 = FindEarliestProfileIntersection(vsampledpoints.at(vsampledpoints.size()-4) + tdelta*(vsampledpoints.at(vsampledpoints.size()-3) + tdelta*0.5*vsampledpoints.at(vsampledpoints.size()-2)), vsampledpoints.at(vsampledpoints.size()-3) + tdelta*vsampledpoints.at(vsampledpoints.size()-2), vsampledpoints.at(vsampledpoints.size()-2), profile.integrationtimestep, constraints.resprofileslist, sample.itprofile, tintersect2);
                         if( checksample2.itprofile != constraints.resprofileslist.end()) {
-                            vsampledpoints.at(vsampledpoints.size()-1) = tintersect; // have to overwrite with the new time
+                            vsampledpoints.at(vsampledpoints.size()-1) = tintersect2; // have to overwrite with the new time
                             checksample = checksample2;
                         }
                         else {
-                            RAVELOG_ERROR_FORMAT("time intersection at s=%.15e is negative", s);
-                            return false;
+                            // perhaps going on with the original ramp is best idea...
+                            //RAVELOG_ERROR_FORMAT("time intersection after s=%.15e cannot be found and time is negative (%.15e)", vsampledpoints.at(vsampledpoints.size()-4)%tintersect2);
+                            //return false;
+                            busechecksample = false;
                         }
                     }
                 }
 
-//                    if( tintersect >= 0 ) {
-//                        break;
-//                    }
-//
-//
-//                    // perhaps there is a s value between sprev and s that will provide a lower ramp.
-//                    // get all ramps that have values between this range and test if they ever become lower
-//                    if( vsampledpoints.size() < 8 ) {
-//                        RAVELOG_ERROR("time intersection is negative and too foo points\n");
-//                        return false;
-//                    }
-//                    // go back a sample point!
-//                    RAVELOG_INFO_FORMAT("negative time, so removing last sample %.15e", vsampledpoints.at(vsampledpoints.size()-4));
-//                    vsampledpoints.resize(vsampledpoints.size()-4);
-//                    sprev = vsampledpoints.at(vsampledpoints.size()-4);
-//                    sdprev = vsampledpoints.at(vsampledpoints.size()-3);
-//                    sddprev = vsampledpoints.at(vsampledpoints.size()-2);
-//                    checksample = FindLowestProfileFast(sprev, sd-TINY, constraints.resprofileslist);
-//                    if( checksample.itprofile == constraints.resprofileslist.end() ) {
-//                        RAVELOG_ERROR("could not find lower profile");
-//                        return false;
-//                    }
-//                }
-
-                sprev = checksample.s;
-                sdprev = checksample.sd;
-                sddprev = checksample.sdd;
-                badded = true;
-                break;
+                if( busechecksample ) {
+                    sprev = checksample.s;
+                    sdprev = checksample.sd;
+                    sddprev = checksample.sdd;
+                    badded = true;
+                    break;
+                }
             }
             
             BOOST_ASSERT( sprev <= s );
