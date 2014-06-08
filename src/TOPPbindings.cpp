@@ -152,6 +152,7 @@ public:
         pconstraints->integrationtimestep = integrationtimestep;
         pconstraints->passswitchpointnsteps = passswitchpointnsteps;
         pconstraints->extrareps = extrareps;
+        pconstraints->stepthresh = 0.04;
 
         int res = ComputeProfiles(*pconstraints,sdbeg,sdend);
         resduration = pconstraints->resduration;

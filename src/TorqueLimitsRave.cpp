@@ -573,12 +573,23 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
         sample = checksample;
     }
 
-    RAVELOG_INFO_FORMAT("success in extracting profiles (%d)!", vsampledpoints.size());
-    std::ofstream f("points.txt");
-    f << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
-    for(size_t i =0; i < vsampledpoints.size(); i += 4 ) {
-        f << vsampledpoints[i] << " " << vsampledpoints[i+1] << " " << vsampledpoints[i+2] << " " << vsampledpoints[i+3] << std::endl;
-    }
+//    {
+//        RAVELOG_INFO_FORMAT("success in extracting profiles (%d)!", vsampledpoints.size());
+//        std::ofstream f("points.txt");
+//        f << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+//        dReal sprev=vsampledpoints[0], sdprev = vsampledpoints[1], sddprev = vsampledpoints[2];
+//        for(size_t i =0; i < vsampledpoints.size(); i += 4 ) {
+//            // sanity check
+//            dReal s = sprev + vsampledpoints[i+3]*(sdprev + vsampledpoints[i+3]*0.5*sddprev);
+//            dReal sd = sdprev + vsampledpoints[i+3]*sddprev;
+//            //BOOST_ASSERT(fabs(s-vsampledpoints[i])<=TINY2);
+//            //BOOST_ASSERT(fabs(sd-vsampledpoints[i+1])<=TINY2);
+//            f << vsampledpoints[i] << " " << vsampledpoints[i+1] << " " << vsampledpoints[i+2] << " " << vsampledpoints[i+3] << std::endl;
+//            sprev = vsampledpoints[i];
+//            sdprev = vsampledpoints[i+1];
+//            sddprev = vsampledpoints[i+2];
+//        }
+//    }
 
     int dof = posspec.GetDOF();
 
@@ -644,21 +655,66 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
     std::list<Chunk>::const_iterator itchunk = intraj.chunkslist.begin();
     size_t sindex = 0;
     dReal curchunktime = 0; // s
+    //dReal sprev=vsampledpoints.at(0), sdprev=vsampledpoints.at(1), sddprev=vsampledpoints.at(2);
+    dReal tprev = 0;
     while(itchunk != intraj.chunkslist.end() && sindex < vsampledpoints.size()) {
         dReal s = vsampledpoints[sindex], sd = vsampledpoints[sindex+1], sdd = vsampledpoints[sindex+2], tdelta = vsampledpoints[sindex+3];
         dReal sd2 = sd*sd;
         dReal sd3 = sd2*sd;
-        while(s > curchunktime + itchunk->duration + TINY) {
-            curchunktime += itchunk->duration;
-            ++itchunk;
-            if( itchunk == intraj.chunkslist.end() ) {
-                break;
+        bool bincrementsindex = true, bincrementchunk=false;
+        dReal tnewdelta=tdelta;
+        if(s > curchunktime + itchunk->duration + TINY) {
+            dReal tnewprev=0;
+            if( !SolveQuadraticEquation(vsampledpoints.at(sindex-4)-(curchunktime + itchunk->duration), vsampledpoints.at(sindex-3), 0.5*vsampledpoints.at(sindex-2), tnewprev, tprev, tdelta) ) {
+                RAVELOG_WARN_FORMAT("failed to solve quadratic at s=%.15f", (curchunktime + itchunk->duration));
+                curchunktime += itchunk->duration;
+                ++itchunk;
+                if( itchunk == intraj.chunkslist.end() ) {
+                    break;
+                }
+            }
+            else {
+                s = curchunktime + itchunk->duration; // have to store this point no matter what!
+                sd = vsampledpoints.at(sindex-3) + vsampledpoints.at(sindex-2)*tnewdelta;
+                sd2 = sd*sd;
+                sd3 = sd2*sd;
+                sdd = vsampledpoints.at(sindex-2);
+                tnewdelta = tnewprev - tprev;
+                tprev = tnewprev;
+                bincrementsindex = false;
+                bincrementchunk = true;
             }
         }
-        if( itchunk == intraj.chunkslist.end() ) {
-            break;
+        else {
+            // have to get the real tnewdelta since this ramp could have been sampled several times.
+            tnewdelta = tdelta - tprev;
         }
-
+//        if(s > curchunktime + itchunk->duration + TINY) {
+//            if( !SolveQuadraticEquation(sprev-(curchunktime + itchunk->duration), sdprev, 0.5*sddprev, tnewdelta, 0, tdelta) ) {
+//                RAVELOG_ERROR_FORMAT("failed to solve quadratic at s=%.15f", (curchunktime + itchunk->duration));
+//            }
+//            else {
+//                s = curchunktime + itchunk->duration; // have to store this point no matter what!
+//                sd = sdprev + sddprev*tnewdelta;
+//                sd2 = sd*sd;
+//                sd3 = sd2*sd;
+//                sdd = sddprev;
+//                bincrementsindex = false;
+//            }
+//            bincrementchunk = true;
+//            curchunktime += itchunk->duration;
+//            ++itchunk;
+//            if( itchunk == intraj.chunkslist.end() ) {
+//                break;
+//            }
+//        }
+//        else {
+//            // have to get the real tnewdelta since this ramp could have been sampled several times.
+//            if( !SolveQuadraticEquation(sprev-s, sdprev, 0.5*sddprev, tnewdelta, 0, tdelta) ) {
+//                RAVELOG_ERROR_FORMAT("failed to solve quadratic at s=%.15f", (curchunktime + itchunk->duration));
+//            }
+//        }
+        
         itchunk->Eval(s - curchunktime, p);
         std::copy(p.begin(), p.end(), v.begin());
         if( derivspecs.size() > 1 ) {
@@ -685,10 +741,23 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                 }
             }
         }
-        v[timegroupindex] = tdelta;
+        v[timegroupindex] = tnewdelta;
         v[sgroupindex] = s;
         pouttraj->Insert(pouttraj->GetNumWaypoints(), v);
-        sindex += 4;
+        if( bincrementsindex ) {
+            sindex += 4;
+            tprev = 0;
+        }
+        if( bincrementchunk ) {
+            curchunktime += itchunk->duration;
+            ++itchunk;
+            if( itchunk == intraj.chunkslist.end() ) {
+                break;
+            }
+        }
+//        sprev = s;
+//        sdprev = sd;
+//        sddprev = sdd;
     }
 
     return true;

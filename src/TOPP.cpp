@@ -1792,6 +1792,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         // Lower integrationtimestep
         if(rep>0) {
             constraints.integrationtimestep /= 2;
+            constraints.stepthresh *= 2;
             //constraints.passswitchpointnsteps *= 2;
             std::cout << rep << "!!!!!!!!!!!!!!!!!!!!!!!!!! Try lower integration timestep: " << constraints.integrationtimestep << "!!!!!!!!!!!!!!!!!!!!!!!!\n";
 

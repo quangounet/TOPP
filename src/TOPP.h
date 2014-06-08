@@ -217,11 +217,13 @@ public:
 
     dReal resduration;
 
+    dReal stepthresh; /// threshold for amount of s to step around a singularity. larger values stabilizes the graph, but can make trajectory slower.
 
     //////////////////////// General ///////////////////////////
 
     Constraints(){
         _busingcache = false;
+        stepthresh = 0.01;
     }
 
     // Check input after this->trajectory has been set (from TOPPbindings)
