@@ -1203,9 +1203,11 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
     dReal dtsq = dt*dt;
     dReal scur = sstart, sdcur = sdstart, snext, sdnext;
     // used the cached values for memory performance
+    BOOST_ASSERT(!constraints._busingcache);
     std::vector<dReal>& svect=constraints._svectcache; svect.resize(0);
     std::vector<dReal>& sdvect=constraints._sdvectcache; sdvect.resize(0);
     std::vector<dReal>& sddvect=constraints._sddvectcache; sddvect.resize(0);
+    constraints._busingcache = true;
     resprofile.Reset();
     
     bool cont = true;
@@ -1262,7 +1264,14 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                 sdcur = constraints.SdLimitCombined(scur);
                 Profile tmpprofile;
                 //std::cout << "Integrate backward from (" <<scur << "," << sdcur  <<  ")\n";
+                std::vector<dReal> svecttemp = svect, sdvecttemp = sdvect, sddvecttemp = sddvect;
+                constraints._busingcache = false;
                 int res3 = IntegrateBackward(constraints,scur,sdcur,constraints.integrationtimestep,tmpprofile,1e5,true,true,true);
+                svect = svecttemp;
+                sdvect = sdvecttemp;
+                sddvect = sddvecttemp;
+                constraints._busingcache = true;
+
                 if(res3 == INT_BOTTOM) {
                     //std::cout << "BW reached 0 (From Zlajpah)\n";
                     return INT_BOTTOM;
@@ -1433,6 +1442,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
         }
     }
     resprofile = Profile(svect,sdvect,sddvect,dt, true);
+    constraints._busingcache = false;
     return returntype;
 }
 
@@ -1441,9 +1451,11 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
     dReal dtsq = dt*dt;
     dReal scur = sstart, sdcur = sdstart;
     //std::list<dReal> slist, sdlist, sddlist;
+    BOOST_ASSERT(!constraints._busingcache);
     std::vector<dReal>& svect=constraints._svectcache; svect.resize(0);
     std::vector<dReal>& sdvect=constraints._sdvectcache; sdvect.resize(0);
     std::vector<dReal>& sddvect=constraints._sddvectcache; sddvect.resize(0);
+    constraints._busingcache = true;
     bool cont = true;
     int returntype = INT_END;
     bool searchbackward = true;
@@ -1590,6 +1602,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
         resprofile = Profile(svect,sdvect,sddvect,dt, false);
     }
     
+    constraints._busingcache = false;
     return returntype;
 }
 

@@ -221,6 +221,7 @@ public:
     //////////////////////// General ///////////////////////////
 
     Constraints(){
+        _busingcache = false;
     }
 
     // Check input after this->trajectory has been set (from TOPPbindings)
@@ -330,6 +331,7 @@ public:
     virtual void AddSwitchPoint(int i, int switchpointtype, dReal sd = -1);
 
     std::vector<dReal> _svectcache, _sdvectcache, _sddvectcache; ///< cache
+    bool _busingcache;
 };
 
 
