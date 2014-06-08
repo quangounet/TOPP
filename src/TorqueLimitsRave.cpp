@@ -405,7 +405,7 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                     bool bIsCloseToSD = sddist < sdthresh;
                     bool bIsMinCloseToSD = sddistmin < sdthresh;
                     // sometimes sd will be far away from the original curve, so need to prioritize curves that are close to original sd, or are lower.
-                    if( itprofilemin == constraints.resprofileslist.end() || *its < itprofilemin->svect.at(sconnectindexmin) || (!bIsMinCloseToSD && bIsCloseToSD) || (!bIsMinCloseToSD && !bIsCloseToSD && sddist < sddistmin && itprofile->sdvect.at(sconnectindex) < itprofilemin->sdvect.at(sconnectindexmin) ) ) {
+                    if( itprofilemin == constraints.resprofileslist.end() || *its < itprofilemin->svect.at(sconnectindexmin) || (!bIsMinCloseToSD && bIsCloseToSD) || (!bIsMinCloseToSD && !bIsCloseToSD && sddist < sddistmin && itprofile->sdvect.at(sconnectindex) < itprofilemin->sdvect.at(sconnectindexmin) ) || (bIsMinCloseToSD && bIsMinCloseToSD && sddist < sddistmin) ) {
                         itprofilemin = itprofile;
                         sddistmin = sddist;
                         sconnectindexmin = sconnectindex;
@@ -495,7 +495,7 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                 // if sconnectindexmin is the last in the profile, need to add it directly
                 if( sconnectindexmin+1 >= itprofilemin->svect.size() ) {
                     dReal t2;
-                    if( fabs(sddnext) > 0 ) {
+                    if( fabs(sddnext) > TINY ) {
                         t2 = (sdnext-sdintersect)/sddnext;
                         BOOST_ASSERT(t2>=0);
                         vsampledpoints.push_back(snext);
