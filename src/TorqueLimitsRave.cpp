@@ -311,7 +311,6 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                         dReal tdelta = 0;//0.01*profile.integrationtimestep;
                         checksample2 = FindEarliestProfileIntersection(vsampledpoints.at(vsampledpoints.size()-4) + tdelta*(vsampledpoints.at(vsampledpoints.size()-3) + tdelta*0.5*vsampledpoints.at(vsampledpoints.size()-2)), vsampledpoints.at(vsampledpoints.size()-3) + tdelta*vsampledpoints.at(vsampledpoints.size()-2), vsampledpoints.at(vsampledpoints.size()-2), profile.integrationtimestep, constraints.resprofileslist, sample.itprofile, tintersect2);
                         if( checksample2.itprofile != constraints.resprofileslist.end() && checksample2.s > sprev  && tintersect2 > TINY ) {
-                            vsampledpoints.at(vsampledpoints.size()-1) = tintersect2; // have to overwrite with the new time
                             vsampledpoints.push_back(checksample2.s);
                             vsampledpoints.push_back(checksample2.sd);
                             vsampledpoints.push_back(checksample2.sdd);
@@ -573,6 +572,7 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
         sample = checksample;
     }
 
+    // for debugging, do not delete
 //    {
 //        RAVELOG_INFO_FORMAT("success in extracting profiles (%d)!", vsampledpoints.size());
 //        std::ofstream f("points.txt");
@@ -582,6 +582,9 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
 //            // sanity check
 //            dReal s = sprev + vsampledpoints[i+3]*(sdprev + vsampledpoints[i+3]*0.5*sddprev);
 //            dReal sd = sdprev + vsampledpoints[i+3]*sddprev;
+//            if( fabs(s-vsampledpoints[i])>TINY2 || fabs(sd-vsampledpoints[i+1])>TINY2) {
+//                RAVELOG_WARN_FORMAT("inconsistency at s=%.15e: serr=%.15e, sderr=%.15e", sprev%(s-vsampledpoints[i])%(sd-vsampledpoints[i+1]));
+//            }
 //            //BOOST_ASSERT(fabs(s-vsampledpoints[i])<=TINY2);
 //            //BOOST_ASSERT(fabs(sd-vsampledpoints[i+1])<=TINY2);
 //            f << vsampledpoints[i] << " " << vsampledpoints[i+1] << " " << vsampledpoints[i+2] << " " << vsampledpoints[i+3] << std::endl;
@@ -675,7 +678,7 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
             }
             else {
                 s = curchunktime + itchunk->duration; // have to store this point no matter what!
-                sd = vsampledpoints.at(sindex-3) + vsampledpoints.at(sindex-2)*tnewdelta;
+                sd = vsampledpoints.at(sindex-3) + vsampledpoints.at(sindex-2)*tnewprev;
                 sd2 = sd*sd;
                 sd3 = sd2*sd;
                 sdd = vsampledpoints.at(sindex-2);
