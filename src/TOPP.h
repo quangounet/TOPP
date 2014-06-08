@@ -211,7 +211,7 @@ public:
     bool hasvelocitylimits;
     std::vector<dReal> vmax;
 
-    std::list<SwitchPoint> switchpointslist; // list of switch points
+    std::list<SwitchPoint> switchpointslist; // list of switch points, ordered by s
     std::list<std::pair<dReal,dReal> > zlajpahlist; // list of zlajpah points
     std::list<Profile> resprofileslist; // resulting profiles
 
@@ -329,6 +329,7 @@ public:
 
     // Add a switch point to switchpointslist
     virtual void AddSwitchPoint(int i, int switchpointtype, dReal sd = -1);
+    virtual void AddSwitchPoint2(dReal s, dReal sd, int switchpointtype);
 
     std::vector<dReal> _svectcache, _sdvectcache, _sddvectcache; ///< cache
     bool _busingcache;

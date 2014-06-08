@@ -186,7 +186,6 @@ void Constraints::FindSwitchPoints()
     TrimSwitchPoints();
 }
 
-
 void Constraints::AddSwitchPoint(int i, int switchpointtype, dReal sd){
     dReal s = discrsvect[i];
     // If no sd is specified, then take the value of the mvc
@@ -208,6 +207,33 @@ void Constraints::AddSwitchPoint(int i, int switchpointtype, dReal sd){
         it++;
     }
     SwitchPoint sw(s,sd,switchpointtype);
+    if(switchpointtype == SP_SINGULAR) {
+        sw.slopesvector.resize(0);
+        ComputeSlopeDynamicSingularity(s,sd,sw.slopesvector);
+    }
+    switchpointslist.insert(it,sw);
+}
+
+bool CompareSwitchPoint(const SwitchPoint& sw0, const SwitchPoint& sw1)
+{
+    return sw0.s < sw1.s;
+}
+
+void Constraints::AddSwitchPoint2(dReal s, dReal sd, int switchpointtype)
+{
+    // If no sd is specified, then take the value of the mvc
+    // (The case when sd is specified corresponds to a singular switchpoint in some cases)
+    if(sd > MAXSD) {
+        return;
+    }
+    SwitchPoint sw(s,sd,switchpointtype);
+    std::list<SwitchPoint>::iterator it = std::lower_bound(switchpointslist.begin(), switchpointslist.end(), sw, CompareSwitchPoint);
+    if( it != switchpointslist.end() ) {
+        if( s >= it->s+TINY ) {
+            std::cout << "switch point already exists, type=" << it->switchpointtype;
+            return;
+        }
+    }
     if(switchpointtype == SP_SINGULAR) {
         sw.slopesvector.resize(0);
         ComputeSlopeDynamicSingularity(s,sd,sw.slopesvector);
@@ -241,7 +267,7 @@ void Constraints::FindTangentSwitchPoints(){
         sddlimits = SddLimits(s,sd);
         alpha = sddlimits.first;
         if(std::abs(prevtangent-tangent)>2 && prevtangent < 0 && tangent >0) {
-            AddSwitchPoint(i,SP_DISCONTINUOUS);
+            AddSwitchPoint2(s,sd,SP_DISCONTINUOUS);
         }
         prevtangent = tangent;
         tangent = (sdnext-sd)/discrtimestep;
@@ -251,7 +277,7 @@ void Constraints::FindTangentSwitchPoints(){
         //beta = sddlimits.second;
         diff = alpha/sd - tangent;
         if(diffprev*diff<0 && std::abs(diff)<1) {
-            AddSwitchPoint(i,SP_TANGENT);
+            AddSwitchPoint2(s,sd,SP_TANGENT);
         }
         diffprev = diff;
     }
@@ -271,10 +297,10 @@ void Constraints::FindDiscontinuousSwitchPoints() {
         sdnn = SdLimitBobrow(discrsvect[i+2]);
         if(std::abs(sdnn-sdn)>100*std::abs(sdn-sd)) {
             if(sdn<sdnn) {
-                AddSwitchPoint(i+1,SP_DISCONTINUOUS);
+                AddSwitchPoint2(discrsvect[i+1],mvcbobrow[i+1],SP_DISCONTINUOUS);
             }
             else{
-                AddSwitchPoint(i+2,SP_DISCONTINUOUS);
+                AddSwitchPoint2(discrsvect[i+2],mvcbobrow[i+2],SP_DISCONTINUOUS);
             }
         }
         if( trajectory.degree <= 3 ) {
@@ -283,7 +309,7 @@ void Constraints::FindDiscontinuousSwitchPoints() {
             // perhaps there's a better way to compute this, but the above threshold doesn't catch it.
             if( itchuckstart != trajectory.chunkcumulateddurationslist.end() && *itchuckstart <= discrsvect[i+2]+TINY ) {
                 if( nLastAddedSwitchIndex < i+1 ) {
-                    AddSwitchPoint(i+1,SP_DISCONTINUOUS);
+                    AddSwitchPoint2(discrsvect[i+1],mvcbobrow[i+1],SP_DISCONTINUOUS);
                     nLastAddedSwitchIndex = i+1;
                 }
                 ++itchuckstart;
@@ -405,8 +431,9 @@ void Constraints::TrimSwitchPoints() {
                     else{
                         slopesvector = itcur->slopesvector;
                         switchpointslist.erase(itcur);
-                        scur = snext;
-                        sdcur = sdnext;
+                        // don't set scur/sdcur since then radius will be sliding
+                        //scur = snext;
+                        //sdcur = sdnext;
                         itcur = it;
                         it++;
                     }
@@ -564,7 +591,7 @@ void QuadraticConstraints::FixStart(dReal& sstart,dReal& sdstart, dReal timestep
         ap = (a2[indexcurrent]-a[indexcurrent])/delta;
         bp = (b2[indexcurrent]-b[indexcurrent])/delta;
         cp = (c2[indexcurrent]-c[indexcurrent])/delta;
-        slope = (-bp*sdcurrent*sdcurrent-cp)/((2*b[indexcurrent]+ap)*sdcurrent);
+        slope = (-bp*sdcurrent*sdcurrent-cp)/((2*b[indexcurrent]-2*bp+ap)*sdcurrent);
         sdstart = sdcurrent+slope*sstart;
         resprofileslist.push_back(StraightProfile(0,sstart,sdcurrent,sdstart));
     }
@@ -595,7 +622,7 @@ void QuadraticConstraints::FixEnd(dReal& sendnew,dReal& sdendnew){
         ap = (a[indexcurrent]-a2[indexcurrent])/delta;
         bp = (b[indexcurrent]-b2[indexcurrent])/delta;
         cp = (c[indexcurrent]-c2[indexcurrent])/delta;
-        slope = (-bp*sdcurrent*sdcurrent-cp)/((2*b[indexcurrent]+ap)*sdcurrent);
+        slope = (-bp*sdcurrent*sdcurrent-cp)/((2*b[indexcurrent]-2*bp+ap)*sdcurrent);
         sdendnew = sdcurrent-slope*stub;
         resprofileslist.push_back(StraightProfile(sendnew,send,sdendnew,sdcurrent));
     }
@@ -618,7 +645,7 @@ void QuadraticConstraints::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std
         ap = (a2[i]-a[i])*idelta;
         bp = (b2[i]-b[i])*idelta;
         cp = (c2[i]-c[i])*idelta;
-        slope = (-bp*sd*sd-cp)/((2*b[i]+ap)*sd);
+        slope = (-bp*sd*sd-cp)/((2*b[i]-2*bp+ap)*sd);
         slopesvector[i] = slope;
     }
 }
@@ -742,31 +769,48 @@ void QuadraticConstraints::FindSingularSwitchPoints() {
         return;
     }
     int i = 0;
-    std::vector<dReal> a,aprev,b,c;
+    std::vector<dReal> a,b,c, aprev, bprev, cprev;
 
-    InterpolateDynamics(discrsvect[i],aprev,b,c);
+    InterpolateDynamics(discrsvect[i],aprev,bprev,cprev);
 
     for(int i=1; i<ndiscrsteps-1; i++) {
         InterpolateDynamics(discrsvect[i],a,b,c);
-        dReal minsd = mvcbobrow[i];
+        dReal minsd = 1e30;
+        dReal mins = 1e30;
         bool found = false;
         for(int j=0; j< int(a.size()); j++) {
-            if(a[j]*aprev[j]<0) {
-                if(c[j]/b[j]<0) {
-                    dReal sdstar = sqrt(-c[j]/b[j]);
-                    dReal sdplus = SdLimitBobrowExclude(discrsvect[i],j);
+            if(a[j]*aprev[j]<=0) {
+                dReal adiff = a[j] - aprev[j];
+                dReal ccur=c[j], bcur=b[j], scur=discrsvect[i];
+                if( fabs(adiff) > TINY ) {
+                    // compute the zero-crossing and linearly interpolate dynamics
+                    dReal interp=-aprev[j]/adiff;
+                    scur = discrsvect[i-1] + interp*(discrsvect[i]-discrsvect[i-1]);
+                    bcur = bprev[j] + interp*(b[j]-bprev[j]);
+                    ccur = cprev[j] + interp*(c[j]-cprev[j]);
+                }
+
+                dReal f = ccur/bcur;
+                if(f<0) {
+                    dReal sdstar = sqrt(-f);
+                    dReal sdplus = SdLimitBobrowExclude(scur,j);
                     if(sdplus >0 && sdplus < sdstar) {
                         continue;
                     }
-                    found = true;
-                    minsd = std::min(minsd,sdstar);
+                    if( !found || sdstar < minsd ) {
+                        found = true;
+                        minsd = sdstar;
+                        mins = scur;
+                    }
                 }
             }
         }
         if(found) {
-            AddSwitchPoint(i,SP_SINGULAR,minsd);
+            AddSwitchPoint2(mins, minsd, SP_SINGULAR);
         }
         aprev.swap(a);
+        bprev.swap(b);
+        cprev.swap(c);
     }
 }
 
@@ -958,8 +1002,9 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
         dReal bestscore = INF;
         const dReal magicconst = 3.1; // what is this??
         const dReal slopethresh = 0.1;
+        const dReal stepthresh = 0.04; /// slopes within 0.02 of the singularity are also pretty big, so need longer to stabilize them.
         dReal sstep = 1e-3/magicconst;
-        while(sstep <= 0.01) {
+        while(sstep <= stepthresh) {
             sstep = sstep * magicconst;
             for(int i = 0; i<int(switchpoint.slopesvector.size()); i++) {
                 sforward = std::min(s + sstep,constraints.trajectory.duration);
@@ -973,8 +1018,16 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
                 sdbackward = sd - (s-sbackward)*slope;
                 bool canintegrate = false;
                 int ret = IntegrateBackward(constraints,sbackward,sdbackward,dt,resprofile,constraints.passswitchpointnsteps);
+                if(!(ret==INT_MAXSTEPS||ret==INT_END)) {
+                    // need to try smaller discretization in case slope has noise
+                    ret = IntegrateBackward(constraints,sbackward,sdbackward,dt*0.1,resprofile,constraints.passswitchpointnsteps);
+                }
                 if(ret==INT_MAXSTEPS||ret==INT_END) {
                     ret = IntegrateForward(constraints,sforward,sdforward,dt,resprofile,constraints.passswitchpointnsteps,testaboveexistingprofiles, testmvc, zlajpah);
+                    if(!(ret==INT_MAXSTEPS||ret==INT_END)) {
+                        // need to try smaller discretization in case slope has noise
+                        ret = IntegrateForward(constraints,sforward,sdforward,dt*0.1,resprofile,constraints.passswitchpointnsteps,testaboveexistingprofiles, testmvc, zlajpah);
+                    }
                     if(ret==INT_MAXSTEPS||ret==INT_END) {
                         canintegrate = true;
                     }
