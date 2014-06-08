@@ -274,39 +274,48 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                         }
                         else {
                             dReal sdintersect2 = (cnext-cprev)/ad;
-                            if( sdintersect2 < 0 ) {
-                                RAVELOG_ERROR("two profiles never intersect!\n");
-                                return false;
+                            if( sdintersect2 >= s*s ) {
+                                //RAVELOG_ERROR("two profiles never intersect at s=%.15e!", s);
+                                //return false;
+                                sdintersect = sqrt(sdintersect2);
+                                sintersect = aprev*sdintersect2 + cprev;
+                                sddintersect = sddprev;
+                                tintersect = (sdintersect-sdprev)/sddprev;
                             }
-                            sdintersect = sqrt(sdintersect2);
-                            sintersect = aprev*sdintersect2 + cprev;
-                            sddintersect = sddprev;
-                            tintersect = (sdintersect-sdprev)/sddprev;
                         }
                     }
 
-                    if( tintersect >= 0 && sintersect <= s) {
-                        // if here then found an intersection
-                        BOOST_ASSERT(sprev < sintersect);
-                        vsampledpoints.push_back(sintersect);
-                        vsampledpoints.push_back(checksample.sd);  // needs to be checksample since interpolation goes forward
-                        vsampledpoints.push_back(checksample.sdd); // needs to be checksample since interpolation goes forward
-                        vsampledpoints.push_back(tintersect);
-                        dReal t2 = (sdintersect-checksample.sd)/checksample.sdd;
-                        //                if( t2 > TINY ) {
-                        //                    RAVELOG_ERROR_FORMAT("unexpted got time %f", t2);
-                        //                    return false;
-                        //                }
-                        checksample.t += t2; // go back in time
-                        checksample.s = sintersect;
+                    if( tintersect > 0 && sintersect <= s) {
+                        if( sprev <= sintersect+TINY ) {
+                            // if here then found an intersection
+                            vsampledpoints.push_back(sintersect);
+                            vsampledpoints.push_back(sdintersect);
+                            vsampledpoints.push_back(checksample.sdd); // needs to be checksample since interpolation goes forward
+                            vsampledpoints.push_back(tintersect);
+                            dReal t2 = (sdintersect-checksample.sd)/checksample.sdd;
+                            //                if( t2 > TINY ) {
+                            //                    RAVELOG_ERROR_FORMAT("unexpted got time %f", t2);
+                            //                    return false;
+                            //                }
+                            checksample.t += t2; // go back in time
+                            checksample.s = sintersect;
+                        }
+                        else {
+                            // sintersect is before prev, just continue with original ramp
+                            busechecksample = false;
+                        }
                     }
                     else {
                         // there's negative intersection, which means there must be a closer profile that collides
                         dReal tintersect2=1e30;
                         dReal tdelta = 0;//0.01*profile.integrationtimestep;
                         checksample2 = FindEarliestProfileIntersection(vsampledpoints.at(vsampledpoints.size()-4) + tdelta*(vsampledpoints.at(vsampledpoints.size()-3) + tdelta*0.5*vsampledpoints.at(vsampledpoints.size()-2)), vsampledpoints.at(vsampledpoints.size()-3) + tdelta*vsampledpoints.at(vsampledpoints.size()-2), vsampledpoints.at(vsampledpoints.size()-2), profile.integrationtimestep, constraints.resprofileslist, sample.itprofile, tintersect2);
-                        if( checksample2.itprofile != constraints.resprofileslist.end()) {
+                        if( checksample2.itprofile != constraints.resprofileslist.end() && checksample2.s > sprev  && tintersect2 > TINY ) {
                             vsampledpoints.at(vsampledpoints.size()-1) = tintersect2; // have to overwrite with the new time
+                            vsampledpoints.push_back(checksample2.s);
+                            vsampledpoints.push_back(checksample2.sd);
+                            vsampledpoints.push_back(checksample2.sdd);
+                            vsampledpoints.push_back(tintersect2);
                             checksample = checksample2;
                         }
                         else {
@@ -564,12 +573,12 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
         sample = checksample;
     }
 
-//    RAVELOG_INFO_FORMAT("success in extracting profiles (%d)!", vsampledpoints.size());
-//    std::ofstream f("points.txt");
-//    f << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
-//    for(size_t i =0; i < vsampledpoints.size(); i += 4 ) {
-//        f << vsampledpoints[i] << " " << vsampledpoints[i+1] << " " << vsampledpoints[i+2] << " " << vsampledpoints[i+3] << std::endl;
-//    }
+    RAVELOG_INFO_FORMAT("success in extracting profiles (%d)!", vsampledpoints.size());
+    std::ofstream f("points.txt");
+    f << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+    for(size_t i =0; i < vsampledpoints.size(); i += 4 ) {
+        f << vsampledpoints[i] << " " << vsampledpoints[i+1] << " " << vsampledpoints[i+2] << " " << vsampledpoints[i+3] << std::endl;
+    }
 
     int dof = posspec.GetDOF();
 

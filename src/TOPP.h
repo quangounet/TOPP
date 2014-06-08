@@ -152,14 +152,24 @@ public:
 // \brief Velocity profile from integration
 class Profile {
 public:
-    Profile(std::list<dReal>&slist, std::list<dReal>&sdlist, std::list<dReal>&sddlist, dReal integrationtimestep);
+    /// if !forward, then stores svect as the reverse of the inputs
+    Profile(const std::list<dReal>&slist, const std::list<dReal>&sdlist, const std::list<dReal>&sddlist, dReal integrationtimestep, bool forward);
+    /// if !forward, then stores svect as the reverse of the inputs
+    Profile(const std::vector<dReal>&svect, const std::vector<dReal>&sdvect, const std::vector<dReal>&sddvect, dReal integrationtimestep, bool forward);
     Profile(){
+    }
+
+    inline void Reset() {
+        svect.resize(0);
+        sdvect.resize(0);
+        sddvect.resize(0);
+        nsteps=0;
     }
     std::vector<dReal> svect, sdvect, sddvect; ///< the points on the profile when integrating. svect is always in increasing order.
     dReal integrationtimestep; ///< the integration delta timestep
     dReal duration; ///< duration of the profile (svect.size()-1)*integrationtimestep
-    bool forward; ///< if 1 then forward integrate in time, if 0 then backward integrate
     int nsteps; ///< svect.size()-1
+    bool forward; ///< if 1 then forward integrate in time, if 0 then backward integrate
 
     bool FindTimestepIndex(dReal t, int &index, dReal& remainder) const;
     // Find t such that Eval(t) = s
@@ -298,7 +308,7 @@ public:
     // Fix the integration at s=0 when there is a singularity there
     // If there's nothing to do then sstartnew = 0
     // Else sstartnew > 0 and sdstartnew will be the value that allows going through the singularity
-    virtual void FixStart(dReal& sstartnew,dReal& sdstartnew){
+    virtual void FixStart(dReal& sstartnew,dReal& sdstartnew, dReal timestep){
         sstartnew = 0;
     }
     
@@ -319,6 +329,7 @@ public:
     // Add a switch point to switchpointslist
     virtual void AddSwitchPoint(int i, int switchpointtype, dReal sd = -1);
 
+    std::vector<dReal> _svectcache, _sdvectcache, _sddvectcache; ///< cache
 };
 
 
@@ -350,7 +361,7 @@ public:
     std::vector<std::vector<dReal> > avect, bvect, cvect;  // Dynamics coefficients. avect[i], bvect[i], cvect[i] are vectors of length 2*ndof where the first ndof are the upper limit, the next ndof are for the lower limit. These incorporate any upper/lower limits.
 
     void InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c);   // Linearly interpolate the dynamics coefficients a,b,c
-    virtual void FixStart(dReal& sstartnew,dReal& sdstartnew);
+    virtual void FixStart(dReal& sstartnew,dReal& sdstartnew, dReal timestep);
     void FixEnd(dReal& sendnew,dReal& sdendnew);
 
 };
