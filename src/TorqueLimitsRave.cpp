@@ -611,27 +611,27 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
     }
 
     // for debugging, do not delete
-    {
-        RAVELOG_INFO_FORMAT("success in extracting profiles (%d)!", vsampledpoints.size());
-        std::ofstream f("points.txt");
-        f << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
-        dReal sprev=vsampledpoints[0], sdprev = vsampledpoints[1], sddprev = vsampledpoints[2];
-        for(size_t i =0; i < vsampledpoints.size(); i += 4 ) {
-            // sanity check
-            dReal s = sprev + vsampledpoints[i+3]*(sdprev + vsampledpoints[i+3]*0.5*sddprev);
-            dReal sd = sdprev + vsampledpoints[i+3]*sddprev;
-            if( fabs(s-vsampledpoints[i])>TINY2 || fabs(sd-vsampledpoints[i+1])>TINY2) {
-                RAVELOG_WARN_FORMAT("inconsistency at s=%.15e: serr=%.15e, sderr=%.15e", sprev%(s-vsampledpoints[i])%(sd-vsampledpoints[i+1]));
-            }
-            //BOOST_ASSERT(fabs(s-vsampledpoints[i])<=TINY2);
-            //BOOST_ASSERT(fabs(sd-vsampledpoints[i+1])<=TINY2);
-            BOOST_ASSERT(vsampledpoints[i+3]>=0);
-            f << vsampledpoints[i] << " " << vsampledpoints[i+1] << " " << vsampledpoints[i+2] << " " << vsampledpoints[i+3] << std::endl;
-            sprev = vsampledpoints[i];
-            sdprev = vsampledpoints[i+1];
-            sddprev = vsampledpoints[i+2];
-        }
-    }
+//    {
+//        RAVELOG_INFO_FORMAT("success in extracting profiles (%d)!", vsampledpoints.size());
+//        std::ofstream f("points.txt");
+//        f << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+//        dReal sprev=vsampledpoints[0], sdprev = vsampledpoints[1], sddprev = vsampledpoints[2];
+//        for(size_t i =0; i < vsampledpoints.size(); i += 4 ) {
+//            // sanity check
+//            dReal s = sprev + vsampledpoints[i+3]*(sdprev + vsampledpoints[i+3]*0.5*sddprev);
+//            dReal sd = sdprev + vsampledpoints[i+3]*sddprev;
+//            if( fabs(s-vsampledpoints[i])>TINY2 || fabs(sd-vsampledpoints[i+1])>TINY2) {
+//                RAVELOG_WARN_FORMAT("inconsistency at s=%.15e: serr=%.15e, sderr=%.15e", sprev%(s-vsampledpoints[i])%(sd-vsampledpoints[i+1]));
+//            }
+//            //BOOST_ASSERT(fabs(s-vsampledpoints[i])<=TINY2);
+//            //BOOST_ASSERT(fabs(sd-vsampledpoints[i+1])<=TINY2);
+//            BOOST_ASSERT(vsampledpoints[i+3]>=0);
+//            f << vsampledpoints[i] << " " << vsampledpoints[i+1] << " " << vsampledpoints[i+2] << " " << vsampledpoints[i+3] << std::endl;
+//            sprev = vsampledpoints[i];
+//            sdprev = vsampledpoints[i+1];
+//            sddprev = vsampledpoints[i+2];
+//        }
+//    }
 
     int dof = posspec.GetDOF();
 
