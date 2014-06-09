@@ -269,8 +269,16 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                         dReal anext = 1/(2*checksample.sdd), cnext = (checksample.s - checksample.sd*checksample.sd/(2*checksample.sdd));
                         dReal ad = aprev - anext;
                         if( fabs(ad) <= TINY ) {
-                            RAVELOG_ERROR_FORMAT("two profiles have same accel at s=%.15e, don't know that to do", s);
-                            return false;
+                            if( fabs(cnext-cprev) <= TINY ) {
+                                // most likely they intersect at the same place
+                                sintersect = checksample.s;
+                                sdintersect = checksample.sd;
+                                sddintersect = sddprev;
+                                tintersect = (sdintersect-sdprev)/sddprev;
+                            }
+                            else {
+                                // profiles have same accel, find the intersection
+                            }
                         }
                         else {
                             dReal sdintersect2 = (cnext-cprev)/ad;
@@ -475,8 +483,17 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                             dReal anext = 1/(2*sddnext), cnext = (snext - sdnext*sdnext/(2*sddnext));
                             dReal ad = aprev - anext;
                             if( fabs(ad) <= TINY ) {
-                                RAVELOG_ERROR("two profiles have same accel, don't know that to do\n");
-                                return false;
+                                if( fabs(cnext-cprev) <= TINY ) {
+                                    // most likely they intersect at the same place
+                                    sintersect = snext;
+                                    sdintersect = sdnext;
+                                    sddintersect = sddprev;
+                                    tintersect = (sdintersect-sdprev)/sddprev;
+                                }
+                                else {
+                                    RAVELOG_ERROR("two profiles have same accel, don't know that to do\n");
+                                    return false;
+                                }
                             }
                             else {
                                 dReal sdintersect2 = (cnext-cprev)/ad;
@@ -594,26 +611,27 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
     }
 
     // for debugging, do not delete
-//    {
-//        RAVELOG_INFO_FORMAT("success in extracting profiles (%d)!", vsampledpoints.size());
-//        std::ofstream f("points.txt");
-//        f << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
-//        dReal sprev=vsampledpoints[0], sdprev = vsampledpoints[1], sddprev = vsampledpoints[2];
-//        for(size_t i =0; i < vsampledpoints.size(); i += 4 ) {
-//            // sanity check
-//            dReal s = sprev + vsampledpoints[i+3]*(sdprev + vsampledpoints[i+3]*0.5*sddprev);
-//            dReal sd = sdprev + vsampledpoints[i+3]*sddprev;
-//            if( fabs(s-vsampledpoints[i])>TINY2 || fabs(sd-vsampledpoints[i+1])>TINY2) {
-//                RAVELOG_WARN_FORMAT("inconsistency at s=%.15e: serr=%.15e, sderr=%.15e", sprev%(s-vsampledpoints[i])%(sd-vsampledpoints[i+1]));
-//            }
-//            //BOOST_ASSERT(fabs(s-vsampledpoints[i])<=TINY2);
-//            //BOOST_ASSERT(fabs(sd-vsampledpoints[i+1])<=TINY2);
-//            f << vsampledpoints[i] << " " << vsampledpoints[i+1] << " " << vsampledpoints[i+2] << " " << vsampledpoints[i+3] << std::endl;
-//            sprev = vsampledpoints[i];
-//            sdprev = vsampledpoints[i+1];
-//            sddprev = vsampledpoints[i+2];
-//        }
-//    }
+    {
+        RAVELOG_INFO_FORMAT("success in extracting profiles (%d)!", vsampledpoints.size());
+        std::ofstream f("points.txt");
+        f << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        dReal sprev=vsampledpoints[0], sdprev = vsampledpoints[1], sddprev = vsampledpoints[2];
+        for(size_t i =0; i < vsampledpoints.size(); i += 4 ) {
+            // sanity check
+            dReal s = sprev + vsampledpoints[i+3]*(sdprev + vsampledpoints[i+3]*0.5*sddprev);
+            dReal sd = sdprev + vsampledpoints[i+3]*sddprev;
+            if( fabs(s-vsampledpoints[i])>TINY2 || fabs(sd-vsampledpoints[i+1])>TINY2) {
+                RAVELOG_WARN_FORMAT("inconsistency at s=%.15e: serr=%.15e, sderr=%.15e", sprev%(s-vsampledpoints[i])%(sd-vsampledpoints[i+1]));
+            }
+            //BOOST_ASSERT(fabs(s-vsampledpoints[i])<=TINY2);
+            //BOOST_ASSERT(fabs(sd-vsampledpoints[i+1])<=TINY2);
+            BOOST_ASSERT(vsampledpoints[i+3]>=0);
+            f << vsampledpoints[i] << " " << vsampledpoints[i+1] << " " << vsampledpoints[i+2] << " " << vsampledpoints[i+3] << std::endl;
+            sprev = vsampledpoints[i];
+            sdprev = vsampledpoints[i+1];
+            sddprev = vsampledpoints[i+2];
+        }
+    }
 
     int dof = posspec.GetDOF();
 
@@ -739,35 +757,41 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
 //            }
 //        }
 
-        itchunk->Eval(s - curchunktime, p);
-        std::copy(p.begin(), p.end(), v.begin());
-        if( derivspecs.size() > 1 ) {
-            itchunk->Evald(s - curchunktime, pd);
-            for(size_t i = 0; i < pd.size(); ++i) {
-                v[dof+i] = pd[i] * sd;
-            }
-            if( derivspecs.size() > 2 ) {
-                itchunk->Evaldd(s - curchunktime, pdd);
-                for(size_t i = 0; i < pdd.size(); ++i) {
-                    v[2*dof+i] = pdd[i]*sd2 + pd[i]*sdd;
+        if( tnewdelta > 0 ) {
+            itchunk->Eval(s - curchunktime, p);
+            std::copy(p.begin(), p.end(), v.begin());
+            if( derivspecs.size() > 1 ) {
+                itchunk->Evald(s - curchunktime, pd);
+                for(size_t i = 0; i < pd.size(); ++i) {
+                    v[dof+i] = pd[i] * sd;
                 }
-                if( derivspecs.size() > 3 ) {
-                    itchunk->Evalddd(s - curchunktime, pddd);
-                    for(size_t i = 0; i < pddd.size(); ++i) {
-                        v[3*dof+i] = pddd[i]*sd3 + 3*pdd[i]*sd*sdd;
+                if( derivspecs.size() > 2 ) {
+                    itchunk->Evaldd(s - curchunktime, pdd);
+                    for(size_t i = 0; i < pdd.size(); ++i) {
+                        v[2*dof+i] = pdd[i]*sd2 + pd[i]*sdd;
                     }
-                    if( derivspecs.size() > 4 ) {
-                        itchunk->Evaldddd(s - curchunktime, pdddd);
-                        for(size_t i = 0; i < pdddd.size(); ++i) {
-                            v[4*dof+i] = pdddd[i]*sd2*sd2 + 4*pddd[i]*sd2*sdd + 3*pdd[i]*sdd*sdd;
+                    if( derivspecs.size() > 3 ) {
+                        itchunk->Evalddd(s - curchunktime, pddd);
+                        for(size_t i = 0; i < pddd.size(); ++i) {
+                            v[3*dof+i] = pddd[i]*sd3 + 3*pdd[i]*sd*sdd;
+                        }
+                        if( derivspecs.size() > 4 ) {
+                            itchunk->Evaldddd(s - curchunktime, pdddd);
+                            for(size_t i = 0; i < pdddd.size(); ++i) {
+                                v[4*dof+i] = pdddd[i]*sd2*sd2 + 4*pddd[i]*sd2*sdd + 3*pdd[i]*sdd*sdd;
+                            }
                         }
                     }
                 }
             }
+            v[timegroupindex] = tnewdelta;
+            v[sgroupindex] = s;
+            pouttraj->Insert(pouttraj->GetNumWaypoints(), v);
         }
-        v[timegroupindex] = tnewdelta;
-        v[sgroupindex] = s;
-        pouttraj->Insert(pouttraj->GetNumWaypoints(), v);
+        else if( tnewdelta < -TINY ) {
+            RAVELOG_WARN_FORMAT("bad delta (%.15e) at s=%.15e", tnewdelta%s);
+        }
+            
         if( bincrementsindex ) {
             sindex += 4;
             tprev = 0;
