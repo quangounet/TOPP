@@ -369,7 +369,7 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
         }
 
         if( !badded ) {
-            RAVELOG_ERROR("failed to add a new sample, something is wrong\n");
+            RAVELOG_ERROR_FORMAT("failed to add a new sample at sprev=%.15e, something is wrong", sprev);
             return false;
         }
 
@@ -491,8 +491,23 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                                     tintersect = (sdintersect-sdprev)/sddprev;
                                 }
                                 else {
-                                    RAVELOG_ERROR("two profiles have same accel, don't know that to do\n");
-                                    return false;
+                                    dReal tintersect2=1e30;
+                                    checksample2 = FindEarliestProfileIntersection(sprev, sdprev, sddprev, profile.integrationtimestep*10, constraints.resprofileslist, sample.itprofile, tintersect2);
+                                    if( checksample2.itprofile != constraints.resprofileslist.end() && checksample2.s > sprev  && tintersect2 > TINY ) {
+                                        sintersect = checksample2.s;
+                                        sdintersect = checksample2.sd;
+                                        sddintersect = checksample2.sdd;
+                                        tintersect = tintersect2;
+                                        itprofilemin = checksample2.itprofile;
+                                        sconnectindex = checksample2.sindex;
+                                        snext = itprofilemin->svect.at(sconnectindex);
+                                        sdnext = itprofilemin->sdvect.at(sconnectindex);
+                                        sddnext = itprofilemin->sddvect.at(sconnectindex);
+                                    }
+                                    else {
+                                        RAVELOG_ERROR_FORMAT("two profiles have same accel, don't know that to do sprev=%.15e, snext=%.15e", sprev%snext);
+                                        return false;
+                                    }
                                 }
                             }
                             else {
@@ -597,13 +612,13 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                     // there are cases where sintersect is greater than itprofilemin->svect[sconnectindex+1], which causes asserts
                     while(checksample.sindex+1 < (int)itprofilemin->svect.size()) {
                         if( sintersect+TINY <= itprofilemin->svect[checksample.sindex+1] ) {
-                            if( checksample.t <= profile.integrationtimestep ) {
+                            if( checksample.t <= itprofilemin->integrationtimestep ) {
                                 break;
                             }
                         }
                         // get the next index
                         checksample.sindex++;
-                        checksample.t -= profile.integrationtimestep;
+                        checksample.t -= itprofilemin->integrationtimestep;
                     }
                 }
             } while(bfindconnection);
