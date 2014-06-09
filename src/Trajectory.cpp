@@ -108,50 +108,50 @@ Chunk::Chunk(dReal duration0, const std::vector<Polynomial>& polynomialsvector0)
     polynomialsvector = polynomialsvector0;
     dimension = polynomialsvector.size();
     duration = duration0;
-    assert(dimension > 0);
+    BOOST_ASSERT(dimension > 0);
     degree = polynomialsvector[0].degree;
     for(int i = 1; i < dimension; i++)
         if (polynomialsvector[i].degree > degree)
             degree = polynomialsvector[i].degree;
     // All polynomials must have the same degree
     for(int i = 1; i < dimension; i++)
-        assert(degree == polynomialsvector[i].degree);
+        BOOST_ASSERT(degree == polynomialsvector[i].degree);
 }
 
 
 void Chunk::Eval(dReal s, std::vector<dReal>&q) const {
-    assert(s >= -TINY2);
-    assert(s <= duration+TINY2);
+    BOOST_ASSERT(s >= -TINY2);
+    BOOST_ASSERT(s <= duration+TINY2);
     for(int i = 0; i < dimension; i++)
         q[i] = polynomialsvector[i].Eval(s);
 }
 
 
 void Chunk::Evald(dReal s, std::vector<dReal>&qd) const {
-    assert(s >= -TINY2);
-    assert(s <= duration+TINY2);
+    BOOST_ASSERT(s >= -TINY2);
+    BOOST_ASSERT(s <= duration+TINY2);
     for(int i = 0; i < dimension; i++)
         qd[i] = polynomialsvector[i].Evald(s);
 }
 
 
 void Chunk::Evaldd(dReal s, std::vector<dReal>&qdd) const {
-    assert(s >= -TINY2);
-    assert(s <= duration+TINY2);
+    BOOST_ASSERT(s >= -TINY2);
+    BOOST_ASSERT(s <= duration+TINY2);
     for(int i = 0; i < dimension; i++)
         qdd[i] = polynomialsvector[i].Evaldd(s);
 }
 
 void Chunk::Evalddd(dReal s, std::vector<dReal>&qddd) const {
-    assert(s >= -TINY2);
-    assert(s <= duration+TINY2);
+    BOOST_ASSERT(s >= -TINY2);
+    BOOST_ASSERT(s <= duration+TINY2);
     for(int i = 0; i < dimension; i++)
         qddd[i] = polynomialsvector[i].Evalddd(s);
 }
 
 void Chunk::Evaldddd(dReal s, std::vector<dReal>&qddd) const {
-    assert(s >= -TINY2);
-    assert(s <= duration+TINY2);
+    BOOST_ASSERT(s >= -TINY2);
+    BOOST_ASSERT(s <= duration+TINY2);
     for(int i = 0; i < dimension; i++)
         qddd[i] = polynomialsvector[i].Evaldddd(s);
 }
@@ -171,7 +171,7 @@ void Chunk::Write(std::stringstream& ss) {
 
 void Trajectory::InitFromChunksList(const std::list<Chunk>&chunkslist0) {
     chunkslist = chunkslist0;
-    assert(chunkslist.size()>0);
+    BOOST_ASSERT(chunkslist.size()>0);
     dimension = chunkslist.front().dimension;
     degree = chunkslist.front().degree;
 
@@ -243,16 +243,16 @@ void Trajectory::FindChunkIndex(dReal s, int& index, dReal& remainder) const {
         it++;
     }
     index--;
-    assert(index<=int(chunkslist.size())-1);
+    BOOST_ASSERT(index<=int(chunkslist.size())-1);
     it--;
     remainder = s-*it;
 }
 
 
 void Trajectory::Eval(dReal s, std::vector<dReal>&q) const {
-    assert(s >= -TINY);
-    assert(s <= duration+TINY);
-    assert(dimension == int(q.size()));
+    BOOST_ASSERT(s >= -TINY);
+    BOOST_ASSERT(s <= duration+TINY);
+    BOOST_ASSERT(dimension == int(q.size()));
     int index;
     dReal remainder;
     FindChunkIndex(s,index,remainder);
@@ -263,9 +263,9 @@ void Trajectory::Eval(dReal s, std::vector<dReal>&q) const {
 
 
 void Trajectory::Evald(dReal s, std::vector<dReal>&qd) const {
-    assert(s >= 0-TINY);
-    assert(s <= duration+TINY);
-    assert(dimension == int(qd.size()));
+    BOOST_ASSERT(s >= 0-TINY);
+    BOOST_ASSERT(s <= duration+TINY);
+    BOOST_ASSERT(dimension == int(qd.size()));
     int index;
     dReal remainder;
     FindChunkIndex(s,index,remainder);
@@ -276,8 +276,8 @@ void Trajectory::Evald(dReal s, std::vector<dReal>&qd) const {
 
 
 void Trajectory::Evaldd(dReal s, std::vector<dReal>&qdd) const {
-    assert(s >= -TINY);
-    assert(s <= duration+TINY);
+    BOOST_ASSERT(s >= -TINY);
+    BOOST_ASSERT(s <= duration+TINY);
     int index;
     dReal remainder;
     FindChunkIndex(s,index,remainder);
@@ -340,7 +340,7 @@ void Trajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal sd
 // void Trajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal sdd,
 //                const Chunk& currentchunk, Chunk& newchunk) {
 
-//     assert(currentchunk.degree <= 5);
+//     BOOST_ASSERT(currentchunk.degree <= 5);
 //     std::vector<dReal> a, b, c, d, e, coefficientsvector;
 //     std::vector<Polynomial> polynomialsvector;
 //     std::vector<std::vector<dReal> > coeffsvects;
@@ -433,7 +433,7 @@ void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
     while(currentchunkindex<chunkindex) {
         if(itcurrentchunk->duration-processedcursor>=TINY) {
             bool res = SolveQuadraticEquation(s-itcurrentchunk->send,sd,0.5*sdd,tnext,t,T);
-            assert(res);
+            BOOST_ASSERT(res);
             ComputeChunk(t,tnext,s-itcurrentchunk->sbegin,sd,sdd,*itcurrentchunk,newchunk);
             chunkslist.push_back(newchunk);
             t = tnext;
@@ -445,7 +445,7 @@ void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
 
     // Process current chunk
     bool res = SolveQuadraticEquation((s-itcurrentchunk->sbegin)-remainder,sd,0.5*sdd,tnext,t,T);
-    assert(res);
+    BOOST_ASSERT(res);
     ComputeChunk(t,tnext,s-itcurrentchunk->sbegin,sd,sdd,*itcurrentchunk,newchunk);
     chunkslist.push_back(newchunk);
     processedcursor = remainder;

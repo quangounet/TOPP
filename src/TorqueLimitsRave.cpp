@@ -498,7 +498,7 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                             else {
                                 dReal sdintersect2 = (cnext-cprev)/ad;
                                 if( sdintersect2 < 0 ) {
-                                    RAVELOG_ERROR("two profiles never intersect!\n");
+                                    RAVELOG_ERROR_FORMAT("two profiles never intersect sprev=%.15e, snext=%.15e!", sprev%snext);
                                     return false;
                                 }
                                 sdintersect = sqrt(sdintersect2);
@@ -508,7 +508,7 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                             }
                         }
 
-                        if( tintersect > 0 ) {
+                        if( tintersect > 0 ) { // intersection has to be close
                             break;
                         }
                         ++sconnectindex;
@@ -525,7 +525,7 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                 }
 
                 vsampledpoints.push_back(sintersect);
-                vsampledpoints.push_back(sdnext); // speed needs to be sddnext since interpolating forward sddintersect);
+                vsampledpoints.push_back(sdintersect); // speed needs to be sddnext since interpolating forward sddintersect);
                 vsampledpoints.push_back(sddnext); // acceleration needs to be sddnext since interpolating forward sddintersect);
                 BOOST_ASSERT(tintersect>0);
                 vsampledpoints.push_back(tintersect);
@@ -597,7 +597,9 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                     // there are cases where sintersect is greater than itprofilemin->svect[sconnectindex+1], which causes asserts
                     while(checksample.sindex+1 < (int)itprofilemin->svect.size()) {
                         if( sintersect+TINY <= itprofilemin->svect[checksample.sindex+1] ) {
-                            break;
+                            if( checksample.t <= profile.integrationtimestep ) {
+                                break;
+                            }
                         }
                         // get the next index
                         checksample.sindex++;
@@ -709,11 +711,14 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
             dReal tnewprev=0;
             if( !SolveQuadraticEquation(vsampledpoints.at(sindex-4)-(curchunktime + itchunk->duration), vsampledpoints.at(sindex-3), 0.5*vsampledpoints.at(sindex-2), tnewprev, tprev, tdelta) ) {
                 RAVELOG_WARN_FORMAT("failed to solve quadratic at s=%.15f", (curchunktime + itchunk->duration));
-                curchunktime += itchunk->duration;
-                ++itchunk;
-                if( itchunk == intraj.chunkslist.end() ) {
-                    break;
-                }
+                s = curchunktime + itchunk->duration; // have to store this point no matter what!
+                sd = vsampledpoints.at(sindex-3);
+                sd2 = sd*sd;
+                sd3 = sd2*sd;
+                sdd = vsampledpoints.at(sindex-2);
+                tnewdelta = itchunk->duration; // sample at the regular interval
+                bincrementchunk = true;
+                bincrementsindex = false;
             }
             else {
                 s = curchunktime + itchunk->duration; // have to store this point no matter what!
