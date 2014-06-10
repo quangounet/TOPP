@@ -591,7 +591,7 @@ void QuadraticConstraints::FixStart(dReal& sstart,dReal& sdstart, dReal timestep
         ap = (a2[indexcurrent]-a[indexcurrent])/delta;
         bp = (b2[indexcurrent]-b[indexcurrent])/delta;
         cp = (c2[indexcurrent]-c[indexcurrent])/delta;
-        slope = (-bp*sdcurrent*sdcurrent-cp)/((2*b[indexcurrent]-2*bp+ap)*sdcurrent);
+        slope = (-bp*sdcurrent*sdcurrent-cp)/((2*b[indexcurrent]+ap)*sdcurrent);
         sdstart = sdcurrent+slope*sstart;
         resprofileslist.push_back(StraightProfile(0,sstart,sdcurrent,sdstart));
     }
@@ -622,7 +622,7 @@ void QuadraticConstraints::FixEnd(dReal& sendnew,dReal& sdendnew){
         ap = (a[indexcurrent]-a2[indexcurrent])/delta;
         bp = (b[indexcurrent]-b2[indexcurrent])/delta;
         cp = (c[indexcurrent]-c2[indexcurrent])/delta;
-        slope = (-bp*sdcurrent*sdcurrent-cp)/((2*b[indexcurrent]-2*bp+ap)*sdcurrent);
+        slope = (-bp*sdcurrent*sdcurrent-cp)/((2*b[indexcurrent]+ap)*sdcurrent);
         sdendnew = sdcurrent-slope*stub;
         resprofileslist.push_back(StraightProfile(sendnew,send,sdendnew,sdcurrent));
     }
@@ -645,7 +645,7 @@ void QuadraticConstraints::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std
         ap = (a2[i]-a[i])*idelta;
         bp = (b2[i]-b[i])*idelta;
         cp = (c2[i]-c[i])*idelta;
-        slope = (-bp*sd*sd-cp)/((2*b[i]-2*bp+ap)*sd);
+        slope = (-bp*sd*sd-cp)/((2*b[i]+ap)*sd);
         slopesvector[i] = slope;
     }
 }
