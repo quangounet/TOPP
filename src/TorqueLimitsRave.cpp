@@ -398,9 +398,12 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                     if( its == itprofile->svect.end() ) {
                         continue;
                     }
-//                if( *its > sstart + constraints.discrtimestep ) {
-//                    continue;
-//                }
+//                    if( *its < 0 ) { // sometimes this happens...
+//                        its++;
+//                    }
+//                    if( its == itprofile->svect.end() ) {
+//                        continue;
+//                    }
                     size_t sconnectindex = its - itprofile->svect.begin();
                     // there's a compiler BUG here: (sconnectindex+=1 >= itprofile->svect.size() && *its-sstart <= TINY)
                     if( sconnectindex+=1 >= itprofile->svect.size() ) {
@@ -429,7 +432,7 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                     return false;
                 }
 
-                if( sconnectindexmin > 0 ) {
+                if( sconnectindexmin > 0 ) {// && itprofilemin->svect.at(sconnectindexmin-1) > 0 ) {
                     // know that itprofilemin->svect.at(sconnectindexmin)>sstart, so itprofilemin->svect.at(sconnectindexmin-1)<=sstart and that's where the ramp starts
                     sconnectindexmin--;
                 }
@@ -513,8 +516,23 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                             else {
                                 dReal sdintersect2 = (cnext-cprev)/ad;
                                 if( sdintersect2 < 0 ) {
-                                    RAVELOG_ERROR_FORMAT("two profiles never intersect sprev=%.15e, snext=%.15e!", sprev%snext);
-                                    return false;
+                                    dReal tintersect2=1e30;
+                                    checksample2 = FindEarliestProfileIntersection(sprev, sdprev, sddprev, profile.integrationtimestep*10, constraints.resprofileslist, sample.itprofile, tintersect2);
+                                    if( checksample2.itprofile != constraints.resprofileslist.end() && checksample2.s > sprev  && tintersect2 > TINY ) {
+                                        sintersect = checksample2.s;
+                                        sdintersect = checksample2.sd;
+                                        sddintersect = checksample2.sdd;
+                                        tintersect = tintersect2;
+                                        itprofilemin = checksample2.itprofile;
+                                        sconnectindex = checksample2.sindex;
+                                        snext = itprofilemin->svect.at(sconnectindex);
+                                        sdnext = itprofilemin->sdvect.at(sconnectindex);
+                                        sddnext = itprofilemin->sddvect.at(sconnectindex);
+                                    }
+                                    else {
+                                        RAVELOG_ERROR_FORMAT("two profiles never intersect sprev=%.15e, snext=%.15e!", sprev%snext);
+                                        return false;
+                                    }
                                 }
                                 sdintersect = sqrt(sdintersect2);
                                 sintersect = aprev*sdintersect2 + cprev;
@@ -609,16 +627,23 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                     checksample.sd = sdnext;
                     checksample.sdd = sddnext;
                     checksample.t = t2;
+                    bool bsuccess = false;
                     // there are cases where sintersect is greater than itprofilemin->svect[sconnectindex+1], which causes asserts
                     while(checksample.sindex+1 < (int)itprofilemin->svect.size()) {
                         if( sintersect+TINY <= itprofilemin->svect[checksample.sindex+1] ) {
                             if( checksample.t <= itprofilemin->integrationtimestep ) {
+                                bsuccess = true;
                                 break;
                             }
                         }
                         // get the next index
                         checksample.sindex++;
                         checksample.t -= itprofilemin->integrationtimestep;
+                    }
+                    if( !bsuccess ) {
+                        RAVELOG_WARN("ramp failed, so try again (infinite loop?)\n");
+                        //bfindconnection = true;
+                        //return false;
                     }
                 }
             } while(bfindconnection);
