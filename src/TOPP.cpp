@@ -1082,6 +1082,67 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
 }
 
 
+
+////////////////////////////////////////////////////////////////////
+////////////////// Recovery mechanism //////////////////////////////
+////////////////////////////////////////////////////////////////////
+
+// Determine whether one fill the gap
+bool IntegrateRecover(Constraints& constraints, dReal s, dReal sd, dReal dt, Profile& profilebw, Profile& profilefw){
+    int ret;
+    ret = IntegrateBackward(constraints,s,sd,dt,profilebw);
+    if(ret==INT_PROFILE) {
+        ret = IntegrateForward(constraints,s,sd,dt,profilefw);
+        if(ret==INT_PROFILE) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool RecoverGap(Constraints& constraints, dReal s, dReal dt){
+    int ntries = 100;
+    dReal sdtop =  constraints.SdLimitCombined(s);
+    dReal dsd = sdtop / ntries;
+    Profile profilebw, profilefw;
+    for(dReal sd = sdtop; sd > 0; sd -= dsd) {
+        if(IntegrateRecover(constraints, s, sd, dt, profilebw, profilefw)) {
+            constraints.resprofileslist.push_back(profilebw);
+            constraints.resprofileslist.push_back(profilefw);
+            return true;
+        }
+    }
+    return false;
+}
+
+
+dReal Recover(Constraints& constraints, dReal ds){
+    dReal s = 0, gapstart = 0, gapend = constraints.trajectory.duration;
+    while(s<=constraints.trajectory.duration) {
+        ProfileSample lowestsample = FindLowestProfileFast(s, 1e30, constraints.resprofileslist);
+        if( lowestsample.itprofile == constraints.resprofileslist.end() ) {
+            gapstart = s;
+            s += ds;
+            while(s<=constraints.trajectory.duration) {
+                ProfileSample lowestsample = FindLowestProfileFast(s, 1e30, constraints.resprofileslist);
+                if( lowestsample.itprofile == constraints.resprofileslist.end() ) {
+                    s += ds;
+                }
+                else{
+                    gapend = s - ds;
+                    break;
+                }
+            }
+            if(!RecoverGap(constraints,(gapstart+gapend)/2, ds)) {
+                return gapstart;
+            }
+        }
+        s += ds;
+    }
+    return -1;
+}
+
+
 ////////////////////////////////////////////////////////////////////
 ////////////// Utilities for integration ///////////////////////////
 ////////////////////////////////////////////////////////////////////
@@ -1262,7 +1323,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
     std::vector<dReal>& sddvect=constraints._sddvectcache; sddvect.resize(0);
     constraints._busingcache = true;
     resprofile.Reset();
-    
+
     bool cont = true;
     int returntype = -1; // should be changed
 
@@ -1655,7 +1716,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
         sddvect.insert(sddvect.begin(), sddfront);
         resprofile = Profile(svect,sdvect,sddvect,dt, false);
     }
-    
+
     constraints._busingcache = false;
     return returntype;
 }
@@ -1817,7 +1878,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
 
         Profile tmpprofile;
         dReal smallincrement = constraints.integrationtimestep*2;
-        dReal bound;//,tres;
+        dReal bound; //,tres;
 
 
         /////////////////  Integrate from start /////////////////////
@@ -1854,7 +1915,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
             message = str(boost::format("Sdbeg (%.15e) > CLC or MVC (%.15e), s=%.15e")%sdstartnew%bound%sstartnew);
             std::cout << message << std::endl;
             sdstartnew = bound;
-            
+
 //            integrateprofilesstatus = false;
 //            continue;
 //            }
@@ -1985,15 +2046,17 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
 
 
         /////////////////////  Final checks /////////////////////////
-        std::list<Profile>::iterator it = constraints.resprofileslist.begin();
-        while(it != constraints.resprofileslist.end()) {
-            it++;
+
+        // Check whether CLC is continuous and recover if not
+        dReal sdiscontinuous = Recover(constraints,constraints.integrationtimestep);
+        if(sdiscontinuous>-0.5) {
+            message = str(boost::format("Could not recover from CLC discontinuous s=%.15e")%sdiscontinuous);
         }
 
         // Estimate resulting trajectory duration
         constraints.resduration = 0;
         //Profile profile;
-        dReal ds = constraints.discrtimestep;
+        dReal ds = constraints.integrationtimestep;
         int nsamples = int((constraints.trajectory.duration-TINY)/ds);
         dReal s,sdcur,sdnext;
         lowestsample = FindLowestProfileFast(0, 1e30, constraints.resprofileslist);
@@ -2006,15 +2069,6 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
             integrateprofilesstatus = false;
             continue;
         }
-//        if(FindLowestProfile(0,profile,tres,constraints.resprofileslist)) {
-//            sdcur = profile.Evald(tres);
-//        }
-//        else{
-//            message = "CLC discontinuous at 0";
-//            std::cout << message << std::endl;
-//            integrateprofilesstatus = false;
-//            continue;
-//        }
         bool clcdiscontinuous = false;
         for(int i=1; i<=nsamples; i++) {
             s = i*ds;
@@ -2028,17 +2082,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
                 clcdiscontinuous = true;
                 lowestsample = FindLowestProfileFast(s, 1e30, constraints.resprofileslist);
                 break;
-            } 
-//            if(FindLowestProfile(s,profile,tres,constraints.resprofileslist)) {
-//                sdnext = profile.Evald(tres);
-//                constraints.resduration += 2*ds/(sdcur+sdnext);
-//                sdcur = sdnext;
-//            }
-//            else{
-//                clcdiscontinuous = true;
-//                FindLowestProfile(s,profile,tres,constraints.resprofileslist);
-//                break;
-//            }
+            }
         }
         if(clcdiscontinuous) {
             message = str(boost::format("CLC discontinuous s=%.15e")%s);
@@ -2139,7 +2183,7 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
         // Look for the lowest profile at the end
 //        if(FindLowestProfile(constraints.trajectory.duration-smallincrement,tmpprofile,tres,constraints.resprofileslist) && tmpprofile.Evald(tres) <= constraints.mvccombined[constraints.mvccombined.size()-1])
 //            sdendmax = tmpprofile.Evald(tres);
-        
+
         ProfileSample lowestsample = FindLowestProfileFast(constraints.trajectory.duration-smallincrement, constraints.mvccombined[constraints.mvccombined.size()-1], constraints.resprofileslist);
         if( lowestsample.itprofile != constraints.resprofileslist.end() ) {
             sdendmax = lowestsample.sd;
@@ -2263,7 +2307,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
         // Look for the lowest profile at s = 0
 //        if (FindLowestProfile(smallincrement, tmpprofile, tres, constraints.resprofileslist) && tmpprofile.Evald(tres) <= constraints.mvccombined[0])
 //            sdbegmax = tmpprofile.Evald(tres);
-        
+
         ProfileSample lowestsample = FindLowestProfileFast(smallincrement, constraints.mvccombined[0], constraints.resprofileslist);
         if( lowestsample.itprofile != constraints.resprofileslist.end() ) {
             sdbegmax = lowestsample.sd;
@@ -2673,7 +2717,7 @@ ProfileSample FindEarliestProfileIntersection(dReal sstart, dReal sdstart, dReal
 {
     dReal smax = sstart + tmax*(sdstart + 0.5*tmax*sddstart);
     //dReal sdmax = sdstart + tmax*sddstart;
-    
+
     ProfileSample bestprofile;
     bestprofile.itprofile = resprofileslist.end();
     for(std::list<Profile>::const_iterator itprofile = resprofileslist.begin(); itprofile != resprofileslist.end(); ++itprofile) {
@@ -2698,10 +2742,10 @@ ProfileSample FindEarliestProfileIntersection(dReal sstart, dReal sdstart, dReal
             else {
                 --index0;
             }
-            
+
             std::vector<dReal>::const_iterator its1 = std::lower_bound(itprofile->svect.begin(), itprofile->svect.end(), smax);
             size_t index1 = its1 - itprofile->svect.begin();
-            
+
             // need to check all segments in [index0, index1) for intersection with [sstart, sdstart, sddstart]
             for(size_t index = index0; index < index1; ++index) {
                 dReal snext = itprofile->svect.at(index);
@@ -2763,7 +2807,7 @@ ProfileSample FindEarliestProfileIntersection(dReal sstart, dReal sdstart, dReal
                     tintersect = (bestprofile.sd-sdstart)/sddstart;
                     bestprofile.t = (bestprofile.sd - sdnext)/sddnext;
                 }
-                
+
                 if( tintersect >= 0 && tintersect <= tmax && bestprofile.t >= 0 && bestprofile.t <= itprofile->integrationtimestep+TINY && bestprofile.s > sstart ) {
                     if( bestprofile.t < 0 ) {
                         //std::cerr << "best profile is negative" << std::endl;
@@ -2776,7 +2820,7 @@ ProfileSample FindEarliestProfileIntersection(dReal sstart, dReal sdstart, dReal
             }
         }
     }
-    
+
     // reached end, so didn't find any intersections
     bestprofile.itprofile = resprofileslist.end();
     return bestprofile;
