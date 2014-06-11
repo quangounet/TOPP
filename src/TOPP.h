@@ -95,7 +95,7 @@ public:
     }
     TOPPException(const std::string& s, int errorcode=0) : std::exception() {
         _errorcode = errorcode;
-        _s = "openrave (";
+        _s = "topp (";
         _s += boost::lexical_cast<std::string>(_errorcode);
         _s += "): ";
         _s += s;
@@ -139,39 +139,47 @@ public:
         sd = sd0;
         switchpointtype = switchpointtype0;
     }
-    dReal s, sd;
-    int switchpointtype;
-    std::vector<dReal> slopesvector;
+    dReal s, sd; ///< the position of the singularity
+    int switchpointtype; ///< the type of singularity SwitchPointType
+    std::vector<dReal> slopesvector;  ///< the slope of the profiles near a dynamic singularity
 };
-
-
 
 
 ////////////////////////////////////////////////////////////////////
 /////////////////////////// Profile ////////////////////////////////
 ////////////////////////////////////////////////////////////////////
 
-// Velocity profile
+// \brief Velocity profile from integration
 class Profile {
 public:
-    Profile(std::list<dReal>&slist, std::list<dReal>&sdlist, std::list<dReal>&sddlist, dReal integrationtimestep);
+    /// if !forward, then stores svect as the reverse of the inputs
+    Profile(const std::list<dReal>&slist, const std::list<dReal>&sdlist, const std::list<dReal>&sddlist, dReal integrationtimestep, bool forward);
+    /// if !forward, then stores svect as the reverse of the inputs
+    Profile(const std::vector<dReal>&svect, const std::vector<dReal>&sdvect, const std::vector<dReal>&sddvect, dReal integrationtimestep, bool forward);
     Profile(){
     }
-    std::vector<dReal> svect, sdvect, sddvect;
-    dReal integrationtimestep;
-    dReal duration;
-    bool forward;
-    int nsteps;
-    int currentindex;
-    bool FindTimestepIndex(dReal t, int &index, dReal& remainder);
+
+    inline void Reset() {
+        svect.resize(0);
+        sdvect.resize(0);
+        sddvect.resize(0);
+        nsteps=0;
+    }
+    std::vector<dReal> svect, sdvect, sddvect; ///< the points on the profile when integrating. svect is always in increasing order.
+    dReal integrationtimestep; ///< the integration delta timestep
+    dReal duration; ///< duration of the profile (svect.size()-1)*integrationtimestep
+    int nsteps; ///< svect.size()-1
+    bool forward; ///< if 1 then forward integrate in time, if 0 then backward integrate
+
+    bool FindTimestepIndex(dReal t, int &index, dReal& remainder) const;
     // Find t such that Eval(t) = s
     // Return false if no such t
-    bool Invert(dReal s,  dReal& t, bool searchbackward=false);
-    dReal Eval(dReal t);
-    dReal Evald(dReal t);
-    dReal Evaldd(dReal t);
-    void Print();
-    void Write(std::stringstream& ss, dReal dt=0.001);
+    bool Invert(dReal s,  dReal& t) const;
+    dReal Eval(dReal t) const;
+    dReal Evald(dReal t) const;
+    dReal Evaldd(dReal t) const;
+    void Print() const;
+    void Write(std::stringstream& ss, dReal dt=0.001) const;
 
 };
 
@@ -203,16 +211,19 @@ public:
     bool hasvelocitylimits;
     std::vector<dReal> vmax;
 
-    std::list<SwitchPoint> switchpointslist; // list of switch points
+    std::list<SwitchPoint> switchpointslist; // list of switch points, ordered by s
     std::list<std::pair<dReal,dReal> > zlajpahlist; // list of zlajpah points
     std::list<Profile> resprofileslist; // resulting profiles
 
     dReal resduration;
 
+    dReal stepthresh; /// threshold for amount of s to step around a singularity. larger values stabilizes the graph, but can make trajectory slower.
 
     //////////////////////// General ///////////////////////////
 
     Constraints(){
+        _busingcache = false;
+        stepthresh = 0.01;
     }
 
     // Check input after this->trajectory has been set (from TOPPbindings)
@@ -235,6 +246,9 @@ public:
     virtual void WriteMVCBobrow(std::stringstream& ss, dReal dt=0.01);
     virtual void WriteMVCDirect(std::stringstream& ss, dReal dt=0.01);
     virtual void WriteExtra(std::stringstream& ss){
+        return;
+    }
+    virtual void WriteConstraints(std::stringstream& ss){
         return;
     }
 
@@ -297,10 +311,10 @@ public:
     // Fix the integration at s=0 when there is a singularity there
     // If there's nothing to do then sstartnew = 0
     // Else sstartnew > 0 and sdstartnew will be the value that allows going through the singularity
-    virtual void FixStart(dReal& sstartnew,dReal& sdstartnew){
+    virtual void FixStart(dReal& sstartnew,dReal& sdstartnew, dReal timestep){
         sstartnew = 0;
     }
-
+    
     // Fix the integration at s=send when there is a singularity there
     // If there's nothing to do then sendnew = send
     // Else sendnew < send and sdendnew will be the value that allows going through the singularity
@@ -317,7 +331,10 @@ public:
 
     // Add a switch point to switchpointslist
     virtual void AddSwitchPoint(int i, int switchpointtype, dReal sd = -1);
+    virtual void AddSwitchPoint2(dReal s, dReal sd, int switchpointtype);
 
+    std::vector<dReal> _svectcache, _sdvectcache, _sddvectcache; ///< cache
+    bool _busingcache;
 };
 
 
@@ -342,12 +359,14 @@ public:
     void CheckInput();
     void FindSingularSwitchPoints();
     void ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector);
+    void WriteConstraints(std::stringstream& ss);
 
     //////////////// Specific members and methods //////////////////////
     int nconstraints;  // Number of constraints
-    std::vector<std::vector<dReal> > avect, bvect, cvect;  // Dynamics coefficients
+    std::vector<std::vector<dReal> > avect, bvect, cvect;  // Dynamics coefficients. avect[i], bvect[i], cvect[i] are vectors of length 2*ndof where the first ndof are the upper limit, the next ndof are for the lower limit. These incorporate any upper/lower limits.
+
     void InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c);   // Linearly interpolate the dynamics coefficients a,b,c
-    void FixStart(dReal& sstartnew,dReal& sdstartnew);
+    virtual void FixStart(dReal& sstartnew,dReal& sdstartnew, dReal timestep);
     void FixEnd(dReal& sendnew,dReal& sdendnew);
 
 };
@@ -376,9 +395,13 @@ enum CLCReturnType {
 };
 
 // Integrate forward from (sstart,sdstart)
+/// \param[in] dt the integration timestep
+/// \param[in] maxsteps the maximum steps to integrate for
 int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e6, bool testaboveexistingprofiles=true, bool testmvc=true, bool zlajpah=false);
 
 // Integrate backward from (sstart,sdstart)
+/// \param[in] dt the integration timestep
+/// \param[in] maxsteps the maximum steps to integrate for
 int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, int maxsteps=1e6, bool testaboveexistingprofiles=true, bool testmvc=true, bool zlajpah=false);
 
 // Compute the CLC
@@ -393,6 +416,8 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
 // Velocity Interval Propagation from sdend backwards
 int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dReal sdendmin, dReal sdendmax);
 
+// Emergency stopping (integrate forward the minimum acceleration)
+dReal  EmergencyStop(Constraints& constraints, dReal sdbeg, Trajectory& restrajectory);
 
 //////// ////////////////////////////////////////////////////////////
 ///////////////////////// Utilities ////////////////////////////////
@@ -415,14 +440,42 @@ void ReadVectorFromStream(std::istream& s, size_t N, std::vector<dReal>& resvect
 // Solve a0 + a1*x + a2*x^2 = 0 in the interval [lowerbound,upperbound]
 // Return false if no solution in [lowerbound,upperbound], true otherwise
 // If more than one solution, choose the smallest
-bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal& sol, dReal lowerbound=-INF, dReal upperbound=INF);
+/// \brief epsilon Used to threshold the coefficients and results to avoid dividing by 0
+bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal& sol, dReal lowerbound=-INF, dReal upperbound=INF, dReal epsilon=TINY);
 
 // Check whether the point (s,sd) is above at least one profile in the list
-bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>&resprofileslist, bool searchbackward=false, dReal softborder=TINY2);
+bool IsAboveProfilesList(dReal s, dReal sd, const std::list<Profile>&resprofileslist, bool searchbackward=false, dReal softborder=TINY2);
 
-// Find the lowest profile at s
+// Find the lowest profile (in terms of sd) at s
 // Return false if no profile covers s, true otherwise
-bool FindLowestProfile(dReal s, Profile& profile, dReal& tres, std::list<Profile>& resprofileslist);
+bool FindLowestProfile(dReal s, Profile& profile, dReal& tres, const std::list<Profile>& resprofileslist);
+
+/// \brief describes a location in the profile
+class ProfileSample
+{
+public:
+    ProfileSample() : s(0), sd(0), sdd(0), sindex(0), t(0) {
+    }
+
+    std::list<Profile>::const_iterator itprofile; ///< iterator into the Profile. if == constraints.resprofileslist.end(), then invalid
+    dReal s, sd, sdd; ///< samples os svect, sdvect, and sddvector
+    int sindex; ///< index into svect such that svect[sindex] <= s <= svect[sindex+1]
+    dReal t; ///< time from svect[index] to s
+};
+
+/// \brief Find the lowest profile (in terms of sd) at s and return the iterator of the profile
+///
+/// If there's no profile that covers s, return resprofileslist.end()
+/// \param scur the s where to look for a low sd
+/// \param sdmax need to look for sd that are <= this value
+ProfileSample FindLowestProfileFast(dReal scur, dReal sdmax, const std::list<Profile>& resprofileslist);
+
+/// \brief finds if any profiles in resprofileslist intersect with ramp [s, sd, sdd] during times [0, tmax].
+///
+/// \param tintersect The time to the intersection point computed as sstart + tintersect*(sdstart + tintersect*0.5*sddstart)
+/// \param itprofileexclude profile to exclude for intersection, usually the profile that [sstart, sdstart, sddstart] come from.
+/// \return the intersection sample point
+ProfileSample FindEarliestProfileIntersection(dReal sstart, dReal sdstart, dReal sddstart, dReal tmax, const std::list<Profile>& resprofileslist, std::list<Profile>::const_iterator itprofileexclude, dReal& tintersect);
 
 void CheckInsert(std::list<std::pair<dReal,dReal> >& reslist, std::pair<dReal,dReal> e, bool inverse = false);
 void FindMaxima(const std::list<std::pair<dReal,dReal> >& origlist, std::list<std::pair<dReal,dReal> >& reslist, bool inverse = false);
