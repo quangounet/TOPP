@@ -1656,26 +1656,30 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         Profile tmpprofile;
         dReal smallincrement = constraints.integrationtimestep*2;
         dReal bound,tres;
+        std::vector<dReal> qd(constraints.trajectory.dimension);
 
 
         /////////////////  Integrate from start /////////////////////
         // Fix start
         dReal sstartnew = 0, sdstartnew = sdbeg;
-        constraints.FixStart(sstartnew,sdstartnew);
-        if(sstartnew<=TINY2 || sdstartnew > constraints.SdLimitCombined(0) - TINY2) {
-            sdstartnew = sdbeg;
-        }
-        // Check whether sdend > CLC or MVC
-        if(FindLowestProfile(smallincrement,tmpprofile,tres,constraints.resprofileslist)) {
-            bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[0]);
-        }
-        else{
-            bound = constraints.mvccombined[0];
-        }
-        if(sdstartnew > bound) {
-            message = "Sdbeg > CLC or MVC\n";
-            integrateprofilesstatus = false;
-            continue;
+        constraints.trajectory.Evald(0,qd);
+        if(VectorNorm(qd)<TINY2) {
+            constraints.FixStart(sstartnew,sdstartnew);
+            if(sstartnew<=TINY2 || sdstartnew > constraints.SdLimitCombined(0) - TINY2) {
+                sdstartnew = sdbeg;
+            }
+            // Check whether sdbeg > CLC or MVC
+            if(FindLowestProfile(smallincrement,tmpprofile,tres,constraints.resprofileslist)) {
+                bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[0]);
+            }
+            else{
+                bound = constraints.mvccombined[0];
+            }
+            if(sdstartnew > bound) {
+                message = "Sdbeg > CLC or MVC\n";
+                integrateprofilesstatus = false;
+                continue;
+            }
         }
         // Integrate from s = 0
         ret = IntegrateForward(constraints,sstartnew,sdstartnew,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
@@ -1692,21 +1696,24 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         /////////////////  Integrate from end /////////////////////
         // Fix end
         dReal sendnew = constraints.trajectory.duration, sdendnew = sdend;
-        constraints.FixEnd(sendnew,sdendnew);
-        if(constraints.trajectory.duration-sendnew<=TINY2 || sdendnew > constraints.SdLimitCombined(sendnew)- TINY2) {
-            sdendnew = sdend;
-        }
-        // Check whether sdend > CLC or MVC
-        if(FindLowestProfile(constraints.trajectory.duration-smallincrement,tmpprofile,tres,constraints.resprofileslist)) {
-            bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[constraints.mvccombined.size()-1]);
-        }
-        else{
-            bound = constraints.mvccombined[constraints.mvccombined.size()-1];
-        }
-        if(sdendnew > bound) {
-            message = "Sdend > CLC or MVC\n";
-            integrateprofilesstatus = false;
-            continue;
+        constraints.trajectory.Evald(constraints.trajectory.duration,qd);
+        if(VectorNorm(qd)<TINY2) {
+            constraints.FixEnd(sendnew,sdendnew);
+            if(constraints.trajectory.duration-sendnew<=TINY2 || sdendnew > constraints.SdLimitCombined(sendnew)- TINY2) {
+                sdendnew = sdend;
+            }
+            // Check whether sdend > CLC or MVC
+            if(FindLowestProfile(constraints.trajectory.duration-smallincrement,tmpprofile,tres,constraints.resprofileslist)) {
+                bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[constraints.mvccombined.size()-1]);
+            }
+            else{
+                bound = constraints.mvccombined[constraints.mvccombined.size()-1];
+            }
+            if(sdendnew > bound) {
+                message = "Sdend > CLC or MVC\n";
+                integrateprofilesstatus = false;
+                continue;
+            }
         }
         // Integrate back from s = send
         ret = IntegrateBackward(constraints,sendnew,sdendnew,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
