@@ -28,6 +28,7 @@ namespace TOPP {
 
 
 bool Constraints::Preprocess() {
+    switchpointslist.clear();
     resprofileslist.resize(0);
     // Change discrtimestep so as it becomes a divisor of trajectory duration
     int ndiscrsteps = int((trajectory.duration+1e-10)/discrtimestep);
@@ -62,10 +63,10 @@ bool Constraints::Preprocess() {
     // Set integration timestep automatically if it is initially set to 0
     dReal meanmvc = 0;
     if(integrationtimestep == 0) {
-        for(int i=0; i<ndiscrsteps; i++) {
+        for(size_t i=0; i< mvccombined.size(); i++) {
             meanmvc += std::min(mvccombined[i],10.);
         }
-        meanmvc /= ndiscrsteps;
+        meanmvc /= mvccombined.size();
         meanmvc = std::min(1.,meanmvc);
         integrationtimestep = discrtimestep/meanmvc;
         //std::cout << "\n--------------\nIntegration timestep: " << integrationtimestep << "\n";
@@ -78,29 +79,32 @@ bool Constraints::Preprocess() {
 void Constraints::Discretize() {
     ndiscrsteps = int((trajectory.duration+TINY)/discrtimestep);
     ndiscrsteps++;
-    discrsvect.resize(0);
+    discrsvect.resize(ndiscrsteps);
     for(int i=0; i<ndiscrsteps; i++) {
-        discrsvect.push_back(i*discrtimestep);
+        discrsvect[i] = i*discrtimestep;
     }
 }
 
 
 void Constraints::ComputeMVCBobrow() {
+    mvcbobrow.resize(ndiscrsteps);
     for(int i=0; i<ndiscrsteps; i++) {
-        mvcbobrow.push_back(SdLimitBobrowInit(discrsvect[i]));
+        mvcbobrow[i] = SdLimitBobrowInit(discrsvect[i]);
     }
 }
 
 
-void Constraints::ComputeMVCCombined(){
+void Constraints::ComputeMVCCombined()
+{
+    mvccombined.resize(ndiscrsteps);
     for(int i=0; i<ndiscrsteps; i++) {
-        mvccombined.push_back(SdLimitCombinedInit(discrsvect[i]));
+        mvccombined[i] = SdLimitCombinedInit(discrsvect[i]);
     }
 }
 
 
 dReal Constraints::Interpolate1D(dReal s, const std::vector<dReal>& v) {
-    assert(s>=-TINY && s<=trajectory.duration+TINY);
+    BOOST_ASSERT(s>=-TINY && s<=trajectory.duration+TINY);
     if(s<0) {
         s=0;
     }
@@ -173,13 +177,14 @@ void Constraints::WriteMVCDirect(std::stringstream& ss, dReal dt){
 }
 
 
-void Constraints::FindSwitchPoints() {
+void Constraints::FindSwitchPoints()
+{
+    switchpointslist.clear();
     FindSingularSwitchPoints();
     FindTangentSwitchPoints();
     FindDiscontinuousSwitchPoints();
     TrimSwitchPoints();
 }
-
 
 void Constraints::AddSwitchPoint(int i, int switchpointtype, dReal sd){
     dReal s = discrsvect[i];
@@ -203,7 +208,34 @@ void Constraints::AddSwitchPoint(int i, int switchpointtype, dReal sd){
     }
     SwitchPoint sw(s,sd,switchpointtype);
     if(switchpointtype == SP_SINGULAR) {
-        sw.slopesvector = std::vector<dReal>();
+        sw.slopesvector.resize(0);
+        ComputeSlopeDynamicSingularity(s,sd,sw.slopesvector);
+    }
+    switchpointslist.insert(it,sw);
+}
+
+bool CompareSwitchPoint(const SwitchPoint& sw0, const SwitchPoint& sw1)
+{
+    return sw0.s < sw1.s;
+}
+
+void Constraints::AddSwitchPoint2(dReal s, dReal sd, int switchpointtype)
+{
+    // If no sd is specified, then take the value of the mvc
+    // (The case when sd is specified corresponds to a singular switchpoint in some cases)
+    if(sd > MAXSD) {
+        return;
+    }
+    SwitchPoint sw(s,sd,switchpointtype);
+    std::list<SwitchPoint>::iterator it = std::lower_bound(switchpointslist.begin(), switchpointslist.end(), sw, CompareSwitchPoint);
+    if( it != switchpointslist.end() ) {
+        if( s >= it->s+TINY ) {
+            std::cout << "switch point already exists, type=" << it->switchpointtype;
+            return;
+        }
+    }
+    if(switchpointtype == SP_SINGULAR) {
+        sw.slopesvector.resize(0);
         ComputeSlopeDynamicSingularity(s,sd,sw.slopesvector);
     }
     switchpointslist.insert(it,sw);
@@ -235,7 +267,7 @@ void Constraints::FindTangentSwitchPoints(){
         sddlimits = SddLimits(s,sd);
         alpha = sddlimits.first;
         if(std::abs(prevtangent-tangent)>2 && prevtangent < 0 && tangent >0) {
-            AddSwitchPoint(i,SP_DISCONTINUOUS);
+            AddSwitchPoint2(s,sd,SP_DISCONTINUOUS);
         }
         prevtangent = tangent;
         tangent = (sdnext-sd)/discrtimestep;
@@ -245,7 +277,7 @@ void Constraints::FindTangentSwitchPoints(){
         //beta = sddlimits.second;
         diff = alpha/sd - tangent;
         if(diffprev*diff<0 && std::abs(diff)<1) {
-            AddSwitchPoint(i,SP_TANGENT);
+            AddSwitchPoint2(s,sd,SP_TANGENT);
         }
         diffprev = diff;
     }
@@ -258,14 +290,29 @@ void Constraints::FindDiscontinuousSwitchPoints() {
     dReal sd, sdn, sdnn;
     sd = SdLimitBobrow(discrsvect[i]);
     sdn = SdLimitBobrow(discrsvect[i+1]);
-    for(int i=0; i<ndiscrsteps-3; i++) {
+    // also look for the start of the chucks for the trajectory
+    std::list<dReal>::const_iterator itchuckstart = trajectory.chunkcumulateddurationslist.begin();
+    int nLastAddedSwitchIndex = -1;
+    for(int i=0; i<ndiscrsteps-2; i++) {
         sdnn = SdLimitBobrow(discrsvect[i+2]);
         if(std::abs(sdnn-sdn)>100*std::abs(sdn-sd)) {
             if(sdn<sdnn) {
-                AddSwitchPoint(i+1,SP_DISCONTINUOUS);
+                AddSwitchPoint2(discrsvect[i+1],mvcbobrow[i+1],SP_DISCONTINUOUS);
             }
             else{
-                AddSwitchPoint(i+2,SP_DISCONTINUOUS);
+                AddSwitchPoint2(discrsvect[i+2],mvcbobrow[i+2],SP_DISCONTINUOUS);
+            }
+        }
+        if( trajectory.degree <= 3 ) {
+            // if the trajectory degree is <= 3, then the accelerations will not be differentiable at the trajectory chunk edges.
+            // therefore add those discontinuity points.
+            // perhaps there's a better way to compute this, but the above threshold doesn't catch it.
+            if( itchuckstart != trajectory.chunkcumulateddurationslist.end() && *itchuckstart <= discrsvect[i+2]+TINY ) {
+                if( nLastAddedSwitchIndex < i+1 ) {
+                    AddSwitchPoint2(discrsvect[i+1],mvcbobrow[i+1],SP_DISCONTINUOUS);
+                    nLastAddedSwitchIndex = i+1;
+                }
+                ++itchuckstart;
             }
         }
         sd = sdn;
@@ -384,8 +431,9 @@ void Constraints::TrimSwitchPoints() {
                     else{
                         slopesvector = itcur->slopesvector;
                         switchpointslist.erase(itcur);
-                        scur = snext;
-                        sdcur = sdnext;
+                        // don't set scur/sdcur since then radius will be sliding
+                        //scur = snext;
+                        //sdcur = sdnext;
                         itcur = it;
                         it++;
                     }
@@ -487,7 +535,7 @@ void QuadraticConstraints::InterpolateDynamics(dReal s, std::vector<dReal>& a, s
     a.resize(nconstraints);
     b.resize(nconstraints);
     c.resize(nconstraints);
-    assert(s>=-TINY && s<=trajectory.duration+TINY);
+    BOOST_ASSERT(s>=-TINY && s<=trajectory.duration+TINY);
     if(s < 0)
         s = 0;
     if(s >= trajectory.duration-TINY) {
@@ -501,34 +549,45 @@ void QuadraticConstraints::InterpolateDynamics(dReal s, std::vector<dReal>& a, s
     }
 
     int n = int(s/discrtimestep);
-    dReal coef = (s-n*discrtimestep)/discrtimestep;
-    for (int i = 0; i < nconstraints; i++) {
-        a[i] = (1-coef)*avect[n][i] + coef*avect[n+1][i];
-        b[i] = (1-coef)*bvect[n][i] + coef*bvect[n+1][i];
-        c[i] = (1-coef)*cvect[n][i] + coef*cvect[n+1][i];
+    dReal coef = (s-n*discrtimestep);
+    if( std::abs(coef) <= TINY ) {
+        a = avect[n];
+        b = bvect[n];
+        c = cvect[n];
+    }
+    else {
+        coef /= discrtimestep;
+        for (int i = 0; i < nconstraints; i++) {
+            a[i] = (1-coef)*avect[n][i] + coef*avect[n+1][i];
+            b[i] = (1-coef)*bvect[n][i] + coef*bvect[n+1][i];
+            c[i] = (1-coef)*cvect[n][i] + coef*cvect[n+1][i];
+        }
     }
 }
 
-void QuadraticConstraints::FixStart(dReal& sstart,dReal& sdstart){
+void QuadraticConstraints::FixStart(dReal& sstart,dReal& sdstart, dReal timestep)
+{
     std::vector<dReal> a, b, c, a2, b2, c2;
     sstart = 0;
     dReal delta=TINY2, ap, bp, cp, slope;
     InterpolateDynamics(0,a,b,c);
-    InterpolateDynamics(delta,a2,b2,c2);
-    dReal sdcurrent = INF;
+    dReal sdcurrent2 = INF; // squared
     int indexcurrent = 0;
     for(int j=0; j<int(a.size()); j++) {
         if(std::abs(a[j])<TINY2) {
-            if(c[j]*b[j]<0) {
-                if(sqrt(-c[j]/b[j])<sdcurrent) {
-                    sdcurrent = sqrt(-c[j]/b[j]);
+            dReal f = -c[j]/b[j];
+            if(f > 0) {
+                if(f<sdcurrent2) {
+                    sdcurrent2 = f;
                     indexcurrent = j;
                 }
             }
         }
     }
-    if(sdcurrent<1e3) {
-        sstart = integrationtimestep;
+    if(sdcurrent2<1e6) {
+        dReal sdcurrent = sqrt(sdcurrent2);
+        InterpolateDynamics(delta,a2,b2,c2);
+        sstart = timestep;
         ap = (a2[indexcurrent]-a[indexcurrent])/delta;
         bp = (b2[indexcurrent]-b[indexcurrent])/delta;
         cp = (c2[indexcurrent]-c[indexcurrent])/delta;
@@ -580,18 +639,16 @@ void QuadraticConstraints::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std
     s2 = s + delta;
     InterpolateDynamics(s,a,b,c);
     InterpolateDynamics(s2,a2,b2,c2);
-
-    slopesvector.resize(0);
-    for(int i=0; i<int(a.size()); i++) {
-        ap = (a2[i]-a[i])/delta;
-        bp = (b2[i]-b[i])/delta;
-        cp = (c2[i]-c[i])/delta;
+    dReal idelta=1/delta;
+    slopesvector.resize(a.size());
+    for(size_t i=0; i< a.size(); i++) {
+        ap = (a2[i]-a[i])*idelta;
+        bp = (b2[i]-b[i])*idelta;
+        cp = (c2[i]-c[i])*idelta;
         slope = (-bp*sd*sd-cp)/((2*b[i]+ap)*sd);
-        slopesvector.push_back(slope);
+        slopesvector[i] = slope;
     }
 }
-
-
 
 std::pair<dReal,dReal> QuadraticConstraints::SddLimits(dReal s, dReal sd){
     dReal dtsq = integrationtimestep;
@@ -712,31 +769,48 @@ void QuadraticConstraints::FindSingularSwitchPoints() {
         return;
     }
     int i = 0;
-    std::vector<dReal> a,aprev,b,c;
+    std::vector<dReal> a,b,c, aprev, bprev, cprev;
 
-    InterpolateDynamics(discrsvect[i],aprev,b,c);
+    InterpolateDynamics(discrsvect[i],aprev,bprev,cprev);
 
     for(int i=1; i<ndiscrsteps-1; i++) {
         InterpolateDynamics(discrsvect[i],a,b,c);
-        dReal minsd = mvcbobrow[i];
+        dReal minsd = 1e30;
+        dReal mins = 1e30;
         bool found = false;
         for(int j=0; j< int(a.size()); j++) {
-            if(a[j]*aprev[j]<0) {
-                if(c[j]/b[j]<0) {
-                    dReal sdstar = sqrt(-c[j]/b[j]);
-                    dReal sdplus = SdLimitBobrowExclude(discrsvect[i],j);
+            if(a[j]*aprev[j]<=0) {
+                dReal adiff = a[j] - aprev[j];
+                dReal ccur=c[j], bcur=b[j], scur=discrsvect[i];
+                if( fabs(adiff) > TINY ) {
+                    // compute the zero-crossing and linearly interpolate dynamics
+                    dReal interp=-aprev[j]/adiff;
+                    scur = discrsvect[i-1] + interp*(discrsvect[i]-discrsvect[i-1]);
+                    bcur = bprev[j] + interp*(b[j]-bprev[j]);
+                    ccur = cprev[j] + interp*(c[j]-cprev[j]);
+                }
+
+                dReal f = ccur/bcur;
+                if(f<0) {
+                    dReal sdstar = sqrt(-f);
+                    dReal sdplus = SdLimitBobrowExclude(scur,j);
                     if(sdplus >0 && sdplus < sdstar) {
                         continue;
                     }
-                    found = true;
-                    minsd = std::min(minsd,sdstar);
+                    if( !found || sdstar < minsd ) {
+                        found = true;
+                        minsd = sdstar;
+                        mins = scur;
+                    }
                 }
             }
         }
         if(found) {
-            AddSwitchPoint(i,SP_SINGULAR,minsd);
+            AddSwitchPoint2(mins, minsd, SP_SINGULAR);
         }
-        aprev = a;
+        aprev.swap(a);
+        bprev.swap(b);
+        cprev.swap(c);
     }
 }
 
@@ -747,18 +821,48 @@ void QuadraticConstraints::FindSingularSwitchPoints() {
 ////////////////////////////////////////////////////////////////////
 
 
-Profile::Profile(std::list<dReal>& slist, std::list<dReal>& sdlist, std::list<dReal>&  sddlist, dReal integrationtimestep0) {
-    svect = std::vector<dReal>(slist.begin(), slist.end());
-    sdvect = std::vector<dReal>(sdlist.begin(), sdlist.end());
-    sddvect = std::vector<dReal>(sddlist.begin(), sddlist.end());
+Profile::Profile(const std::list<dReal>& slist, const std::list<dReal>& sdlist, const std::list<dReal>&  sddlist, dReal integrationtimestep, bool forward) : integrationtimestep(integrationtimestep), forward(forward) {
+    if( forward ) {
+        svect.insert(svect.end(), slist.begin(), slist.end());
+        sdvect.insert(sdvect.end(), sdlist.begin(), sdlist.end());
+        sddvect.insert(sddvect.end(), sddlist.begin(), sddlist.end());
+    }
+    else {
+        svect.insert(svect.end(), slist.rbegin(), slist.rend());
+        sdvect.insert(sdvect.end(), sdlist.rbegin(), sdlist.rend());
+        sddvect.insert(sddvect.end(), sddlist.rbegin(), sddlist.rend());
+    }
+    BOOST_ASSERT(svect.size()>0);
+    BOOST_ASSERT(svect.size()==sdvect.size());
+    BOOST_ASSERT(svect.size()==sddvect.size());
     // TODO: handle the case of last step with variable width
-    integrationtimestep = integrationtimestep0;
     nsteps = svect.size();
     duration = integrationtimestep * (nsteps-1);
 }
 
+Profile::Profile(const std::vector<dReal>& svectin, const std::vector<dReal>& sdvectin, const std::vector<dReal>&  sddvectin, dReal integrationtimestep, bool forward) : integrationtimestep(integrationtimestep), forward(forward) {
+    BOOST_ASSERT(svectin.size()>0);
+    BOOST_ASSERT(svectin.size()==sdvectin.size());
+    BOOST_ASSERT(svectin.size()==sddvectin.size());
+    if( forward ) {
+        svect = svectin;
+        sdvect = sdvectin;
+        sddvect = sddvectin;
+    }
+    else {
+        svect.resize(svectin.size());
+        std::copy(svectin.rbegin(), svectin.rend(), svect.begin());
+        sdvect.resize(sdvectin.size());
+        std::copy(sdvectin.rbegin(), sdvectin.rend(), sdvect.begin());
+        sddvect.resize(sddvectin.size());
+        std::copy(sddvectin.rbegin(), sddvectin.rend(), sddvect.begin());
+    }
+    // TODO: handle the case of last step with variable width
+    nsteps = svect.size();
+    duration = integrationtimestep * (nsteps-1);
+}
 
-bool Profile::FindTimestepIndex(dReal t, int &index, dReal& remainder){
+bool Profile::FindTimestepIndex(dReal t, int &index, dReal& remainder) const {
     if (t < -TINY || t > duration+TINY)
         return false;
     else if (t < 0)
@@ -776,53 +880,31 @@ bool Profile::FindTimestepIndex(dReal t, int &index, dReal& remainder){
 }
 
 
-bool Profile::Invert(dReal s,  dReal& t, bool searchbackward){
-    if(currentindex<0 || currentindex>nsteps-1) {
+bool Profile::Invert(dReal s,  dReal& t) const {
+    if( svect.size() == 0 ) {
         return false;
     }
-    if(s<svect[0]-TINY || s>svect[nsteps-1]+TINY) {
+    if(s<svect[0]-TINY || s>svect.back()+TINY) {
         return false;
     }
-    if(not searchbackward) {
-        if(svect[currentindex]>s) {
-            return false;
-        }
-        while(currentindex+1<=nsteps-1 && svect[currentindex+1]<s) {
-            currentindex++;
-        }
-        if(currentindex+1>nsteps-1) {
-            return false;
-        }
-        dReal tres;
-        if(!SolveQuadraticEquation(svect[currentindex]-s,sdvect[currentindex],0.5*sddvect[currentindex],tres,0,integrationtimestep)) {
-            //std::cout << "***************** Inversion warning: tres=" << tres << " while integrationtimestep= "<< integrationtimestep << "****************\n";
-            SolveQuadraticEquation(svect[currentindex]-s,sdvect[currentindex],0.5*sddvect[currentindex],tres,0,integrationtimestep);
-        }
-        t = currentindex*integrationtimestep + tres;
-        return true;
+    std::vector<dReal>::const_iterator it = std::lower_bound(svect.begin(), svect.end(), s);
+    size_t index = it - svect.begin();
+    if( index == 0 ) {
+        t = 0;
     }
-    else{
-        if(currentindex==0 || svect[currentindex]<s) {
-            return false;
-        }
-        while(currentindex-1>=0 && svect[currentindex-1]>s) {
-            currentindex--;
-        }
-        if(currentindex-1<0) {
-            return false;
-        }
+    else {
+        index -= 1;
         dReal tres;
-        if(!SolveQuadraticEquation(svect[currentindex-1]-s,sdvect[currentindex-1],0.5*sddvect[currentindex-1],tres,0,integrationtimestep)) {
+        if(!SolveQuadraticEquation(svect[index]-s,sdvect[index],0.5*sddvect[index],tres,0,integrationtimestep)) {
             //std::cout << "***************** Inversion warning: tres=" << tres << " while integrationtimestep= "<< integrationtimestep << "****************\n";
-            SolveQuadraticEquation(svect[currentindex-1]-s,sdvect[currentindex-1],0.5*sddvect[currentindex-1],tres,0,integrationtimestep);
+            SolveQuadraticEquation(svect[index]-s,sdvect[index],0.5*sddvect[index],tres,0,integrationtimestep);
         }
-        t = (currentindex-1)*integrationtimestep + tres;
-        return true;
+        t = index*integrationtimestep + tres;
     }
+    return true;
 }
 
-
-dReal Profile::Eval(dReal t){
+dReal Profile::Eval(dReal t) const {
     int index;
     dReal remainder;
     if(FindTimestepIndex(t, index, remainder))
@@ -832,7 +914,7 @@ dReal Profile::Eval(dReal t){
 }
 
 
-dReal Profile::Evald(dReal t) {
+dReal Profile::Evald(dReal t) const {
     int index;
     dReal remainder;
     if (FindTimestepIndex(t, index, remainder))
@@ -841,7 +923,7 @@ dReal Profile::Evald(dReal t) {
 }
 
 
-dReal Profile::Evaldd(dReal t) {
+dReal Profile::Evaldd(dReal t) const {
     int index;
     dReal remainder;
     if (FindTimestepIndex(t, index, remainder))
@@ -850,14 +932,14 @@ dReal Profile::Evaldd(dReal t) {
 }
 
 
-void Profile::Print(){
+void Profile::Print() const {
     for(dReal t=0; t<=duration; t+=integrationtimestep) {
         std::cout<< Eval(t) << " ; " << Evald(t) << " ; " << Evaldd(t) <<  "\n";
     }
 }
 
 
-void Profile::Write(std::stringstream& ss, dReal dt){
+void Profile::Write(std::stringstream& ss, dReal dt) const {
     ss << duration << " " << dt << "\n";
     for(dReal t=0; t<=duration; t+=dt) {
         ss << Eval(t) << " ";
@@ -918,23 +1000,34 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
         dReal bestsstep = 0.1;
         dReal bestslope = 0;
         dReal bestscore = INF;
-        dReal sstep = 1e-3/3.1;
-        while(sstep <= 0.01) {
-            sstep = sstep * 3.1;
+        const dReal magicconst = 3.1; // what is this??
+        const dReal slopethresh = 0.1;
+        const dReal stepthresh = 0.04; /// slopes within 0.02 of the singularity are also pretty big, so need longer to stabilize them.
+        dReal sstep = 1e-3/magicconst;
+        while(sstep <= stepthresh) {
+            sstep = sstep * magicconst;
             for(int i = 0; i<int(switchpoint.slopesvector.size()); i++) {
                 sforward = std::min(s + sstep,constraints.trajectory.duration);
                 sbackward = std::max(s - sstep,0.);
                 dReal slope = switchpoint.slopesvector[i];
                 // Avoid too big stubs
-                if(std::abs(slope*sstep)>0.1) {
+                if(std::abs(slope*sstep)>slopethresh) {
                     continue;
                 }
                 sdforward = sd + (sforward-s)*slope;
                 sdbackward = sd - (s-sbackward)*slope;
                 bool canintegrate = false;
                 int ret = IntegrateBackward(constraints,sbackward,sdbackward,dt,resprofile,constraints.passswitchpointnsteps);
+                if(!(ret==INT_MAXSTEPS||ret==INT_END)) {
+                    // need to try smaller discretization in case slope has noise
+                    ret = IntegrateBackward(constraints,sbackward,sdbackward,dt*0.1,resprofile,constraints.passswitchpointnsteps);
+                }
                 if(ret==INT_MAXSTEPS||ret==INT_END) {
                     ret = IntegrateForward(constraints,sforward,sdforward,dt,resprofile,constraints.passswitchpointnsteps,testaboveexistingprofiles, testmvc, zlajpah);
+                    if(!(ret==INT_MAXSTEPS||ret==INT_END)) {
+                        // need to try smaller discretization in case slope has noise
+                        ret = IntegrateForward(constraints,sforward,sdforward,dt*0.1,resprofile,constraints.passswitchpointnsteps,testaboveexistingprofiles, testmvc, zlajpah);
+                    }
                     if(ret==INT_MAXSTEPS||ret==INT_END) {
                         canintegrate = true;
                     }
@@ -966,7 +1059,15 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
     }
     // Tangent, Discontinuous and Zlajpah switchpoints
     else{
-        dReal sdtop = BisectionSearch(constraints,s,sd*constraints.loweringcoef,sd,constraints.integrationtimestep,0);
+        dReal sdtop = -1;
+        dReal testsd = sd;
+        for(int itry = 0; itry < 5; ++itry) {
+            testsd *= constraints.loweringcoef;
+            sdtop = BisectionSearch(constraints,s,testsd,sd,constraints.integrationtimestep,0);
+            if(sdtop>0) {
+                break;
+            }
+        }
         if(sdtop<=0) {
             return false;
         }
@@ -978,6 +1079,67 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
         return true;
     }
     return false;
+}
+
+
+
+////////////////////////////////////////////////////////////////////
+////////////////// Recovery mechanism //////////////////////////////
+////////////////////////////////////////////////////////////////////
+
+// Determine whether one fill the gap
+bool IntegrateRecover(Constraints& constraints, dReal s, dReal sd, dReal dt, Profile& profilebw, Profile& profilefw){
+    int ret;
+    ret = IntegrateBackward(constraints,s,sd,dt,profilebw);
+    if(ret==INT_PROFILE) {
+        ret = IntegrateForward(constraints,s,sd,dt,profilefw);
+        if(ret==INT_PROFILE) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool RecoverGap(Constraints& constraints, dReal s, dReal dt){
+    int ntries = 100;
+    dReal sdtop =  constraints.SdLimitCombined(s);
+    dReal dsd = sdtop / ntries;
+    Profile profilebw, profilefw;
+    for(dReal sd = sdtop; sd > 0; sd -= dsd) {
+        if(IntegrateRecover(constraints, s, sd, dt, profilebw, profilefw)) {
+            constraints.resprofileslist.push_back(profilebw);
+            constraints.resprofileslist.push_back(profilefw);
+            return true;
+        }
+    }
+    return false;
+}
+
+
+dReal Recover(Constraints& constraints, dReal ds){
+    dReal s = 0, gapstart = 0, gapend = constraints.trajectory.duration;
+    while(s<=constraints.trajectory.duration) {
+        ProfileSample lowestsample = FindLowestProfileFast(s, 1e30, constraints.resprofileslist);
+        if( lowestsample.itprofile == constraints.resprofileslist.end() ) {
+            gapstart = s;
+            s += ds;
+            while(s<=constraints.trajectory.duration) {
+                ProfileSample lowestsample = FindLowestProfileFast(s, 1e30, constraints.resprofileslist);
+                if( lowestsample.itprofile == constraints.resprofileslist.end() ) {
+                    s += ds;
+                }
+                else{
+                    gapend = s - ds;
+                    break;
+                }
+            }
+            if(!RecoverGap(constraints,(gapstart+gapend)/2, ds)) {
+                return gapstart;
+            }
+        }
+        s += ds;
+    }
+    return -1;
 }
 
 
@@ -1154,65 +1316,79 @@ int FlowVsMVCBackward(Constraints& constraints, dReal s, dReal sd, dReal dt){
 int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt,  Profile& resprofile, int maxsteps, bool testaboveexistingprofiles, bool testmvc, bool zlajpah){
     dReal dtsq = dt*dt;
     dReal scur = sstart, sdcur = sdstart, snext, sdnext;
-    std::list<dReal> slist, sdlist, sddlist;
+    // used the cached values for memory performance
+    BOOST_ASSERT(!constraints._busingcache);
+    std::vector<dReal>& svect=constraints._svectcache; svect.resize(0);
+    std::vector<dReal>& sdvect=constraints._sdvectcache; sdvect.resize(0);
+    std::vector<dReal>& sddvect=constraints._sddvectcache; sddvect.resize(0);
+    constraints._busingcache = true;
+    resprofile.Reset();
+
     bool cont = true;
     int returntype = -1; // should be changed
 
-    // Initialize the currentindex of the profiles for search purpose
-    if(testaboveexistingprofiles && constraints.resprofileslist.size()>0) {
-        std::list<Profile>::iterator it = constraints.resprofileslist.begin();
-        while(it != constraints.resprofileslist.end()) {
-            it->currentindex = 0;
-            it++;
-        }
-    }
+//    // Initialize the currentindex of the profiles for search purpose
+//    if(testaboveexistingprofiles && constraints.resprofileslist.size()>0) {
+//        std::list<Profile>::iterator it = constraints.resprofileslist.begin();
+//        while(it != constraints.resprofileslist.end()) {
+//            it++;
+//        }
+//    }
 
     // Integrate forward
     while(cont) {
-        if(int(slist.size()) > maxsteps) {
+        if(int(svect.size()) > maxsteps) {
             returntype = INT_MAXSTEPS;
             break;
         }
         else if(scur > constraints.trajectory.duration) {
             //TODO: change the time step of previous step to reach the end
-            slist.push_back(scur);
-            sdlist.push_back(sdcur);
-            sddlist.push_back(0);
+            svect.push_back(scur);
+            sdvect.push_back(sdcur);
+            sddvect.push_back(0);
             returntype = INT_END;
             break;
         }
         else if(sdcur < 0) {
             //TODO: double check whether alpha>beta
-            slist.push_back(scur);
-            sdlist.push_back(sdcur);
-            sddlist.push_back(0);
+            svect.push_back(scur);
+            sdvect.push_back(sdcur);
+            sddvect.push_back(0);
             returntype = INT_BOTTOM;
             break;
         }
         else if(IsAboveProfilesList(scur,sdcur,constraints.resprofileslist)) {
-            slist.push_back(scur);
-            sdlist.push_back(sdcur);
-            sddlist.push_back(0);
+            svect.push_back(scur);
+            sdvect.push_back(sdcur);
+            sddvect.push_back(0);
             returntype = INT_PROFILE;
             break;
         }
         else if(zlajpah && testmvc && sdcur >= constraints.SdLimitCombined(scur)-TINY2) {
             if(constraints.SdLimitBobrow(scur)-constraints.SdLimitCombined(scur)<TINY2) {
-                slist.push_back(scur);
-                sdlist.push_back(sdcur);
-                sddlist.push_back(0);
+                svect.push_back(scur);
+                sdvect.push_back(sdcur);
+                sddvect.push_back(0);
                 returntype = INT_MVC;
                 break;
             }
 
             // Lower the sd to the MVC and integrate backward
-            if(slist.size()==0) {
+            if(svect.size()==0) {
                 sdcur = constraints.SdLimitCombined(scur);
                 Profile tmpprofile;
                 //std::cout << "Integrate backward from (" <<scur << "," << sdcur  <<  ")\n";
+                std::vector<dReal> svecttemp = svect, sdvecttemp = sdvect, sddvecttemp = sddvect;
+                constraints._busingcache = false;
                 int res3 = IntegrateBackward(constraints,scur,sdcur,constraints.integrationtimestep,tmpprofile,1e5,true,true,true);
+                svect = svecttemp;
+                sdvect = sdvecttemp;
+                sddvect = sddvecttemp;
+                constraints._busingcache = true;
+
                 if(res3 == INT_BOTTOM) {
                     //std::cout << "BW reached 0 (From Zlajpah)\n";
+                    constraints._busingcache = false;
                     return INT_BOTTOM;
                 }
                 //std::cout << "BW size " << tmpprofile.nsteps << "\n";
@@ -1233,9 +1409,9 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             int res = FlowVsMVC(constraints,scur,sdcur,1,dt);
             if(res == 0) {
                 // Most probably we arrived at the end
-                slist.push_back(scur);
-                sdlist.push_back(sdcur);
-                sddlist.push_back(0);
+                svect.push_back(scur);
+                sdvect.push_back(sdcur);
+                sddvect.push_back(0);
                 returntype = INT_END;
                 break;
             }
@@ -1243,24 +1419,22 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                 // Case a
                 //std::cout <<"\nZlajpah trap ("<< scur << "," << sdcur << ") \n";
                 // Insert the profile calculated so far into the resprofileslist
-                // And reinitialize the profile
-                Profile profile1 = Profile(slist,sdlist,sddlist,dt);
-                profile1.forward = true;
-                if(profile1.nsteps>1) {
-                    constraints.resprofileslist.push_back(profile1);
+                if( svect.size() > 1 ) {
+                    // And reinitialize the profile
+                    constraints.resprofileslist.push_back(Profile(svect,sdvect,sddvect,dt, true));
                 }
-                slist.resize(0);
-                sdlist.resize(0);
-                sddlist.resize(0);
+                svect.resize(0);
+                sdvect.resize(0);
+                sddvect.resize(0);
                 // Now step along the MVCCombined
                 while(true) {
                     snext = scur + dt;
                     if(snext>constraints.trajectory.duration) {
                         cont = false;
                         //std::cout << "End traj\n";
-                        slist.push_back(scur);
-                        sdlist.push_back(sdcur);
-                        sddlist.push_back(0);
+                        svect.push_back(scur);
+                        sdvect.push_back(sdcur);
+                        sddvect.push_back(0);
                         returntype = INT_END; // ZLAJPAH END
                         break;
                     }
@@ -1270,9 +1444,9 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                     if(res2 == 0) {
                         cont = false;
                         //std::cout << "End traj\n";
-                        slist.push_back(scur);
-                        sdlist.push_back(sdcur);
-                        sddlist.push_back(0);
+                        svect.push_back(scur);
+                        sdvect.push_back(sdcur);
+                        sddvect.push_back(0);
                         returntype = INT_END; // ZLAJPAH END
                         break;
                     }
@@ -1292,49 +1466,49 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
 
                 //std::cout <<"\nSlide ("<< scur << "," << sdcur << ") \n";
                 while(true) {
-                    if(int(slist.size()) > maxsteps) {
+                    if(int(svect.size()) > maxsteps) {
                         cont = false;
                         returntype = INT_MAXSTEPS;
                         break;
                     }
                     else if(scur > constraints.trajectory.duration) {
                         cont = false;
-                        slist.push_back(scur);
-                        sdlist.push_back(sdcur);
-                        sddlist.push_back(0);
+                        svect.push_back(scur);
+                        sdvect.push_back(sdcur);
+                        sddvect.push_back(0);
                         returntype = INT_END;
                         break;
                     }
                     else if(sdcur < 0) {
                         cont = false;
-                        slist.push_back(scur);
-                        sdlist.push_back(sdcur);
-                        sddlist.push_back(0);
+                        svect.push_back(scur);
+                        sdvect.push_back(sdcur);
+                        sddvect.push_back(0);
                         returntype = INT_BOTTOM;
                         break;
                     }
                     else if(IsAboveProfilesList(scur,sdcur,constraints.resprofileslist)) {
                         cont = false;
-                        slist.push_back(scur);
-                        sdlist.push_back(sdcur);
-                        sddlist.push_back(0);
+                        svect.push_back(scur);
+                        sdvect.push_back(sdcur);
+                        sddvect.push_back(0);
                         returntype = INT_PROFILE;
                         break;
                     }
                     dReal slidesdd = ComputeSlidesdd(constraints,scur,sdcur,dt);
                     if(slidesdd == INF) {
                         cont = false;
-                        slist.push_back(scur);
-                        sdlist.push_back(sdcur);
-                        sddlist.push_back(0);
+                        svect.push_back(scur);
+                        sdvect.push_back(sdcur);
+                        sddvect.push_back(0);
                         returntype = INT_MVC;
                         break;
                     }
                     snext = scur + dt * sdcur + 0.5*dtsq*slidesdd;
                     sdnext = sdcur + dt * slidesdd;
-                    slist.push_back(scur);
-                    sdlist.push_back(sdcur);
-                    sddlist.push_back(slidesdd);
+                    svect.push_back(scur);
+                    sdvect.push_back(sdcur);
+                    sddvect.push_back(slidesdd);
                     scur = snext;
                     sdcur = sdnext;
                     //std::cout <<"Next ("<< snext << "," << sdnext << ") \n";
@@ -1364,25 +1538,26 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             }
         }
         else if((!zlajpah) && testmvc && sdcur > constraints.SdLimitCombined(scur)+TINY2) {
-            slist.push_back(scur);
-            sdlist.push_back(sdcur);
+            svect.push_back(scur);
+            sdvect.push_back(sdcur);
+            sddvect.push_back(0);
             constraints.zlajpahlist.push_back(std::pair<dReal,dReal>(scur,sdcur));
             returntype = INT_MVC;
             break;
         }
         else{
-            slist.push_back(scur);
-            sdlist.push_back(sdcur);
+            svect.push_back(scur);
+            sdvect.push_back(sdcur);
             dReal beta = constraints.SddLimitBeta(scur,sdcur);
-            sddlist.push_back(beta);
+            sddvect.push_back(beta);
             dReal snext = scur + dt * sdcur + 0.5*dtsq*beta;
             dReal sdnext = sdcur + dt * beta;
             scur = snext;
             sdcur = sdnext;
         }
     }
-    resprofile = Profile(slist,sdlist,sddlist,dt);
-    resprofile.forward = true;
+    resprofile = Profile(svect,sdvect,sddvect,dt, true);
+    constraints._busingcache = false;
     return returntype;
 }
 
@@ -1390,87 +1565,92 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
 int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile,  int maxsteps, bool testaboveexistingprofiles, bool testmvc,bool zlajpah){
     dReal dtsq = dt*dt;
     dReal scur = sstart, sdcur = sdstart;
-    std::list<dReal> slist, sdlist, sddlist;
+    //std::list<dReal> slist, sdlist, sddlist;
+    BOOST_ASSERT(!constraints._busingcache);
+    std::vector<dReal>& svect=constraints._svectcache; svect.resize(0);
+    std::vector<dReal>& sdvect=constraints._sdvectcache; sdvect.resize(0);
+    std::vector<dReal>& sddvect=constraints._sddvectcache; sddvect.resize(0);
+    constraints._busingcache = true;
     bool cont = true;
     int returntype = INT_END;
     bool searchbackward = true;
     dReal alphabk = INF;
+    resprofile.Reset();
 
-    // Initialize the currentindex of the profiles for search purpose
-    if(testaboveexistingprofiles && constraints.resprofileslist.size()>0) {
-        std::list<Profile>::iterator it = constraints.resprofileslist.begin();
-        while(it != constraints.resprofileslist.end()) {
-            it->currentindex = it->nsteps-1;
-            it++;
-        }
-    }
+//    // Initialize the currentindex of the profiles for search purpose
+//    if(testaboveexistingprofiles && constraints.resprofileslist.size()>0) {
+//        std::list<Profile>::iterator it = constraints.resprofileslist.begin();
+//        while(it != constraints.resprofileslist.end()) {
+//            it++;
+//        }
+//    }
 
     // Integrate backward
     while(cont) {
-        if(int(slist.size()) > maxsteps) {
+        if(int(svect.size()) > maxsteps) {
             returntype = INT_MAXSTEPS;
             break;
         }
         else if(scur < 0) {
             //TODO: change the time step of previous step to reach the end
-            slist.push_back(scur);
-            sdlist.push_back(sdcur);
-            sddlist.push_back(0);
+            svect.push_back(scur);
+            sdvect.push_back(sdcur);
+            sddvect.push_back(0);
             returntype = INT_END;
             break;
         }
         else if(sdcur < 0) {
             //TODO: double check whether alpha>beta
-            slist.push_back(scur);
-            sdlist.push_back(sdcur);
-            sddlist.push_back(0);
+            svect.push_back(scur);
+            sdvect.push_back(sdcur);
+            sddvect.push_back(0);
             returntype = INT_BOTTOM;
             break;
         }
         else if(IsAboveProfilesList(scur,sdcur,constraints.resprofileslist,searchbackward)) {
-            slist.push_back(scur);
-            sdlist.push_back(sdcur);
-            sddlist.push_back(0);
+            svect.push_back(scur);
+            sdvect.push_back(sdcur);
+            sddvect.push_back(0);
             returntype = INT_PROFILE;
             break;
         }
         else if(zlajpah && testmvc && sdcur >= constraints.SdLimitCombined(scur)-TINY2 && FlowVsMVCBackward(constraints,scur,sdcur,dt) != -1) {
             if(sdcur > constraints.SdLimitBobrow(scur)) {
-                slist.push_back(scur);
-                sdlist.push_back(sdcur);
-                sddlist.push_back(0);
+                svect.push_back(scur);
+                sdvect.push_back(sdcur);
+                sddvect.push_back(0);
                 returntype = INT_MVC;
                 break;
             }
             while(true) {
                 if(scur <0) {
                     cont = false;
-                    slist.push_back(scur);
-                    sdlist.push_back(sdcur);
-                    sddlist.push_back(0);
+                    svect.push_back(scur);
+                    sdvect.push_back(sdcur);
+                    sddvect.push_back(0);
                     returntype = INT_END;
                     break;
                 }
                 else if(sdcur < 0) {
                     cont = false;
-                    slist.push_back(scur);
-                    sdlist.push_back(sdcur);
-                    sddlist.push_back(0);
+                    svect.push_back(scur);
+                    sdvect.push_back(sdcur);
+                    sddvect.push_back(0);
                     returntype = INT_BOTTOM;
                     break;
                 }
                 if(sdcur > constraints.SdLimitBobrow(scur)) {
-                    slist.push_back(scur);
-                    sdlist.push_back(sdcur);
-                    sddlist.push_back(0);
+                    svect.push_back(scur);
+                    sdvect.push_back(sdcur);
+                    sddvect.push_back(0);
                     returntype = INT_MVC;
                     break;
                 }
                 else if(IsAboveProfilesList(scur,sdcur,constraints.resprofileslist)) {
                     cont = false;
-                    slist.push_back(scur);
-                    sdlist.push_back(sdcur);
-                    sddlist.push_back(0);
+                    svect.push_back(scur);
+                    sdvect.push_back(sdcur);
+                    sddvect.push_back(0);
                     returntype = INT_PROFILE;
                     break;
                 }
@@ -1478,17 +1658,17 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
                 dReal slidesdd = ComputeSlidesddBackward(constraints,scur,sdcur,dt);
                 if(slidesdd == INF) {
                     cont = false;
-                    slist.push_back(scur);
-                    sdlist.push_back(sdcur);
-                    sddlist.push_back(0);
+                    svect.push_back(scur);
+                    sdvect.push_back(sdcur);
+                    sddvect.push_back(0);
                     returntype = INT_MVC;
                     break;
                 }
                 dReal sprev = scur - dt * sdcur + 0.5*dtsq*slidesdd;
                 dReal sdprev = sdcur - dt * slidesdd;
-                slist.push_back(scur);
-                sdlist.push_back(sdcur);
-                sddlist.push_back(slidesdd);
+                svect.push_back(scur);
+                sdvect.push_back(sdcur);
+                sddvect.push_back(slidesdd);
                 scur = sprev;
                 sdcur = sdprev;
                 int res1 = FlowVsMVCBackward(constraints,sprev,sdprev,dt);
@@ -1506,22 +1686,22 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
             }
         }
         else if(!zlajpah && testmvc && sdcur > constraints.SdLimitCombined(scur)+TINY2) {
-            slist.push_back(scur);
-            sdlist.push_back(sdcur);
-            sddlist.push_back(0);
+            svect.push_back(scur);
+            sdvect.push_back(sdcur);
+            sddvect.push_back(0);
             returntype = INT_MVC;
             break;
         }
         else{
-            slist.push_back(scur);
-            sdlist.push_back(sdcur);
+            svect.push_back(scur);
+            sdvect.push_back(sdcur);
             //std ::pair<dReal,dReal> sddlimits = constraints.SddLimits(scur,sdcur);
             //dReal alpha = sddlimits.first;
             dReal alpha = constraints.SddLimitAlpha(scur,sdcur);
-            if(sddlist.size()==0) {
+            if(sddvect.size()==0) {
                 alphabk = alpha;
             }
-            sddlist.push_back(alpha);
+            sddvect.push_back(alpha);
             //std::cout << scur << " " << sdcur << " " << alpha << "\n";
             dReal sprev = scur - dt * sdcur + 0.5*dtsq*alpha;
             dReal sdprev = sdcur - dt * alpha;
@@ -1530,20 +1710,14 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
             //alpha = constraints.SddLimitAlpha(std::min(constraints.trajectory.duration,std::max(0.,scur)),std::max(0.,sdcur));
         }
     }
-    if(sddlist.size()>0) {
-        slist.reverse();
-        sdlist.reverse();
-        sddlist.reverse();
-        sddlist.pop_front();
-        if(alphabk == INF) {
-            sddlist.push_back(sddlist.back());
-        }
-        else{
-            sddlist.push_back(alphabk);
-        }
+    if(sddvect.size()>0) {
+        dReal sddfront = alphabk == INF ? sddvect.front() : alphabk;
+        sddvect.pop_back();
+        sddvect.insert(sddvect.begin(), sddfront);
+        resprofile = Profile(svect,sdvect,sddvect,dt, false);
     }
-    resprofile = Profile(slist,sdlist,sddlist,dt);
-    resprofile.forward = false;
+
+    constraints._busingcache = false;
     return returntype;
 }
 
@@ -1552,8 +1726,9 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
 //////////////////////// Limiting curves ///////////////////////////
 ////////////////////////////////////////////////////////////////////
 
-Profile StraightProfile(dReal sbackward,dReal sforward,dReal sdbackward,dReal sdforward){
-    std::list<dReal> slist, sdlist, sddlist;
+Profile StraightProfile(dReal sbackward,dReal sforward, dReal sdbackward, dReal sdforward)
+{
+    std::vector<dReal> slist, sdlist, sddlist;
     dReal dtmod = 2 * (sforward - sbackward) / (sdforward + sdbackward);
     dReal sdd = (sdforward - sdbackward) / dtmod;
     slist.push_back(sbackward);
@@ -1562,12 +1737,12 @@ Profile StraightProfile(dReal sbackward,dReal sforward,dReal sdbackward,dReal sd
     sdlist.push_back(sdforward);
     sddlist.push_back(sdd);
     sddlist.push_back(0);
-    return Profile(slist,sdlist,sddlist,dtmod);
+    return Profile(slist,sdlist,sddlist,dtmod,true);
 }
 
 
 int ComputeLimitingCurves(Constraints& constraints){
-    std::list<SwitchPoint> switchpointslist0(constraints.switchpointslist);
+    //std::list<SwitchPoint> switchpointslist0(constraints.switchpointslist);
 
     Profile tmpprofile;
     dReal sswitch, sdswitch, sbackward, sdbackward, sforward, sdforward;
@@ -1575,10 +1750,12 @@ int ComputeLimitingCurves(Constraints& constraints){
     bool testaboveexistingprofiles = true, testmvc = true, zlajpah = false;
     constraints.ntangenttreated = 0;
     constraints.nsingulartreated = 0;
-
-    while(switchpointslist0.size() > 0) {
-        SwitchPoint switchpoint = switchpointslist0.front();
-        switchpointslist0.pop_front();
+    int switchpointindex = 0; // for debugging purposes;
+    for(std::list<SwitchPoint>::const_iterator itswitchpoint = constraints.switchpointslist.begin(); itswitchpoint != constraints.switchpointslist.end(); ++itswitchpoint, ++switchpointindex) {
+        //while(switchpointslist0.size() > 0) {
+        //SwitchPoint switchpoint = switchpointslist0.front();
+        //switchpointslist0.pop_front();
+        const SwitchPoint& switchpoint = *itswitchpoint;
         sswitch = switchpoint.s;
         sdswitch = switchpoint.sd;
         if(IsAboveProfilesList(sswitch,sdswitch,constraints.resprofileslist,false,0))
@@ -1624,8 +1801,10 @@ int ComputeLimitingCurves(Constraints& constraints){
             constraints.resprofileslist.push_back(tmpprofile);
         }
 
-        if(integratestatus == INT_BOTTOM)
+        if(integratestatus == INT_BOTTOM) {
+            std::cerr << str(boost::format("IntegrateBackward INT_BOTTOM, s=%.15e, sd=%.15e\n")%sbackward%sdbackward);
             return CLC_BOTTOM;
+        }
 
         // Integrate forward
         integratestatus = IntegrateForward(constraints, sforward, sdforward,
@@ -1636,8 +1815,10 @@ int ComputeLimitingCurves(Constraints& constraints){
             //std::cout << "Forward : " << tmpprofile.nsteps << " " << tmpprofile.duration << "\n";
         }
 
-        if(integratestatus == INT_BOTTOM)
+        if(integratestatus == INT_BOTTOM) {
+            std::cerr << str(boost::format("IntegrateForward INT_BOTTOM, s=%.15e, sd=%.15e\n")%sforward%sdforward);
             return CLC_BOTTOM;
+        }
     }
     return CLC_OK;
 }
@@ -1673,6 +1854,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         // Lower integrationtimestep
         if(rep>0) {
             constraints.integrationtimestep /= 2;
+            constraints.stepthresh *= 2;
             //constraints.passswitchpointnsteps *= 2;
             std::cout << rep << "!!!!!!!!!!!!!!!!!!!!!!!!!! Try lower integration timestep: " << constraints.integrationtimestep << "!!!!!!!!!!!!!!!!!!!!!!!!\n";
 
@@ -1687,7 +1869,8 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         /////////////////  Compute the CLC /////////////////////
         ret = ComputeLimitingCurves(constraints);
         if(ret!=CLC_OK) {
-            message = "CLC failed\n";
+            message = "CLC failed";
+            std::cout << message << std::endl;
             integrateprofilesstatus = false;
             continue;
         }
@@ -1695,38 +1878,76 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
 
         Profile tmpprofile;
         dReal smallincrement = constraints.integrationtimestep*2;
-        dReal bound,tres;
+        dReal bound; //,tres;
 
 
         /////////////////  Integrate from start /////////////////////
         // Fix start
         dReal sstartnew = 0, sdstartnew = sdbeg;
-        constraints.FixStart(sstartnew,sdstartnew);
-        if(sstartnew<=TINY2 || sdstartnew > constraints.SdLimitCombined(0) - TINY2 || sdstartnew < 0) {
+        dReal starttimestep = constraints.integrationtimestep;
+        // when fixing the beginning ramp, have to iterate reducing the time step since sometimes it can get out of the bound
+        for(int ibegiter = 0; ibegiter <= 10; ++ibegiter, starttimestep *= 0.5) {
+            sstartnew = 0;
             sdstartnew = sdbeg;
+            constraints.FixStart(sstartnew,sdstartnew, constraints.integrationtimestep);
+            if(sstartnew<=TINY2 || sdstartnew > constraints.SdLimitCombined(0) - TINY2 || sdstartnew < 0) {
+                sdstartnew = sdbeg;
+            }
+            // Check whether sbeg > CLC or MVC
+            ProfileSample lowestsample = FindLowestProfileFast(smallincrement, 1e30, constraints.resprofileslist);
+            if( lowestsample.itprofile != constraints.resprofileslist.end() ) {
+                bound = std::min(lowestsample.sd,constraints.mvccombined[0]);
+            }
+            else {
+                bound = constraints.mvccombined[0];
+            }
+//            if(FindLowestProfile(smallincrement,tmpprofile,tres,constraints.resprofileslist)) {
+//                bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[0]);
+//            }
+//            else{
+//                bound = constraints.mvccombined[0];
+//            }
+            if(sdstartnew <= bound) {
+                break;
+            }
         }
-        // Check whether sdend > CLC or MVC
-        if(FindLowestProfile(smallincrement,tmpprofile,tres,constraints.resprofileslist)) {
-            bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[0]);
-        }
-        else{
-            bound = constraints.mvccombined[0];
-        }
-        if(sdstartnew > bound) {
-            message = "Sdbeg > CLC or MVC\n";
-            integrateprofilesstatus = false;
-            continue;
+        if(sdstartnew >bound) {
+            message = str(boost::format("Sdbeg (%.15e) > CLC or MVC (%.15e), s=%.15e")%sdstartnew%bound%sstartnew);
+            std::cout << message << std::endl;
+            sdstartnew = bound;
+
+//            integrateprofilesstatus = false;
+//            continue;
+//            }
+            // set the new sd
+            //sdstartnew = bound;
+            // this is a HACK in order to get things working.
+            constraints.resprofileslist.push_back(StraightProfile(0,sstartnew,0,bound));
         }
         // Integrate from s = 0
         ret = IntegrateForward(constraints,sstartnew,sdstartnew,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
+        if(ret==INT_BOTTOM) {
+            // sometimes sdendnew can be too low and sd goes negative. therefore, try some random sd
+            for(int itry = 1; itry <= 5; ++itry) {
+                ret = IntegrateForward(constraints,sstartnew,0.2*itry*bound,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
+//                if(resprofile.nsteps>1) {
+//                    constraints.resprofileslist.push_back(resprofile);
+//                }
+                if(ret!=INT_BOTTOM) {
+                    break;
+                }
+            }
+            if(ret==INT_BOTTOM) {
+                message = str(boost::format("FW reached 0 from IntegrateForward. sstartnew=%.15e, sdstartnew=%.15e")%sstartnew%sdstartnew);
+                std::cout << message << std::endl;
+                integrateprofilesstatus = false;
+                continue;
+            }
+        }
         if(resprofile.nsteps>1) {
             constraints.resprofileslist.push_back(resprofile);
         }
-        if(ret==INT_BOTTOM) {
-            message = "FW reached 0";
-            integrateprofilesstatus = false;
-            continue;
-        }
+
 
 
         /////////////////  Integrate from end /////////////////////
@@ -1737,27 +1958,49 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
             sdendnew = sdend;
         }
         // Check whether sdend > CLC or MVC
-        if(FindLowestProfile(constraints.trajectory.duration-smallincrement,tmpprofile,tres,constraints.resprofileslist)) {
-            bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[constraints.mvccombined.size()-1]);
+        ProfileSample lowestsample = FindLowestProfileFast(constraints.trajectory.duration-smallincrement, 1e30, constraints.resprofileslist);
+        if( lowestsample.itprofile != constraints.resprofileslist.end() ) {
+            bound = std::min(lowestsample.sd,constraints.mvccombined[constraints.mvccombined.size()-1]);
         }
-        else{
+        else {
             bound = constraints.mvccombined[constraints.mvccombined.size()-1];
         }
+//        if(FindLowestProfile(constraints.trajectory.duration-smallincrement,tmpprofile,tres,constraints.resprofileslist)) {
+//            bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[constraints.mvccombined.size()-1]);
+//        }
+//        else{
+//            bound = constraints.mvccombined[constraints.mvccombined.size()-1];
+//        }
         if(sdendnew > bound) {
-            message = "Sdend > CLC or MVC\n";
+            message = str(boost::format("Sdend (%.15e) > CLC or MVC (%.15e)")%sdendnew%bound);
+            std::cout << message << std::endl;
             integrateprofilesstatus = false;
             continue;
         }
         // Integrate back from s = send
         ret = IntegrateBackward(constraints,sendnew,sdendnew,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
+        if(ret==INT_BOTTOM) {
+            // sometimes sdendnew can be too low and sd goes negative. therefore, try some random sd
+            for(int itry = 1; itry <= 5; ++itry) {
+                ret = IntegrateBackward(constraints,sendnew,0.2*itry*bound,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
+//                if(resprofile.nsteps>1) {
+//                    constraints.resprofileslist.push_back(resprofile);
+//                }
+                if(ret!=INT_BOTTOM) {
+                    break;
+                }
+            }
+            if( ret == INT_BOTTOM ) {
+                message = str(boost::format("BW reached 0, s=%.15e, sd=%.15e")%sendnew%sdendnew);
+                std::cout << message << std::endl;
+                integrateprofilesstatus = false;
+                continue;
+            }
+        }
         if(resprofile.nsteps>1) {
             constraints.resprofileslist.push_back(resprofile);
         }
-        if(ret==INT_BOTTOM) {
-            message = "BW reached 0";
-            integrateprofilesstatus = false;
-            continue;
-        }
+
 
 
         /////////////////////// Zlajpah //////////////////////////
@@ -1796,50 +2039,54 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         }
         if(zlajpaherror) {
             message = "Zlajpah error";
+            std::cout << message << std::endl;
             integrateprofilesstatus = false;
             continue;
         }
 
 
         /////////////////////  Final checks /////////////////////////
-        // Reset currentindex
-        std::list<Profile>::iterator it = constraints.resprofileslist.begin();
-        while(it != constraints.resprofileslist.end()) {
-            it->currentindex = 0;
-            it++;
+
+        // Check whether CLC is continuous and recover if not
+        dReal sdiscontinuous = Recover(constraints,constraints.integrationtimestep);
+        if(sdiscontinuous>-0.5) {
+            message = str(boost::format("Could not recover from CLC discontinuous s=%.15e")%sdiscontinuous);
         }
 
         // Estimate resulting trajectory duration
         constraints.resduration = 0;
-        Profile profile;
-        //dReal ds = constraints.discrtimestep;
-        dReal ds = 1e-2;
+        //Profile profile;
+        dReal ds = constraints.integrationtimestep;
         int nsamples = int((constraints.trajectory.duration-TINY)/ds);
         dReal s,sdcur,sdnext;
-        if(FindLowestProfile(0,profile,tres,constraints.resprofileslist)) {
-            sdcur = profile.Evald(tres);
+        lowestsample = FindLowestProfileFast(0, 1e30, constraints.resprofileslist);
+        if( lowestsample.itprofile != constraints.resprofileslist.end() ) {
+            sdcur = lowestsample.sd;
         }
-        else{
+        else {
             message = "CLC discontinuous at 0";
+            std::cout << message << std::endl;
             integrateprofilesstatus = false;
             continue;
         }
         bool clcdiscontinuous = false;
         for(int i=1; i<=nsamples; i++) {
             s = i*ds;
-            if(FindLowestProfile(s,profile,tres,constraints.resprofileslist)) {
-                sdnext = profile.Evald(tres);
+            ProfileSample lowestsample = FindLowestProfileFast(s, 1e30, constraints.resprofileslist);
+            if( lowestsample.itprofile != constraints.resprofileslist.end() ) {
+                sdnext = lowestsample.sd;
                 constraints.resduration += 2*ds/(sdcur+sdnext);
                 sdcur = sdnext;
             }
             else{
                 clcdiscontinuous = true;
+                lowestsample = FindLowestProfileFast(s, 1e30, constraints.resprofileslist);
                 break;
-                std::cout << "CLC discontinuous: " << s << "\n";
             }
         }
         if(clcdiscontinuous) {
-            message = std::string("CLC discontinuous : ") + std::to_string((long double)s);
+            message = str(boost::format("CLC discontinuous s=%.15e")%s);
+            std::cout << message << std::endl;
             integrateprofilesstatus = false;
             continue;
         }
@@ -1851,7 +2098,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
 
 
     if(!integrateprofilesstatus) {
-        std::cout << "[TOPP::ComputeProfiles] " << message << "\n";
+        std::cout << "[TOPP::ComputeProfiles] failed: " << message << std::endl;
         return TOPP_UNSPEC;
     }
 
@@ -1889,7 +2136,7 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
     }
 
     Profile tmpprofile;
-    dReal tres;
+    //dReal tres;
     dReal smallincrement = constraints.integrationtimestep*2;
 
     // Compute the limiting curves
@@ -1901,10 +2148,18 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
 
     // Determine the lowest profile at t=0
     dReal bound;
-    if(FindLowestProfile(smallincrement,tmpprofile,tres,constraints.resprofileslist))
-        bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[0]);
-    else // just to make sure the profile is below mvccombined
+    ProfileSample lowestsample = FindLowestProfileFast(smallincrement, 1e30, constraints.resprofileslist);
+    if( lowestsample.itprofile != constraints.resprofileslist.end() ) {
+        bound = std::min(lowestsample.sd,constraints.mvccombined[0]);
+    }
+    else { // just to make sure the profile is below mvccombined
         bound = constraints.mvccombined[0];
+    }
+
+//    if(FindLowestProfile(smallincrement,tmpprofile,tres,constraints.resprofileslist))
+//        bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[0]);
+//    else // just to make sure the profile is below mvccombined
+//        bound = constraints.mvccombined[0];
 
     if(sdbegmin>bound) {
         std::cout << "[TOPP::VIP] sdbegmin is above the CLC or the combined MVC \n";
@@ -1926,8 +2181,13 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
         sdendmax = tmpprofile.Evald(tmpprofile.duration);
     else if (resintfw == INT_MVC || resintfw == INT_PROFILE) {
         // Look for the lowest profile at the end
-        if(FindLowestProfile(constraints.trajectory.duration-smallincrement,tmpprofile,tres,constraints.resprofileslist) && tmpprofile.Evald(tres) <= constraints.mvccombined[constraints.mvccombined.size()-1])
-            sdendmax = tmpprofile.Evald(tres);
+//        if(FindLowestProfile(constraints.trajectory.duration-smallincrement,tmpprofile,tres,constraints.resprofileslist) && tmpprofile.Evald(tres) <= constraints.mvccombined[constraints.mvccombined.size()-1])
+//            sdendmax = tmpprofile.Evald(tres);
+
+        ProfileSample lowestsample = FindLowestProfileFast(constraints.trajectory.duration-smallincrement, constraints.mvccombined[constraints.mvccombined.size()-1], constraints.resprofileslist);
+        if( lowestsample.itprofile != constraints.resprofileslist.end() ) {
+            sdendmax = lowestsample.sd;
+        }
         else {
             // No profile reaches the end, consider the MVC instead
             sdendmax = constraints.mvccombined[constraints.mvccombined.size()-1]-smallincrement;
@@ -1997,7 +2257,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
     }
 
     Profile tmpprofile;
-    dReal tres;
+    //dReal tres;
     dReal smallincrement = constraints.integrationtimestep*2;
 
     // Compute the limiting curves
@@ -2009,10 +2269,17 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
 
     // Determine the lowest profile at send
     dReal bound;
-    if (FindLowestProfile(constraints.trajectory.duration-smallincrement, tmpprofile, tres, constraints.resprofileslist))
-        bound = std::min(tmpprofile.Evald(tres), constraints.mvccombined[constraints.mvccombined.size() - 1]);
-    else // just to make sure the profile is below mvccombined
+    ProfileSample lowestsample = FindLowestProfileFast(constraints.trajectory.duration-smallincrement, 1e30, constraints.resprofileslist);
+    if( lowestsample.itprofile != constraints.resprofileslist.end() ) {
+        bound = std::min(lowestsample.sd, constraints.mvccombined[constraints.mvccombined.size() - 1]);
+    }
+    else {
         bound = constraints.mvccombined[constraints.mvccombined.size() - 1];
+    }
+//    if (FindLowestProfile(constraints.trajectory.duration-smallincrement, tmpprofile, tres, constraints.resprofileslist))
+//        bound = std::min(tmpprofile.Evald(tres), constraints.mvccombined[constraints.mvccombined.size() - 1]);
+//    else // just to make sure the profile is below mvccombined
+//        bound = constraints.mvccombined[constraints.mvccombined.size() - 1];
 
     if (sdendmin > bound) {
         std::cout << "[TOPP::VIPBackward] sdendmin is above the combined MVC \n";
@@ -2038,8 +2305,13 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
     // Phi profile hits MVC or CLC
     else if (resintbw == INT_MVC || resintbw == INT_PROFILE) {
         // Look for the lowest profile at s = 0
-        if (FindLowestProfile(smallincrement, tmpprofile, tres, constraints.resprofileslist) && tmpprofile.Evald(tres) <= constraints.mvccombined[0])
-            sdbegmax = tmpprofile.Evald(tres);
+//        if (FindLowestProfile(smallincrement, tmpprofile, tres, constraints.resprofileslist) && tmpprofile.Evald(tres) <= constraints.mvccombined[0])
+//            sdbegmax = tmpprofile.Evald(tres);
+
+        ProfileSample lowestsample = FindLowestProfileFast(smallincrement, constraints.mvccombined[0], constraints.resprofileslist);
+        if( lowestsample.itprofile != constraints.resprofileslist.end() ) {
+            sdbegmax = lowestsample.sd;
+        }
         else {
             // No profile reaches s = 0, consider the MVC instead
             sdbegmax = constraints.mvccombined[0] - smallincrement;
@@ -2177,10 +2449,8 @@ dReal EmergencyStop(Constraints& constraints, dReal sdbeg, Trajectory& restrajec
     }
 
     if(returntype == INT_BOTTOM) {
-        Profile resprofile(slist,sdlist,sddlist,dt);
-        resprofile.forward = true;
         constraints.resprofileslist.resize(0);
-        constraints.resprofileslist.push_back(resprofile);
+        constraints.resprofileslist.push_back(Profile(slist,sdlist,sddlist,dt,true));
         int ret = constraints.trajectory.Reparameterize(constraints, restrajectory, sprev);
         if(ret > 0) {
             return sprev;
@@ -2254,7 +2524,7 @@ void PrintVector(const std::vector<dReal>&v){
 
 void VectorAdd(const std::vector<dReal>&a, const std::vector<dReal>&b,  std::vector<dReal>&res, dReal coefa, dReal coefb){
     res.resize(a.size());
-    assert(a.size() == b.size());
+    BOOST_ASSERT(a.size() == b.size());
     for(int i=0; i<int(a.size()); i++) {
         res[i] = coefa*a[i]+coefb*b[i];
     }
@@ -2277,81 +2547,284 @@ dReal VectorNorm(const std::vector<dReal>&v){
 }
 
 
-bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal& sol, dReal lowerbound, dReal upperbound) {
-    dReal delta = a1*a1- 4*a0*a2;
-    if(delta<-TINY2) {
+bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal& sol, dReal lowerbound, dReal upperbound, dReal epsilon) {
+    dReal delta2 = a1*a1- 4*a0*a2;
+    if(delta2 < -epsilon) {
         return false;
     }
-    delta = std::max(delta,0.);
+    delta2 = std::max(delta2,0.);
     if(a2<0) {
         a2=-a2;
         a1=-a1;
         a0=-a0;
     }
-    if(a2<=TINY2) {
-        if(std::abs(a1)<=TINY2) {
+    if(a2<=epsilon) {
+        if(std::abs(a1)<=epsilon) {
             return false; // Must be in a weird case
         }
         sol = -a0/a1;
-        return sol>=lowerbound-TINY2 && sol<=upperbound+TINY2;
+        return sol>=lowerbound-epsilon && sol<=upperbound+epsilon;
     }
-    sol = (-a1-sqrt(delta))/(2*a2);
-    if(sol>=lowerbound-TINY2 && sol<=upperbound+TINY2) {
+    dReal delta = sqrt(delta2);
+    sol = (-a1-delta)/(2*a2);
+    if(sol>=lowerbound-epsilon && sol<=upperbound+epsilon) {
         return true;
     }
-    if(sol>upperbound+TINY2) {
+    if(sol>upperbound+epsilon) {
         return false;
     }
-    sol = (-a1+sqrt(delta))/(2*a2);
-    return sol>=lowerbound-TINY2 && sol<=upperbound+TINY2;
+    sol = (-a1+delta)/(2*a2);
+    return sol>=lowerbound-epsilon && sol<=upperbound+epsilon;
 }
 
-
-bool IsAboveProfilesList(dReal s, dReal sd, std::list<Profile>&resprofileslist, bool searchbackward, dReal softborder){
-    dReal t;
-    std::list<Profile>::iterator it = resprofileslist.begin();
-    while(it != resprofileslist.end()) {
-        if(searchbackward) {
-            it->currentindex = it->nsteps-1;
+bool IsAboveProfilesList(dReal s, dReal sd, const std::list<Profile>&resprofileslist, bool searchbackward, dReal softborder){
+    ProfileSample sample = FindLowestProfileFast(s, 1e30, resprofileslist);
+    if( sample.itprofile != resprofileslist.end() ) {
+        if( sd > sample.sd+softborder ) {
+            return true;
         }
-        else{
-            it->currentindex = 0;
-        }
-
-        if(it->Invert(s,t,searchbackward)) {
-            if(sd > it->Evald(t) + softborder) {
-                return true;
-            }
-        }
-        it++;
     }
     return false;
+//    dReal t;
+//    for(std::list<Profile>::const_iterator it = resprofileslist.begin(); it != resprofileslist.end(); ++it) {
+//        if(it->Invert(s,t)) {
+//            if(sd > it->Evald(t) + softborder) {
+//                return true;
+//            }
+//        }
+//    }
+//    return false;
 }
 
-
-bool FindLowestProfile(dReal s, Profile& profile, dReal& tres, std::list<Profile>&resprofileslist){
+bool FindLowestProfile(dReal s, Profile& profile, dReal& tres, const std::list<Profile>& resprofileslist){
     dReal t;
     dReal sdmin;
     dReal sdtmp;
     int i = 0;
     sdmin = INF;
 
-    std::list<Profile>::iterator it = resprofileslist.begin();
+    std::list<Profile>::const_iterator itbestprofile = resprofileslist.end();
+    std::list<Profile>::const_iterator it = resprofileslist.begin();
     while(it != resprofileslist.end()) {
         if(it->Invert(s,t)) {
             sdtmp = it->Evald(t);
             if(sdtmp < sdmin) {
                 sdmin = sdtmp;
-                profile = *it;
+                itbestprofile = it;
                 tres = t;
             }
         }
         it++;
         i++;
     }
-    return (sdmin < INF);
+    if( itbestprofile != resprofileslist.end() ) {
+        profile = *itbestprofile;
+        return true;
+    }
+    return false;
 }
 
+ProfileSample FindLowestProfileFast(dReal scur, dReal sdmax, const std::list<Profile>& resprofileslist)
+{
+    ProfileSample bestprofile;
+    bestprofile.itprofile = resprofileslist.end();
+    bestprofile.sd = sdmax;
+    for(std::list<Profile>::const_iterator itprofile = resprofileslist.begin(); itprofile != resprofileslist.end(); ++itprofile) {
+        if( scur >= itprofile->svect.at(0) && scur <= itprofile->svect.back() ) {
+            // find the sdcur
+            dReal sdcur = 0, sddcur = 0, tcur=0;
+            std::vector<dReal>::const_iterator its = std::lower_bound(itprofile->svect.begin(), itprofile->svect.end(), scur);
+            size_t index = its - itprofile->svect.begin();
+            if( index == 0 ) {
+                sdcur = itprofile->sdvect.at(0);
+                sddcur = itprofile->sddvect.at(0);
+            }
+            else {
+                // have to interpolate quadratically
+                // know that s + sd*t + 0.5*sdd*t*t = scur
+                // solve for t: t = (-sd +- sqrt(sd*sd - 2*(s-scur)*sdd))/(sdd)
+                // sdcur = sd + sdd*t = +- sqrt(sd*sd - 2*(s-scur)*sdd)
+                dReal sd = itprofile->sdvect.at(index-1);
+                sddcur = itprofile->sddvect.at(index-1);
+                dReal discr = sd*sd - 2*sddcur*(itprofile->svect.at(index-1) - scur);
+                if( discr < 0 ) {
+                    if( discr > -TINY ) {
+                        discr = 0;
+                    }
+                    else {
+                        continue;
+                    }
+                }
+                else if( discr > 0 ) {
+                    discr = sqrt(discr);
+                }
+
+                // have to take the sign such that 0 <= t <= integrationtimestep
+                // test lowest sd first
+                if( sddcur > TINY ) {
+                    tcur = (-sd + discr)/sddcur;
+                    if( tcur < 0 || tcur > itprofile->integrationtimestep ) {
+                        tcur =(-sd - discr)/sddcur;
+                        if( tcur < 0 || tcur > itprofile->integrationtimestep ) {
+                            // could not solve
+                            continue;
+                        }
+                        sdcur = -discr;
+                    }
+                    else {
+                        sdcur = discr;
+                    }
+                }
+                else if( sddcur < -TINY ) {
+                    tcur = (-sd - discr)/sddcur;
+                    if( tcur < 0 || tcur > itprofile->integrationtimestep ) {
+                        tcur =(-sd + discr)/sddcur;
+                        if( tcur < 0 || tcur > itprofile->integrationtimestep ) {
+                            // could not solve
+                            continue;
+                        }
+                        sdcur = discr;
+                    }
+                    else {
+                        sdcur = -discr;
+                    }
+                }
+                else {
+                    // sdd is very close to 0, so ignore
+                    tcur = (scur - itprofile->svect.at(index-1))/sd;
+                    if( tcur < 0 || tcur > itprofile->integrationtimestep ) {
+                        continue;
+                    }
+                    sdcur = sd;
+                }
+
+                index -= 1;
+            }
+            if( sdcur < bestprofile.sd ) {
+                bestprofile.s = scur;
+                bestprofile.sd = sdcur;
+                bestprofile.sdd = sddcur;
+                bestprofile.sindex = index;
+                bestprofile.t = tcur;
+                bestprofile.itprofile = itprofile;
+            }
+        }
+    }
+    return bestprofile;
+}
+
+ProfileSample FindEarliestProfileIntersection(dReal sstart, dReal sdstart, dReal sddstart, dReal tmax, const std::list<Profile>& resprofileslist, std::list<Profile>::const_iterator itprofileexclude, dReal& tintersect)
+{
+    dReal smax = sstart + tmax*(sdstart + 0.5*tmax*sddstart);
+    //dReal sdmax = sdstart + tmax*sddstart;
+
+    ProfileSample bestprofile;
+    bestprofile.itprofile = resprofileslist.end();
+    for(std::list<Profile>::const_iterator itprofile = resprofileslist.begin(); itprofile != resprofileslist.end(); ++itprofile) {
+        if( itprofile == itprofileexclude ) {
+            continue;
+        }
+        if( smax >= itprofile->svect.at(0) && sstart < itprofile->svect.back()-TINY ) {
+            std::vector<dReal>::const_iterator its0 = std::lower_bound(itprofile->svect.begin(), itprofile->svect.end(), sstart);
+            size_t index0 = its0 - itprofile->svect.begin();
+            if( index0 == 0 ) {
+                // only reason this would happen is if s and itprofile->svect[0] are close
+                if( fabs(sstart-itprofile->svect.at(0)) <= TINY && fabs(sdstart-itprofile->sdvect.at(0)) <= TINY ) {
+                    bestprofile.s = itprofile->svect.at(0);
+                    bestprofile.sd = itprofile->sdvect.at(0);
+                    bestprofile.sdd = itprofile->sddvect.at(0);
+                    bestprofile.sindex = 0;
+                    bestprofile.t = 0;
+                    bestprofile.itprofile = itprofile;
+                    return bestprofile;
+                }
+            }
+            else {
+                --index0;
+            }
+
+            std::vector<dReal>::const_iterator its1 = std::lower_bound(itprofile->svect.begin(), itprofile->svect.end(), smax);
+            size_t index1 = its1 - itprofile->svect.begin();
+
+            // need to check all segments in [index0, index1) for intersection with [sstart, sdstart, sddstart]
+            for(size_t index = index0; index < index1; ++index) {
+                dReal snext = itprofile->svect.at(index);
+                dReal sdnext = itprofile->sdvect.at(index);
+                dReal sddnext = itprofile->sddvect.at(index);
+                tintersect=1e30; // time from sstart
+                if( fabs(sddstart) <= TINY ) {
+                    if( fabs(sddnext) <= TINY ) {
+                        if( fabs(sdstart-sdnext) > TINY ) {
+                            RAVELOG_ERROR_FORMAT("sddstart and sddnext are both close to 0 at s=%.15e, sd diff=%.15e, don't know that to do", sstart%fabs(sdstart-sdnext));
+                            continue;
+                        }
+                        else {
+                            dReal t = (snext - sstart)/sdstart;
+                            if( t >= 0 && t <= tmax ) {
+                                bestprofile.s = snext;
+                                bestprofile.sd = sdnext;
+                                bestprofile.sdd = sddnext;
+                                bestprofile.sindex = index;
+                                bestprofile.t = 0;
+                                bestprofile.itprofile = itprofile;
+                                return bestprofile;
+                            }
+                            else {
+                                continue;
+                            }
+                        }
+                    }
+                    bestprofile.t = (sdstart - sdnext)/sddnext;
+                    bestprofile.s = snext + bestprofile.t * (sdnext + bestprofile.t*sddnext*0.5);
+                    bestprofile.sd = sdstart;
+                    bestprofile.sdd = sddnext;
+                    tintersect = (bestprofile.s - sstart)/sdstart;
+                }
+                else if( fabs(sddnext) <= TINY ) {
+                    tintersect = (sdnext - sdstart)/sddstart;
+                    bestprofile.s = sstart + tintersect * (sdstart + tintersect*sddstart*0.5);
+                    bestprofile.sd = sdnext;
+                    bestprofile.sdd = sddnext;
+                    bestprofile.t = (bestprofile.s - snext)/sdnext;
+                }
+                else if( fabs(sddstart-sddnext) <= TINY ) {
+                    // two profiles will never intersect
+                    continue;
+                }
+                else {
+                    // s(sd) = sstart + (sd*sd - sdstart*sdstart)/(2*sddstart) => astart * sd*sd + cstart
+                    dReal astart = 1/(2*sddstart), cstart = (sstart - sdstart*sdstart/(2*sddstart));
+                    dReal anext = 1/(2*sddnext), cnext = (snext - sdnext*sdnext/(2*sddnext));
+                    dReal ad = astart - anext;
+                    dReal sd2 = (cnext-cstart)/ad;
+                    if( sd2 < 0 ) {
+                        // two profiles never intersect!
+                        continue;
+                    }
+                    bestprofile.sd = sqrt(sd2);
+                    bestprofile.s = astart*sd2 + cstart;
+                    bestprofile.sdd = sddnext;
+                    tintersect = (bestprofile.sd-sdstart)/sddstart;
+                    bestprofile.t = (bestprofile.sd - sdnext)/sddnext;
+                }
+
+                if( tintersect >= 0 && tintersect <= tmax && bestprofile.t >= 0 && bestprofile.t <= itprofile->integrationtimestep+TINY && bestprofile.s > sstart ) {
+                    if( bestprofile.t < 0 ) {
+                        //std::cerr << "best profile is negative" << std::endl;
+                        continue;
+                    }
+                    bestprofile.itprofile = itprofile;
+                    bestprofile.sindex = index;
+                    return bestprofile;
+                }
+            }
+        }
+    }
+
+    // reached end, so didn't find any intersections
+    bestprofile.itprofile = resprofileslist.end();
+    return bestprofile;
+}
 
 void CheckInsert(std::list<std::pair<dReal,dReal> >&reslist, std::pair<dReal,dReal> e, bool inverse){
     std::list<std::pair<dReal,dReal> >::iterator it = reslist.begin();
