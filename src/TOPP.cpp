@@ -1136,6 +1136,9 @@ dReal Recover(Constraints& constraints, dReal ds){
             if(!RecoverGap(constraints,(gapstart+gapend)/2, ds)) {
                 return gapstart;
             }
+            else{
+                std::cout << "Recovered gap [" << gapstart << "," << gapend << "]\n";
+            }
         }
         s += ds;
     }
