@@ -88,12 +88,26 @@ public:
     {
 #ifdef WITH_OPENRAVE
         _probot = openravepy::GetRobot(orobot);
+        std::list<OpenRAVE::TrajectoryBasePtr> listtrajectories;
         OpenRAVE::TrajectoryBasePtr ptrajectory = openravepy::GetTrajectory(otrajectory);
+        if( !!ptrajectory ) {
+            listtrajectories.push_back(ptrajectory);
+        }
+        else {
+            // might be a list of trajectories
+            size_t num = len(otrajectory);
+            for(size_t i = 0; i < num; ++i) {
+                OpenRAVE::TrajectoryBasePtr ptrajectory = openravepy::GetTrajectory(otrajectory[i]);
+                BOOST_ASSERT(!!ptrajectory);
+                listtrajectories.push_back(ptrajectory);
+            }
+        }
+        BOOST_ASSERT(listtrajectories.size()>0);
         if (problemtype.compare("TorqueLimitsRave2")==0) {
-            pconstraints.reset(new TorqueLimitsRave2(_probot,ptrajectory,discrtimestep));
+            pconstraints.reset(new TorqueLimitsRave2(_probot,listtrajectories.front(),discrtimestep));
         }
         else if (problemtype.compare("TorqueLimitsRave3")==0) {
-            pconstraints.reset(new TorqueLimitsRave3(_probot,ptrajectory,discrtimestep));
+            pconstraints.reset(new TorqueLimitsRave3(_probot,listtrajectories.front(),discrtimestep));
         }
         else {
             throw TOPP_EXCEPTION_FORMAT("cannot create %s problem type", problemtype, 0);

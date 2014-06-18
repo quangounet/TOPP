@@ -1993,10 +1993,21 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
                 }
             }
             if( ret == INT_BOTTOM ) {
-                message = str(boost::format("BW reached 0, s=%.15e, sd=%.15e")%sendnew%sdendnew);
-                std::cout << message << std::endl;
-                integrateprofilesstatus = false;
-                continue;
+//                for(int itry = 1; itry <= 5; ++itry) {
+//                    ret = IntegrateBackward(constraints,sendnew,0.2*itry*bound,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
+//    //                if(resprofile.nsteps>1) {
+//    //                    constraints.resprofileslist.push_back(resprofile);
+//    //                }
+//                    if(ret!=INT_BOTTOM) {
+//                        break;
+//                    }
+//                }
+                if( ret == INT_BOTTOM ) {
+                    message = str(boost::format("BW reached 0, s=%.15e, sd=%.15e")%sendnew%sdendnew);
+                    std::cout << message << std::endl;
+                    integrateprofilesstatus = false;
+                    continue;
+                }
             }
         }
         if(resprofile.nsteps>1) {

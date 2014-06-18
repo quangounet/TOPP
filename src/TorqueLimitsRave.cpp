@@ -241,7 +241,7 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
             dReal sdd = profile.sddvect.at(sindex);
 
             // check if there's a lower profile at s
-            checksample = FindLowestProfileFast(s, sd-TINY, constraints.resprofileslist);
+            checksample = FindLowestProfileFast(s, sd-TINY*10, constraints.resprofileslist);
             if( checksample.itprofile != constraints.resprofileslist.end() ) {
                 if( sample.itprofile == checksample.itprofile ) {
                     RAVELOG_ERROR("got sample profile, unexpected!\n");
@@ -390,7 +390,7 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
                 std::list<Profile>::const_iterator itprofilemin = constraints.resprofileslist.end();
                 size_t sconnectindexmin = 0;
                 for(std::list<Profile>::const_iterator itprofile = constraints.resprofileslist.begin(); itprofile != constraints.resprofileslist.end(); ++itprofile) {
-                    if( itprofile == sample.itprofile || itprofile->svect.back() < sstart ) {
+                    if( itprofile == sample.itprofile || itprofile->svect.back() <= sstart+TINY ) {
                         continue;
                     }
                     // need to find the index such that it has a s value greater than sstart
