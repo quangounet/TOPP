@@ -1932,7 +1932,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         if(ret==INT_BOTTOM) {
             // sometimes sdstartnew can be too low and sd goes negative. therefore, try some random sd
             for(int itry = 1; itry <= 5; ++itry) {
-                ret = IntegrateForward(constraints,sstartnew,0.2*itry*bound,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
+                ret = IntegrateForward(constraints,sstartnew,sdstartnew+0.2*itry,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
 //                if(resprofile.nsteps>1) {
 //                    constraints.resprofileslist.push_back(resprofile);
 //                }
@@ -1985,7 +1985,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         if(ret==INT_BOTTOM) {
             // sometimes sdendnew can be too low and sd goes negative. therefore, try some random sd
             for(int itry = 1; itry <= 5; ++itry) {
-                ret = IntegrateBackward(constraints,sendnew,0.2*itry*bound,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
+                ret = IntegrateBackward(constraints,sendnew,sdendnew+0.2*itry,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
 //                if(resprofile.nsteps>1) {
 //                    constraints.resprofileslist.push_back(resprofile);
 //                }
