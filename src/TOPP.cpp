@@ -1892,11 +1892,11 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         for(int ibegiter = 0; ibegiter <= 10; ++ibegiter, starttimestep *= 0.5) {
             sstartnew = 0;
             sdstartnew = sdbeg;
-            constraints.FixStart(sstartnew,sdstartnew, constraints.integrationtimestep);
+            constraints.FixStart(sstartnew,sdstartnew, starttimestep);
             if(sstartnew<=TINY2 || sdstartnew > constraints.SdLimitCombined(0) - TINY2 || sdstartnew < 0) {
                 sdstartnew = sdbeg;
             }
-            // Check whether sbeg > CLC or MVC
+            // Check whether sdbeg > CLC or MVC
             ProfileSample lowestsample = FindLowestProfileFast(smallincrement, 1e30, constraints.resprofileslist);
             if( lowestsample.itprofile != constraints.resprofileslist.end() ) {
                 bound = std::min(lowestsample.sd,constraints.mvccombined[0]);
@@ -1930,7 +1930,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         // Integrate from s = 0
         ret = IntegrateForward(constraints,sstartnew,sdstartnew,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
         if(ret==INT_BOTTOM) {
-            // sometimes sdendnew can be too low and sd goes negative. therefore, try some random sd
+            // sometimes sdstartnew can be too low and sd goes negative. therefore, try some random sd
             for(int itry = 1; itry <= 5; ++itry) {
                 ret = IntegrateForward(constraints,sstartnew,0.2*itry*bound,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
 //                if(resprofile.nsteps>1) {
