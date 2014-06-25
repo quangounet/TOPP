@@ -94,10 +94,12 @@ std::pair<dReal,dReal> PolygonConstraints::SddLimitsDiscrete(int i, dReal sd){
     if(sd <= 0) {
         alpha = polygon[0].first;
         beta = polygon[polygon.size()-1].first;
+        return std::pair<dReal,dReal>(alpha,beta);
     }
     if(sd >= mvcbobrow[i]) {
         alpha = accelonMVC[i];
         beta = accelonMVC[i];
+        return std::pair<dReal,dReal>(alpha,beta);
     }
     int stage1 = 0;
     for(int j=0; j<(int) polygon.size(); j++) {
@@ -115,6 +117,7 @@ std::pair<dReal,dReal> PolygonConstraints::SddLimitsDiscrete(int i, dReal sd){
             break;
         }
     }
+    //std::cout << i*discrtimestep << " " << mvcbobrow[i] << " " << sd << " " << alpha << " " << beta << "\n";
     return std::pair<dReal,dReal>(alpha,beta);
 }
 
