@@ -15,31 +15,38 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-error_msg = [  # needs to be in sync with Errors.h
-    "unspecified error",
-    "everything OK",
-    "trajectory too short",
-    "MVC hit the sd=0 axis",
-    "some CLC error",
-    "sdbegmin is too high",
-    "sdendmin is too high",
-    "forward integration hit the sd=0 axis",
-    "backward integration hit the sd=0 axis",
-    "forward integration failed",
-    "backward integration failed",
-]
+TOPP_UNSPEC = 0
+TOPP_OK = 1
+TOPP_CANNOT_PREPROCESS = 2
+TOPP_SHORT_TRAJ = 3
+TOPP_MVC_HIT_ZERO = 4
+TOPP_CLC_ERROR = 5
+TOPP_SDBEGMIN_TOO_HIGH = 6
+TOPP_SDENDMIN_TOO_HIGH = 7
+TOPP_FWD_HIT_ZERO = 8
+TOPP_BWD_HIT_ZERO = 9
+TOPP_FWD_FAIL = 10
+TOPP_BWD_FAIL = 11
+
+MESSAGES = {
+    TOPP_UNSPEC: "unspecified error",
+    TOPP_OK: "everything OK",
+    TOPP_CANNOT_PREPROCESS: "cannot preprocess trajectory",
+    TOPP_SHORT_TRAJ: "trajectory too short",
+    TOPP_MVC_HIT_ZERO: "MVC hit the sd=0 axis",
+    TOPP_CLC_ERROR: "some CLC error",
+    TOPP_SDBEGMIN_TOO_HIGH: "sdbegmin is too high",
+    TOPP_SDENDMIN_TOO_HIGH: "sdendmin is too high",
+    TOPP_FWD_HIT_ZERO: "forward integration hit the sd=0 axis",
+    TOPP_BWD_HIT_ZERO: "backward integration hit the sd=0 axis",
+    TOPP_FWD_FAIL: "forward integration failed",
+    TOPP_BWD_FAIL: "backward integration failed"
+}
 
 
 class NoTrajectoryFound(Exception):
-    def __init__(self, error_code=None, wrapper=None):
-        """Report when no trajectory is found.
-
-        error_code -- return code from ComputeProfiles
-        wrapper -- TOPP python wrapper (e.g. QuadraticConstraints object)
-
-        """
+    def __init__(self, error_code):
         self.error_code = error_code
-        self.wrapper = wrapper
 
     def __str__(self):
-        return error_msg[self.error_code]
+        return MESSAGES[self.error_code]
