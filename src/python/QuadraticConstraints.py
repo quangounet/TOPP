@@ -18,7 +18,7 @@
 
 import TOPPpy
 
-from Errors import NoTrajectoryFound
+from Errors import NoTrajectoryFound, TOPP_OK
 from Trajectory import PiecewisePolynomialTrajectory
 from TOPPbindings import TOPPInstance
 from TOPPpy import ProfilesFromString, SwitchPointsFromString, PlotProfiles
@@ -38,15 +38,15 @@ class QuadraticConstraints(object):
 
     def AVP(self, sdmin, sdmax):
         return_code = self.solver.RunVIP(sdmin, sdmax)
-        if return_code == 0:
-            raise NoTrajectoryFound
+        if return_code != TOPP_OK:
+            raise NoTrajectoryFound(return_code)
         sdendmin = self.solver.sdendmin
         sdendmax = self.solver.sdendmax
         return (sdendmin, sdendmax)
 
     def Reparameterize(self, sdbeg=0., sdend=0.):
         return_code = self.solver.RunComputeProfiles(sdbeg, sdend)
-        if return_code != 1:
+        if return_code != TOPP_OK:
             raise NoTrajectoryFound(return_code, self)
 
         return_code = self.solver.ReparameterizeTrajectory()
