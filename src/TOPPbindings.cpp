@@ -17,6 +17,7 @@
 #include "TOPP.h"
 #include "KinematicLimits.h"
 #include "TorqueLimits.h"
+#include "PolygonConstraints.h"
 
 #include <boost/format.hpp>
 #include <boost/python.hpp>
@@ -47,6 +48,10 @@ public:
         }
         else if (problemtype.compare("TorqueLimits")==0) {
             pconstraints.reset(new TorqueLimits(constraintsstring));
+            pconstraints->trajectory = *ptrajectory;
+        }
+        else if (problemtype.compare("PolygonConstraints")==0) {
+            pconstraints.reset(new PolygonConstraints(constraintsstring));
             pconstraints->trajectory = *ptrajectory;
         }
         else if (problemtype.compare("QuadraticConstraints")==0) {
