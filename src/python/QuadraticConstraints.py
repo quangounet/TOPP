@@ -40,7 +40,6 @@ class QuadraticConstraints(object):
         return_code = self.solver.RunVIP(sdmin, sdmax)
         if return_code != TOPP_OK:
             raise NoTrajectoryFound(return_code)
-        print "return code =", return_code
         sdendmin = self.solver.sdendmin
         sdendmax = self.solver.sdendmax
         return (sdendmin, sdendmax)
