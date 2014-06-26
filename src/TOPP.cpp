@@ -104,7 +104,7 @@ void Constraints::ComputeMVCCombined()
 
 
 dReal Constraints::Interpolate1D(dReal s, const std::vector<dReal>& v) {
-    BOOST_ASSERT(s>=-TINY && s<=trajectory.duration+TINY);
+    assert(s>=-TINY && s<=trajectory.duration+TINY);
     if(s<0) {
         s=0;
     }
