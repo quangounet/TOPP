@@ -49,7 +49,7 @@ void ConvertToTOPPTrajectory(OpenRAVE::TrajectoryBaseConstPtr pintraj, const Ope
     else if( itposgroup->interpolation == "cubic" ) {
         degree = 3;
     }
-    else if( itposgroup->interpolation == "quadric" ) {
+    else if( itposgroup->interpolation == "quartic" ) {
         degree = 4;
     }
     else if( itposgroup->interpolation == "quintic" ) {
@@ -136,7 +136,7 @@ void ConvertToOpenRAVETrajectory(const Trajectory& intraj, OpenRAVE::TrajectoryB
     }
     else if( intraj.degree == 4  ) {
         FOREACH(itgroup, newposspec._vgroups) {
-            itgroup->interpolation = "quadric";
+            itgroup->interpolation = "quartic";
         }
     }
     else if( intraj.degree == 5  ) {
@@ -697,7 +697,7 @@ bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal
     }
     else if( resdegree == 4  ) {
         FOREACH(itgroup, newposspec._vgroups) {
-            itgroup->interpolation = "quadric";
+            itgroup->interpolation = "quartic";
         }
     }
     else if( resdegree == 5  ) {
