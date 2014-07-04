@@ -47,11 +47,11 @@ class QuadraticConstraints(object):
     def Reparameterize(self, sdbeg=0., sdend=0.):
         return_code = self.solver.RunComputeProfiles(sdbeg, sdend)
         if return_code != TOPP_OK:
-            raise NoTrajectoryFound(return_code, self)
+            raise NoTrajectoryFound(return_code)
 
         return_code = self.solver.ReparameterizeTrajectory()
         if return_code < 0:
-            raise NoTrajectoryFound(return_code, self)
+            raise NoTrajectoryFound(return_code)
 
         self.solver.WriteResultTrajectory()
         traj_str = self.solver.restrajectorystring
