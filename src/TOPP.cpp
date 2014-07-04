@@ -303,18 +303,18 @@ void Constraints::FindDiscontinuousSwitchPoints() {
                 AddSwitchPoint2(discrsvect[i+2],mvcbobrow[i+2],SP_DISCONTINUOUS);
             }
         }
-        if( trajectory.degree <= 3 ) {
-            // if the trajectory degree is <= 3, then the accelerations will not be differentiable at the trajectory chunk edges.
-            // therefore add those discontinuity points.
-            // perhaps there's a better way to compute this, but the above threshold doesn't catch it.
-            if( itchuckstart != trajectory.chunkcumulateddurationslist.end() && *itchuckstart <= discrsvect[i+2]+TINY ) {
-                if( nLastAddedSwitchIndex < i+1 ) {
-                    AddSwitchPoint2(discrsvect[i+1],mvcbobrow[i+1],SP_DISCONTINUOUS);
-                    nLastAddedSwitchIndex = i+1;
-                }
-                ++itchuckstart;
-            }
-        }
+        // if( trajectory.degree <= 3 ) {
+        //     // if the trajectory degree is <= 3, then the accelerations will not be differentiable at the trajectory chunk edges.
+        //     // therefore add those discontinuity points.
+        //     // perhaps there's a better way to compute this, but the above threshold doesn't catch it.
+        //     if( itchuckstart != trajectory.chunkcumulateddurationslist.end() && *itchuckstart <= discrsvect[i+2]+TINY ) {
+        //         if( nLastAddedSwitchIndex < i+1 ) {
+        //             AddSwitchPoint2(discrsvect[i+1],mvcbobrow[i+1],SP_DISCONTINUOUS);
+        //             nLastAddedSwitchIndex = i+1;
+        //         }
+        //         ++itchuckstart;
+        //     }
+        // }
         sd = sdn;
         sdn = sdnn;
     }
