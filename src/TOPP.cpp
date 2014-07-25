@@ -1929,28 +1929,27 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         }
         // Integrate from s = 0
         ret = IntegrateForward(constraints,sstartnew,sdstartnew,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
-        if(ret==INT_BOTTOM) {
+        // if(ret==INT_BOTTOM) {
             // sometimes sdstartnew can be too low and sd goes negative. therefore, try some random sd
-            for(int itry = 1; itry <= 5; ++itry) {
-                ret = IntegrateForward(constraints,sstartnew,sdstartnew+0.2*itry,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
-//                if(resprofile.nsteps>1) {
-//                    constraints.resprofileslist.push_back(resprofile);
-//                }
-                if(ret!=INT_BOTTOM) {
-                    break;
-                }
-            }
-            if(ret==INT_BOTTOM) {
-                message = str(boost::format("FW reached 0 from IntegrateForward. sstartnew=%.15e, sdstartnew=%.15e")%sstartnew%sdstartnew);
-                std::cout << message << std::endl;
-                integrateprofilesstatus = false;
-                continue;
-            }
-        }
+//             for(int itry = 1; itry <= 5; ++itry) {
+//                 ret = IntegrateForward(constraints,sstartnew,sdstartnew+0.2*itry,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
+// //                if(resprofile.nsteps>1) {
+// //                    constraints.resprofileslist.push_back(resprofile);
+// //                }
+	    // if(ret!=INT_BOTTOM) {
+	    // 	break;
+	    // }
+            // }
+	if(ret==INT_BOTTOM) {
+	    message = str(boost::format("FW reached 0 from IntegrateForward. sstartnew=%.15e, sdstartnew=%.15e")%sstartnew%sdstartnew);
+	    std::cout << message << std::endl;
+	    integrateprofilesstatus = false;
+	    continue;
+	}
+        // }
         if(resprofile.nsteps>1) {
             constraints.resprofileslist.push_back(resprofile);
         }
-
 
 
         /////////////////  Integrate from end /////////////////////
@@ -1982,24 +1981,24 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         }
         // Integrate back from s = send
         ret = IntegrateBackward(constraints,sendnew,sdendnew,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
-        if(ret==INT_BOTTOM) {
-            // sometimes sdendnew can be too low and sd goes negative. therefore, try some random sd
-            for(int itry = 1; itry <= 5; ++itry) {
-                ret = IntegrateBackward(constraints,sendnew,sdendnew+0.2*itry,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
-//                if(resprofile.nsteps>1) {
-//                    constraints.resprofileslist.push_back(resprofile);
-//                }
-                if(ret!=INT_BOTTOM) {
-                    break;
-                }
-            }
-            if( ret == INT_BOTTOM ) {
-                message = str(boost::format("BW reached 0, s=%.15e, sd=%.15e")%sendnew%sdendnew);
-                std::cout << message << std::endl;
-                integrateprofilesstatus = false;
-                continue;
-            }
-        }
+//         if(ret==INT_BOTTOM) {
+//             // sometimes sdendnew can be too low and sd goes negative. therefore, try some random sd
+//             for(int itry = 1; itry <= 5; ++itry) {
+//                 ret = IntegrateBackward(constraints,sendnew,sdendnew+0.2*itry,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
+// //                if(resprofile.nsteps>1) {
+// //                    constraints.resprofileslist.push_back(resprofile);
+// //                }
+//                 if(ret!=INT_BOTTOM) {
+//                     break;
+//                 }
+//             }
+	if( ret == INT_BOTTOM ) {
+	    message = str(boost::format("BW reached 0, s=%.15e, sd=%.15e")%sendnew%sdendnew);
+	    std::cout << message << std::endl;
+	    integrateprofilesstatus = false;
+	    continue;
+	}
+        // }
         if(resprofile.nsteps>1) {
             constraints.resprofileslist.push_back(resprofile);
         }

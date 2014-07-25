@@ -27,7 +27,7 @@
 #ifdef WITH_OPENRAVE
 #include "TorqueLimitsRave.h"
 #include "TorqueLimitsRave3.h"
-#include "ZMPTorqueLimits.h"
+//#include "ZMPTorqueLimits.h"
 #include "FrictionLimits.h"
 #include "openravepy.h"
 #endif
@@ -69,10 +69,10 @@ public:
             _probot = openravepy::GetRobot(o);
             pconstraints.reset(new FrictionLimits(_probot,constraintsstring,ptrajectory));
         }
-        else if (problemtype.compare("ZMPTorqueLimits")==0) {
-            _probot = openravepy::GetRobot(o);
-            pconstraints.reset(new ZMPTorqueLimits(_probot,constraintsstring,ptrajectory));
-        }
+        // else if (problemtype.compare("ZMPTorqueLimits")==0) {
+        //     _probot = openravepy::GetRobot(o);
+        //     pconstraints.reset(new ZMPTorqueLimits(_probot,constraintsstring,ptrajectory));
+        // }
 #endif
         else {
             throw TOPP_EXCEPTION_FORMAT("cannot create %s problem type", problemtype, 0);
