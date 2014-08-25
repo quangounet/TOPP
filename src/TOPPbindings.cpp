@@ -25,6 +25,7 @@
 #include <boost/python/def.hpp>
 
 #ifdef WITH_OPENRAVE
+#include "ComputePolygon.h"
 #include "TorqueLimitsRave.h"
 #include "TorqueLimitsRave3.h"
 //#include "ZMPTorqueLimits.h"

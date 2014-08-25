@@ -125,14 +125,14 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=None):
         clf()
     hold('on')
     mvcbobrow = profileslist.pop(0)
-    plot(mvcbobrow[2], mvcbobrow[3], 'm--', linewidth=4)
+    plot(mvcbobrow[2], mvcbobrow[3], 'c', linewidth=4)
     mvcdirect = profileslist.pop(0)
     plot(mvcdirect[2], mvcdirect[3], 'c--', linewidth=4)
     colorcycle = ['r', 'g', 'b', 'y', 'k']
     ax = gca()
     ax.set_color_cycle(colorcycle)
     for p in profileslist:
-        plot(p[2], p[3], linewidth=2)
+        plot(p[2], p[3], 'b',linewidth=2)
     if len(profileslist) > 0:
         M = 2 * max([max(p[3]) for p in profileslist])
     else:
@@ -154,7 +154,7 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=None):
             plot(sw[0], sw[1], 'yo', markersize=8)
     smax, sdmax = mvcbobrow[0], M
     axis([0, smax, 0, sdmax])
-    title('Maximum Velocity Curves and profiles', fontsize=20)
+    #title('Maximum Velocity Curves and profiles', fontsize=20)
     xlabel('$s$', fontsize=22)
     ylabel('$\dot s$', fontsize=22)
     return smax, sdmax  # return this for PlotPhase (yurk!)
