@@ -290,8 +290,8 @@ void Constraints::FindDiscontinuousSwitchPoints() {
     dReal sd, sdn, sdnn;
     sd = SdLimitBobrow(discrsvect[i]);
     sdn = SdLimitBobrow(discrsvect[i+1]);
-    // also look for the start of the chucks for the trajectory
-    std::list<dReal>::const_iterator itchuckstart = trajectory.chunkcumulateddurationslist.begin();
+    // also look for the start of the chunks for the trajectory
+    std::list<dReal>::const_iterator itchunkstart = trajectory.chunkcumulateddurationslist.begin();
     int nLastAddedSwitchIndex = -1;
     for(int i=0; i<ndiscrsteps-2; i++) {
         sdnn = SdLimitBobrow(discrsvect[i+2]);
@@ -307,12 +307,12 @@ void Constraints::FindDiscontinuousSwitchPoints() {
         //     // if the trajectory degree is <= 3, then the accelerations will not be differentiable at the trajectory chunk edges.
         //     // therefore add those discontinuity points.
         //     // perhaps there's a better way to compute this, but the above threshold doesn't catch it.
-        //     if( itchuckstart != trajectory.chunkcumulateddurationslist.end() && *itchuckstart <= discrsvect[i+2]+TINY ) {
+        //     if( itchunkstart != trajectory.chunkcumulateddurationslist.end() && *itchunkstart <= discrsvect[i+2]+TINY ) {
         //         if( nLastAddedSwitchIndex < i+1 ) {
         //             AddSwitchPoint2(discrsvect[i+1],mvcbobrow[i+1],SP_DISCONTINUOUS);
         //             nLastAddedSwitchIndex = i+1;
         //         }
-        //         ++itchuckstart;
+        //         ++itchunkstart;
         //     }
         // }
         sd = sdn;
