@@ -18,66 +18,12 @@
 
 #include "TorqueLimitsRave.h"
 
+#include <deque>
+#include <fstream>
+
 using namespace OpenRAVE;
 
 namespace TOPP {
-
-TorqueLimitsRave::TorqueLimitsRave(RobotBasePtr probot, std::string& constraintsstring, Trajectory* ptraj){
-//    trajectory = *ptraj;
-//
-//    int buffsize = BUFFSIZE;  // TODO: remove this dirty string interface!
-//    std::vector<dReal> tmpvect;
-//    char buff[buffsize];
-//    std::istringstream iss(constraintsstring);
-//    iss.getline(buff,buffsize);
-//    discrtimestep = atof(buff);
-//    iss.getline(buff,buffsize);
-//    VectorFromString(std::string(buff),vmax);
-//    iss.getline(buff,buffsize);
-//    VectorFromString(std::string(buff),taumin);
-//    iss.getline(buff,buffsize);
-//    VectorFromString(std::string(buff),taumax);
-//    hasvelocitylimits = VectorMax(vmax) > TINY;
-    trajectory = *ptraj;
-    int ndof = trajectory.dimension;
-    std::istringstream iss(constraintsstring);
-    iss >> discrtimestep;
-    ReadVectorFromStream(iss, ndof, vmax);
-    ReadVectorFromStream(iss, ndof, taumin);
-    ReadVectorFromStream(iss, ndof, taumax);
-    hasvelocitylimits = false;
-    FOREACH(itv, vmax) {
-        if( std::abs(*itv) > TINY ) {
-            hasvelocitylimits = true;
-            break;
-        }
-    }
-
-    // Define the avect, bvect, cvect
-    int ndiscrsteps = int((trajectory.duration+1e-10)/discrtimestep)+1;
-    std::vector<dReal> q(ndof), qd(ndof), qdd(ndof), tmp0(ndof), tmp1(ndof), torquesimple;
-    boost::array< std::vector< dReal >, 3 > torquecomponents;
-    {
-        avect.resize(ndiscrsteps);
-        bvect.resize(ndiscrsteps);
-        cvect.resize(ndiscrsteps);
-        EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex()); // lock environment
-        for(int i = 0; i<ndiscrsteps; i++) {
-            dReal s = i*discrtimestep;
-            trajectory.Eval(s,q);
-            trajectory.Evald(s,qd);
-            trajectory.Evaldd(s,qdd);
-            probot->SetDOFValues(q,KinBody::CLA_Nothing);
-            probot->SetDOFVelocities(qd,KinBody::CLA_Nothing);
-            probot->ComputeInverseDynamics(torquesimple,qd);
-            probot->ComputeInverseDynamics(torquecomponents,qdd);
-            VectorAdd(torquesimple,torquecomponents[1], bvect[i], 1, -1);
-            VectorAdd(bvect[i], torquecomponents[2], avect[i], 1, -1);
-            VectorAdd(torquecomponents[0],torquecomponents[1], bvect[i]);
-            cvect[i] = torquecomponents[2];
-        }
-    }
-}
 
 void ConvertToTOPPTrajectory(OpenRAVE::TrajectoryBaseConstPtr pintraj, const OpenRAVE::ConfigurationSpecification& posspec, Trajectory& outtraj)
 {
@@ -103,11 +49,14 @@ void ConvertToTOPPTrajectory(OpenRAVE::TrajectoryBaseConstPtr pintraj, const Ope
     else if( itposgroup->interpolation == "cubic" ) {
         degree = 3;
     }
-    else if( itposgroup->interpolation == "quadric" ) {
+    else if( itposgroup->interpolation == "quartic" ) {
         degree = 4;
     }
     else if( itposgroup->interpolation == "quintic" ) {
         degree = 5;
+    }
+    else if( itposgroup->interpolation == "sextic" ) {
+        degree = 6;
     }
     else {
         throw TOPP_EXCEPTION_FORMAT("unknown interpolation method '%s'", itposgroup->interpolation, 0);
@@ -135,6 +84,12 @@ void ConvertToTOPPTrajectory(OpenRAVE::TrajectoryBaseConstPtr pintraj, const Ope
         }
         pintraj->GetWaypoint(iwaypoint, vdeltatime, timespec);
         dReal deltatime = vdeltatime.at(0);
+        if( deltatime <= TINY ) {
+            // just skip since too small and will cause more problems with other epsilons later
+            if( deltatime <= 0 ) {
+            }
+            continue;
+        }
         dReal ideltatime = 1/deltatime;
         for(int idof = 0; idof < posspec.GetDOF(); ++idof) {
             // try not to use the acceleration
@@ -181,7 +136,7 @@ void ConvertToOpenRAVETrajectory(const Trajectory& intraj, OpenRAVE::TrajectoryB
     }
     else if( intraj.degree == 4  ) {
         FOREACH(itgroup, newposspec._vgroups) {
-            itgroup->interpolation = "quadric";
+            itgroup->interpolation = "quartic";
         }
     }
     else if( intraj.degree == 5  ) {
@@ -214,7 +169,7 @@ void ConvertToOpenRAVETrajectory(const Trajectory& intraj, OpenRAVE::TrajectoryB
         totalspec += derivspecs[i];
     }
     totalspec.AddDeltaTimeGroup();
-    
+
     pouttraj->Init(totalspec);
     std::vector<dReal> v(totalspec.GetDOF(),0);
     std::vector<dReal> q(intraj.dimension), qd(intraj.dimension), qdd(intraj.dimension);
@@ -226,38 +181,730 @@ void ConvertToOpenRAVETrajectory(const Trajectory& intraj, OpenRAVE::TrajectoryB
     std::copy(qdd.begin(), qdd.end(), v.begin()+2*intraj.dimension);
     pouttraj->Insert(0, v);
     FOREACH(itchunk, intraj.chunkslist) {
-        itchunk->Eval(0, q);
-        itchunk->Evald(0, qd);
-        itchunk->Evaldd(0, qdd);
-        std::copy(q.begin(), q.end(), v.begin());
-        std::copy(qd.begin(), qd.end(), v.begin()+intraj.dimension);
-        std::copy(qdd.begin(), qdd.end(), v.begin()+2*intraj.dimension);
-        v.at(3*intraj.dimension) = itchunk->duration;
-        pouttraj->Insert(pouttraj->GetNumWaypoints(), v);
+        if( itchunk->duration > 0 ) {
+            itchunk->Eval(0, q);
+            itchunk->Evald(0, qd);
+            itchunk->Evaldd(0, qdd);
+            std::copy(q.begin(), q.end(), v.begin());
+            std::copy(qd.begin(), qd.end(), v.begin()+intraj.dimension);
+            std::copy(qdd.begin(), qdd.end(), v.begin()+2*intraj.dimension);
+            v.at(3*intraj.dimension) = itchunk->duration;
+            pouttraj->Insert(pouttraj->GetNumWaypoints(), v);
+        }
+        else if( itchunk->duration < 0 ) {
+            std::cerr << "chuck duration is negative! " << itchunk->duration << std::endl;
+        }
     }
-//    dReal prevtime = 0;
-//    FOREACH(ittime, intraj.chunkcumulateddurationslist) {
-//        dReal deltatime = *ittime - prevtime;
-//        intraj.Eval(*ittime, q);
-//        intraj.Evald(*ittime, qd);
-//        intraj.Evaldd(*ittime, qdd);
-//        std::copy(q.begin(), q.end(), v.begin());
-//        std::copy(qd.begin(), qd.end(), v.begin()+intraj.dimension);
-//        std::copy(qdd.begin(), qdd.end(), v.begin()+2*intraj.dimension);
-//        v.at(3*intraj.dimension) = deltatime;
-//        
-//        pouttraj->Insert(pouttraj->GetNumWaypoints(), v);
-//        prevtime = *ittime;
-//    }
 }
 
-TorqueLimitsRave2::TorqueLimitsRave2(RobotBasePtr probot, OpenRAVE::TrajectoryBaseConstPtr ptraj, dReal discrtimestep)
+bool ExtractOpenRAVETrajectoryFromProfiles(const Constraints& constraints, dReal smax, const OpenRAVE::ConfigurationSpecification& posspec, OpenRAVE::TrajectoryBasePtr pouttraj)
+{
+    if (constraints.resprofileslist.size() == 0) {
+        return false;
+    }
+
+    const Trajectory& intraj = constraints.trajectory;
+    if( intraj.chunkslist.size() == 0) {
+        return false;
+    }
+    if( smax == 0 ) {
+        smax = intraj.duration; //intraj->GetDuration();
+    }
+
+    //std::deque<dReal> vsampledpoints; // s, sd, sdd, deltatime
+    std::vector<dReal> vsampledpoints;
+    vsampledpoints.reserve(4*20000); // no idea how many points, but guessing a lot if integrationstep is 0.001 and duration is 10s
+
+    ProfileSample sample = FindLowestProfileFast(0, 1e30, constraints.resprofileslist);
+    if( sample.itprofile == constraints.resprofileslist.end() ) {
+        RAVELOG_ERROR("failed to find first profile\n");
+        return false;
+    }
+    vsampledpoints.push_back(sample.s);
+    vsampledpoints.push_back(sample.sd);
+    vsampledpoints.push_back(sample.sdd);
+    vsampledpoints.push_back(0);
+
+    bool bsuccess = false;
+    while(!bsuccess) {
+        const Profile& profile = *sample.itprofile;
+
+        bool badded = false;
+        dReal sprev = sample.s, sdprev = sample.sd, sddprev = sample.sdd;
+        dReal tprev = sample.t;
+        int sindex = sample.sindex+1;
+        ProfileSample checksample, checksample2;
+        checksample.itprofile = constraints.resprofileslist.end();
+        while(sindex < (int)profile.svect.size() && sprev < smax-TINY) {
+            dReal s = profile.svect.at(sindex);
+            dReal sd = profile.sdvect.at(sindex);
+            dReal sdd = profile.sddvect.at(sindex);
+
+            // check if there's a lower profile at s
+            checksample = FindLowestProfileFast(s, sd-TINY*10, constraints.resprofileslist);
+            if( checksample.itprofile != constraints.resprofileslist.end() ) {
+                if( sample.itprofile == checksample.itprofile ) {
+                    RAVELOG_ERROR("got sample profile, unexpected!\n");
+                    return false;
+                }
+
+                bool busechecksample = true;
+                // found new profile, so need to use it instead.
+                // have to merge with old profile by finding an intersection point.
+                dReal sintersect = 0, sdintersect = 0, sddintersect = 0, tintersect = 0;
+                if( fabs(sddprev) <= TINY ) {
+                    RAVELOG_ERROR_FORMAT("sprev=%.%15e, sdprev=%.15e, sddprev=%.15e, sdd is close to 0, don't know that to do", sprev%sdprev%sddprev);
+                    return false;
+                }
+                else {
+                    if( fabs(checksample.sdd) <= TINY ) {
+                        tintersect = (checksample.sd - sdprev)/sddprev;
+                        sintersect = sprev + tintersect * (sdprev + tintersect*sddprev*0.5);
+                        sddintersect = sddprev;
+                        sdintersect = sdprev;
+                    }
+                    else {
+                        // s(sd) = sprev + (sd*sd - sdprev*sdprev)/(2*sddprev) => aprev * sd*sd + cprev
+                        dReal aprev = 1/(2*sddprev), cprev = (sprev - sdprev*sdprev/(2*sddprev));
+                        dReal anext = 1/(2*checksample.sdd), cnext = (checksample.s - checksample.sd*checksample.sd/(2*checksample.sdd));
+                        dReal ad = aprev - anext;
+                        if( fabs(ad) <= TINY ) {
+                            if( fabs(cnext-cprev) <= TINY ) {
+                                // most likely they intersect at the same place
+                                sintersect = checksample.s;
+                                sdintersect = checksample.sd;
+                                sddintersect = sddprev;
+                                tintersect = (sdintersect-sdprev)/sddprev;
+                            }
+                            else {
+                                // profiles have same accel, find the intersection
+                            }
+                        }
+                        else {
+                            dReal sdintersect2 = (cnext-cprev)/ad;
+                            if( sdintersect2 >= s*s ) {
+                                //RAVELOG_ERROR("two profiles never intersect at s=%.15e!", s);
+                                //return false;
+                                sdintersect = sqrt(sdintersect2);
+                                sintersect = aprev*sdintersect2 + cprev;
+                                sddintersect = sddprev;
+                                tintersect = (sdintersect-sdprev)/sddprev;
+                            }
+                        }
+                    }
+
+                    if( tintersect > 0 && sintersect <= s) {
+                        if( sprev <= sintersect+TINY ) {
+                            // if here then found an intersection
+                            vsampledpoints.push_back(sintersect);
+                            vsampledpoints.push_back(sdintersect);
+                            vsampledpoints.push_back(checksample.sdd); // needs to be checksample since interpolation goes forward
+                            vsampledpoints.push_back(tintersect);
+                            dReal t2 = (sdintersect-checksample.sd)/checksample.sdd;
+                            //                if( t2 > TINY ) {
+                            //                    RAVELOG_ERROR_FORMAT("unexpted got time %f", t2);
+                            //                    return false;
+                            //                }
+                            checksample.t += t2; // go back in time
+                            checksample.s = sintersect;
+                        }
+                        else {
+                            // sintersect is before prev, just continue with original ramp
+                            busechecksample = false;
+                        }
+                    }
+                    else {
+                        // there's negative intersection, which means there must be a closer profile that collides
+                        dReal tintersect2=1e30;
+                        dReal tdelta = 0; //0.01*profile.integrationtimestep;
+                        checksample2 = FindEarliestProfileIntersection(vsampledpoints.at(vsampledpoints.size()-4) + tdelta*(vsampledpoints.at(vsampledpoints.size()-3) + tdelta*0.5*vsampledpoints.at(vsampledpoints.size()-2)), vsampledpoints.at(vsampledpoints.size()-3) + tdelta*vsampledpoints.at(vsampledpoints.size()-2), vsampledpoints.at(vsampledpoints.size()-2), profile.integrationtimestep, constraints.resprofileslist, sample.itprofile, tintersect2);
+                        if( checksample2.itprofile != constraints.resprofileslist.end() && checksample2.s > sprev  && tintersect2 > TINY ) {
+                            vsampledpoints.push_back(checksample2.s);
+                            vsampledpoints.push_back(checksample2.sd);
+                            vsampledpoints.push_back(checksample2.sdd);
+                            vsampledpoints.push_back(tintersect2);
+                            checksample = checksample2;
+                        }
+                        else {
+                            // perhaps going on with the original ramp is best idea...
+                            //RAVELOG_ERROR_FORMAT("time intersection after s=%.15e cannot be found and time is negative (%.15e)", vsampledpoints.at(vsampledpoints.size()-4)%tintersect2);
+                            //return false;
+                            busechecksample = false;
+                        }
+                    }
+                }
+
+                if( busechecksample ) {
+                    sprev = checksample.s;
+                    sdprev = checksample.sd;
+                    sddprev = checksample.sdd;
+                    badded = true;
+                    break;
+                }
+                else {
+                    // have to reset
+                    checksample.itprofile = constraints.resprofileslist.end();
+                }
+            }
+
+            BOOST_ASSERT( sprev <= s );
+            BOOST_ASSERT(profile.integrationtimestep-tprev > 0);
+            vsampledpoints.push_back(s);
+            vsampledpoints.push_back(sd);
+            vsampledpoints.push_back(sdd);
+            vsampledpoints.push_back(profile.integrationtimestep-tprev);
+//        }
+//        else if( sprev > s ) {
+//                // skip the point...?
+//
+//            }
+            badded = true;
+
+            // increase the point and try again
+            tprev = 0;
+            sprev = s;
+            sdprev = sd;
+            sddprev = sdd;
+            ++sindex;
+        }
+
+        if( !badded ) {
+            RAVELOG_ERROR_FORMAT("failed to add a new sample at sprev=%.15e, something is wrong", sprev);
+            return false;
+        }
+
+        if( sprev >= smax-TINY ) {
+            bsuccess = true;
+            break;
+        }
+
+        if( checksample.itprofile == constraints.resprofileslist.end() ) {
+            bool bfindconnection=true;
+            do {
+                bfindconnection = false;
+                dReal sstart = std::min(smax, sprev-TINY); // new ramp has to be larger than current
+                dReal sdthresh = 0.01;
+                dReal sddistmin = 1e30;
+                //sample.itprofile = constraints.resprofileslist.end();
+                // got to end of ramp and another ramp was not found so search for the next ramp.
+                std::list<Profile>::const_iterator itprofilemin = constraints.resprofileslist.end();
+                size_t sconnectindexmin = 0;
+                for(std::list<Profile>::const_iterator itprofile = constraints.resprofileslist.begin(); itprofile != constraints.resprofileslist.end(); ++itprofile) {
+                    if( itprofile == sample.itprofile || itprofile->svect.back() <= sstart+TINY ) {
+                        continue;
+                    }
+                    // need to find the index such that it has a s value greater than sstart
+                    std::vector<dReal>::const_iterator its = std::lower_bound(itprofile->svect.begin(), itprofile->svect.end(), sstart);
+                    if( its == itprofile->svect.end() ) {
+                        continue;
+                    }
+//                    if( *its < 0 ) { // sometimes this happens...
+//                        its++;
+//                    }
+//                    if( its == itprofile->svect.end() ) {
+//                        continue;
+//                    }
+                    size_t sconnectindex = its - itprofile->svect.begin();
+                    // there's a compiler BUG here: (sconnectindex+=1 >= itprofile->svect.size() && *its-sstart <= TINY)
+                    if( sconnectindex+=1 >= itprofile->svect.size() ) {
+                        if( *its-sstart <= TINY ) {
+                            // same point don't use it
+                            continue;
+                        }
+                    }
+//                if( sconnectindex+1 >= itprofile->svect.size() ) {
+//                    // index is at the very end, so skip
+//                    continue;
+//                }
+                    dReal sddist = fabs(itprofile->sdvect.at(sconnectindex)-sdprev);
+                    bool bIsCloseToSD = sddist < sdthresh;
+                    bool bIsMinCloseToSD = sddistmin < sdthresh;
+                    // sometimes sd will be far away from the original curve, so need to prioritize curves that are close to original sd, or are lower.
+                    if( itprofilemin == constraints.resprofileslist.end() || *its < itprofilemin->svect.at(sconnectindexmin) || (!bIsMinCloseToSD && bIsCloseToSD) || (!bIsMinCloseToSD && !bIsCloseToSD && sddist < sddistmin && itprofile->sdvect.at(sconnectindex) < itprofilemin->sdvect.at(sconnectindexmin) ) || (bIsMinCloseToSD && bIsMinCloseToSD && sddist < sddistmin) ) {
+                        itprofilemin = itprofile;
+                        sddistmin = sddist;
+                        sconnectindexmin = sconnectindex;
+                        //bIsMinCloseToSD = bIsCloseToSD;
+                    }
+                }
+                if( itprofilemin == constraints.resprofileslist.end() ) {
+                    RAVELOG_ERROR_FORMAT("failed to find next profile s=%.15e", sstart);
+                    return false;
+                }
+
+                if( sconnectindexmin > 0 ) {// && itprofilemin->svect.at(sconnectindexmin-1) > 0 ) {
+                    // know that itprofilemin->svect.at(sconnectindexmin)>sstart, so itprofilemin->svect.at(sconnectindexmin-1)<=sstart and that's where the ramp starts
+                    sconnectindexmin--;
+                }
+
+                dReal sintersect = 0, sdintersect = 0, sddintersect = 0, tintersect = 0;
+                dReal snext, sdnext, sddnext;
+                size_t sconnectindex = sconnectindexmin;
+                while(1) {
+                    // in sample.itprofile, take the second to last point since that should have sdd != 0
+                    vsampledpoints.resize(vsampledpoints.size()-4);
+                    if( vsampledpoints.size() >= 4 ) {
+                        sprev = vsampledpoints[vsampledpoints.size()-4];
+                        sdprev = vsampledpoints[vsampledpoints.size()-3];
+                        sddprev = vsampledpoints[vsampledpoints.size()-2];
+                    }
+                    else {
+                        sprev = sample.itprofile->svect.at(sample.itprofile->svect.size()-2);
+                        sdprev = sample.itprofile->sdvect.at(sample.itprofile->svect.size()-2);
+                        sddprev = sample.itprofile->sddvect.at(sample.itprofile->svect.size()-2);
+                    }
+
+                    sconnectindex = sconnectindexmin;
+
+                    while(sconnectindex < itprofilemin->svect.size()) {
+                        snext = itprofilemin->svect.at(sconnectindex);
+                        sdnext = itprofilemin->sdvect.at(sconnectindex);
+                        sddnext = itprofilemin->sddvect.at(sconnectindex);
+
+                        if( fabs(sddprev) <= TINY ) {
+                            if( fabs(sddnext) <= TINY ) {
+                                RAVELOG_ERROR_FORMAT("sddprev and sddnext are both close to 0 at s=%.15e, don't know that to do", sprev);
+                                return false;
+                            }
+                            dReal t = (sdprev - sdnext)/sddnext;
+                            sintersect = snext + t * (sdnext + t*sddnext*0.5);
+                            sddintersect = sddprev;
+                            sdintersect = sdprev;
+                            tintersect = (sintersect - sprev)/sdprev;
+                        }
+                        else if( fabs(sddnext) <= TINY ) {
+                            //RAVELOG_ERROR_FORMAT("check sddprev is close to 0 at s=%.15e, don't know that to do", snext);
+                            //return false;
+                            tintersect = (sdnext - sdprev)/sddprev;
+                            sintersect = sprev + tintersect * (sdprev + tintersect*sddprev*0.5);
+                            sddintersect = sddprev;
+                            sdintersect = sdnext;
+                        }
+                        else {
+                            // s(sd) = sprev + (sd*sd - sdprev*sdprev)/(2*sddprev) => aprev * sd*sd + cprev
+                            dReal aprev = 1/(2*sddprev), cprev = (sprev - sdprev*sdprev/(2*sddprev));
+                            dReal anext = 1/(2*sddnext), cnext = (snext - sdnext*sdnext/(2*sddnext));
+                            dReal ad = aprev - anext;
+                            if( fabs(ad) <= TINY ) {
+                                if( fabs(cnext-cprev) <= TINY ) {
+                                    // most likely they intersect at the same place
+                                    sintersect = snext;
+                                    sdintersect = sdnext;
+                                    sddintersect = sddprev;
+                                    tintersect = (sdintersect-sdprev)/sddprev;
+                                }
+                                else {
+                                    dReal tintersect2=1e30;
+                                    checksample2 = FindEarliestProfileIntersection(sprev, sdprev, sddprev, profile.integrationtimestep*10, constraints.resprofileslist, sample.itprofile, tintersect2);
+                                    if( checksample2.itprofile != constraints.resprofileslist.end() && checksample2.s > sprev  && tintersect2 > TINY ) {
+                                        sintersect = checksample2.s;
+                                        sdintersect = checksample2.sd;
+                                        sddintersect = checksample2.sdd;
+                                        tintersect = tintersect2;
+                                        itprofilemin = checksample2.itprofile;
+                                        sconnectindex = checksample2.sindex;
+                                        snext = itprofilemin->svect.at(sconnectindex);
+                                        sdnext = itprofilemin->sdvect.at(sconnectindex);
+                                        sddnext = itprofilemin->sddvect.at(sconnectindex);
+                                    }
+                                    else {
+                                        RAVELOG_ERROR_FORMAT("two profiles have same accel, don't know that to do sprev=%.15e, snext=%.15e", sprev%snext);
+                                        return false;
+                                    }
+                                }
+                            }
+                            else {
+                                dReal sdintersect2 = (cnext-cprev)/ad;
+                                if( sdintersect2 < 0 ) {
+                                    dReal tintersect2=1e30;
+                                    checksample2 = FindEarliestProfileIntersection(sprev, sdprev, sddprev, profile.integrationtimestep*10, constraints.resprofileslist, sample.itprofile, tintersect2);
+                                    if( checksample2.itprofile != constraints.resprofileslist.end() && checksample2.s > sprev  && tintersect2 > TINY ) {
+                                        sintersect = checksample2.s;
+                                        sdintersect = checksample2.sd;
+                                        sddintersect = checksample2.sdd;
+                                        tintersect = tintersect2;
+                                        itprofilemin = checksample2.itprofile;
+                                        sconnectindex = checksample2.sindex;
+                                        snext = itprofilemin->svect.at(sconnectindex);
+                                        sdnext = itprofilemin->sdvect.at(sconnectindex);
+                                        sddnext = itprofilemin->sddvect.at(sconnectindex);
+                                    }
+                                    else {
+                                        RAVELOG_ERROR_FORMAT("two profiles never intersect sprev=%.15e, snext=%.15e!", sprev%snext);
+                                        return false;
+                                    }
+                                }
+                                sdintersect = sqrt(sdintersect2);
+                                sintersect = aprev*sdintersect2 + cprev;
+                                sddintersect = sddprev;
+                                tintersect = (sdintersect-sdprev)/sddprev;
+                            }
+                        }
+
+                        if( tintersect > 0 ) { // intersection has to be close
+                            break;
+                        }
+                        ++sconnectindex;
+                    }
+
+                    if(sconnectindex < itprofilemin->svect.size()) {
+                        break;
+                    }
+
+                    if( vsampledpoints.size() == 0 ) {
+                        RAVELOG_ERROR("cannot find intersection\n");
+                        return false;
+                    }
+                }
+
+                vsampledpoints.push_back(sintersect);
+                vsampledpoints.push_back(sdintersect); // speed needs to be sddnext since interpolating forward sddintersect);
+                vsampledpoints.push_back(sddnext); // acceleration needs to be sddnext since interpolating forward sddintersect);
+                BOOST_ASSERT(tintersect>0);
+                vsampledpoints.push_back(tintersect);
+
+                // if sconnectindexmin is the last in the profile, need to add it directly
+                if( sconnectindex+1 >= itprofilemin->svect.size() ) {
+                    dReal t2;
+                    if( fabs(sddnext) > TINY ) {
+                        t2 = (sdnext-sdintersect)/sddnext;
+                        BOOST_ASSERT(t2>=0);
+                        vsampledpoints.push_back(snext);
+                        vsampledpoints.push_back(sdnext);
+                        vsampledpoints.push_back(sddnext);
+                        vsampledpoints.push_back(t2);
+                    }
+                    else {
+                        t2 = (snext-sintersect)/sdnext;
+                        BOOST_ASSERT(t2>=0);
+                        vsampledpoints.push_back(snext);
+                        vsampledpoints.push_back(sdnext);
+                        vsampledpoints.push_back(sddnext);
+                        vsampledpoints.push_back(t2);
+                    }
+
+                    if( snext >= smax-TINY ) {
+                        bsuccess = true;
+                        break;
+                    }
+
+//                    if( sconnectindex+1 >= itprofilemin->svect.size() ) {
+//                        // at the end of the ramp, so have to add
+//                        vsampledpoints.push_back(snext);
+//                        vsampledpoints.push_back(sdnext);
+//                        vsampledpoints.push_back(sddnext);
+//                        BOOST_ASSERT(itprofilemin->integrationtimestep - t2 >= 0);
+//                        vsampledpoints.push_back(itprofilemin->integrationtimestep - t2);
+//                        bfindconnection = true;
+//                        sample.itprofile = itprofilemin;
+//                        sample.sindex = sconnectindex;
+//                        sample.s = itprofilemin->svect.at(sconnectindex);
+//                        sample.sd = itprofilemin->sdvect.at(sconnectindex);
+//                        sample.sdd = itprofilemin->sddvect.at(sconnectindex);
+//                        sample.t = itprofilemin->integrationtimestep - t2;
+//                        sprev = sample.s;
+//                        sdprev = sample.sd;
+//                        sddprev = sample.sdd;
+//                    }
+//                    else {
+                    // need to run the curve finder again
+                    bfindconnection = true;
+                    sample.itprofile = itprofilemin;
+                    sample.sindex = sconnectindex;
+                    sample.s = snext;
+                    sample.sd = sdnext;
+                    sample.sdd = sddnext;
+                    sample.t = t2;
+                    sprev = sample.s;
+                    sdprev = sample.sd;
+                    sddprev = sample.sdd;
+                }
+                else {
+                    dReal t2 = (sdintersect-sdnext)/sddnext;
+                    checksample.itprofile = itprofilemin;
+                    checksample.sindex = sconnectindex;
+                    checksample.s = sintersect;
+                    checksample.sd = sdnext;
+                    checksample.sdd = sddnext;
+                    checksample.t = t2;
+                    bool bsuccess = false;
+                    // there are cases where sintersect is greater than itprofilemin->svect[sconnectindex+1], which causes asserts
+                    while(checksample.sindex+1 < (int)itprofilemin->svect.size()) {
+                        if( sintersect+TINY <= itprofilemin->svect[checksample.sindex+1] ) {
+                            if( checksample.t <= itprofilemin->integrationtimestep ) {
+                                bsuccess = true;
+                                break;
+                            }
+                        }
+                        // get the next index
+                        checksample.sindex++;
+                        checksample.t -= itprofilemin->integrationtimestep;
+                    }
+                    if( !bsuccess ) {
+                        RAVELOG_WARN("ramp failed, so try again (infinite loop?)\n");
+                        //bfindconnection = true;
+                        //return false;
+                    }
+                }
+            } while(bfindconnection);
+        }
+
+        sample = checksample;
+    }
+
+    // for debugging, do not delete
+//    {
+//        RAVELOG_INFO_FORMAT("success in extracting profiles (%d)!", vsampledpoints.size());
+//        std::ofstream f("points.txt");
+//        f << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+//        dReal sprev=vsampledpoints[0], sdprev = vsampledpoints[1], sddprev = vsampledpoints[2];
+//        for(size_t i =0; i < vsampledpoints.size(); i += 4 ) {
+//            // sanity check
+//            dReal s = sprev + vsampledpoints[i+3]*(sdprev + vsampledpoints[i+3]*0.5*sddprev);
+//            dReal sd = sdprev + vsampledpoints[i+3]*sddprev;
+//            if( fabs(s-vsampledpoints[i])>TINY2 || fabs(sd-vsampledpoints[i+1])>TINY2) {
+//                RAVELOG_WARN_FORMAT("inconsistency at s=%.15e: serr=%.15e, sderr=%.15e", sprev%(s-vsampledpoints[i])%(sd-vsampledpoints[i+1]));
+//            }
+//            //BOOST_ASSERT(fabs(s-vsampledpoints[i])<=TINY2);
+//            //BOOST_ASSERT(fabs(sd-vsampledpoints[i+1])<=TINY2);
+//            BOOST_ASSERT(vsampledpoints[i+3]>=0);
+//            f << vsampledpoints[i] << " " << vsampledpoints[i+1] << " " << vsampledpoints[i+2] << " " << vsampledpoints[i+3] << std::endl;
+//            sprev = vsampledpoints[i];
+//            sdprev = vsampledpoints[i+1];
+//            sddprev = vsampledpoints[i+2];
+//        }
+//    }
+
+    int dof = posspec.GetDOF();
+
+    // have to resample the original trajectory and add to the new
+    OpenRAVE::ConfigurationSpecification newposspec = posspec;
+    int resdegree = intraj.degree*2;
+    if( resdegree == 1  ) {
+        FOREACH(itgroup, newposspec._vgroups) {
+            itgroup->interpolation = "linear";
+        }
+    }
+    else if( resdegree == 2  ) {
+        FOREACH(itgroup, newposspec._vgroups) {
+            itgroup->interpolation = "quadratic";
+        }
+    }
+    else if( resdegree == 3  ) {
+        FOREACH(itgroup, newposspec._vgroups) {
+            itgroup->interpolation = "cubic";
+        }
+    }
+    else if( resdegree == 4  ) {
+        FOREACH(itgroup, newposspec._vgroups) {
+            itgroup->interpolation = "quartic";
+        }
+    }
+    else if( resdegree == 5  ) {
+        FOREACH(itgroup, newposspec._vgroups) {
+            itgroup->interpolation = "quintic";
+        }
+    }
+    else if( resdegree == 6  ) {
+        FOREACH(itgroup, newposspec._vgroups) {
+            itgroup->interpolation = "sextic";
+        }
+    }
+    else {
+        FOREACH(itgroup, newposspec._vgroups) {
+            itgroup->interpolation = str(boost::format("degree%d")%resdegree);
+        }
+    }
+
+    // go up to jerks
+    std::vector<ConfigurationSpecification> derivspecs(std::min(intraj.degree*2,5));
+    derivspecs[0] = newposspec;
+    ConfigurationSpecification totalspec = newposspec;
+    for(size_t i = 1; i < derivspecs.size(); ++i) {
+        derivspecs[i] = newposspec.ConvertToDerivativeSpecification(i);
+        totalspec += derivspecs[i];
+    }
+    int timegroupindex = totalspec.AddDeltaTimeGroup();
+    int sgroupindex = totalspec.AddGroup("originaltime", 1, "linear");
+
+    pouttraj->Init(totalspec);
+    std::vector<dReal> v(totalspec.GetDOF(),0);
+    std::vector<dReal> p(intraj.dimension, 0), pd(intraj.dimension, 0), pdd(intraj.dimension, 0), pddd(intraj.dimension, 0), pdddd(intraj.dimension, 0);
+
+    // have a composite function q(t) = p(s(t)) where p is the original trajectory, s is the new retiming, q is the new trajectory. sddd = 0. Then
+    // qd = pd * sd
+    // qdd = pdd*sd**2 + pd * sdd
+    // qddd = pddd*sd**3 + 3*pdd*sd*sdd
+    // qdddd = pdddd*sd**4 + 4*pddd*sd**2*sdd + 3*pdd*sdd**2
+    std::list<Chunk>::const_iterator itchunk = intraj.chunkslist.begin();
+    size_t sindex = 0;
+    dReal curchunktime = 0; // s
+    //dReal sprev=vsampledpoints.at(0), sdprev=vsampledpoints.at(1), sddprev=vsampledpoints.at(2);
+    dReal tprev = 0;
+    while(itchunk != intraj.chunkslist.end() && sindex < vsampledpoints.size()) {
+        dReal s = vsampledpoints[sindex], sd = vsampledpoints[sindex+1], sdd = vsampledpoints[sindex+2], tdelta = vsampledpoints[sindex+3];
+        dReal sd2 = sd*sd;
+        dReal sd3 = sd2*sd;
+        bool bincrementsindex = true, bincrementchunk=false;
+        dReal tnewdelta=tdelta;
+        if(s > curchunktime + itchunk->duration + TINY) {
+            dReal tnewprev=0;
+            if( !SolveQuadraticEquation(vsampledpoints.at(sindex-4)-(curchunktime + itchunk->duration), vsampledpoints.at(sindex-3), 0.5*vsampledpoints.at(sindex-2), tnewprev, tprev, tdelta) ) {
+                RAVELOG_WARN_FORMAT("failed to solve quadratic at s=%.15f", (curchunktime + itchunk->duration));
+                s = curchunktime + itchunk->duration; // have to store this point no matter what!
+                sd = vsampledpoints.at(sindex-3);
+                sd2 = sd*sd;
+                sd3 = sd2*sd;
+                sdd = vsampledpoints.at(sindex-2);
+                tnewdelta = itchunk->duration; // sample at the regular interval
+                bincrementchunk = true;
+                bincrementsindex = false;
+            }
+            else {
+                s = curchunktime + itchunk->duration; // have to store this point no matter what!
+                sd = vsampledpoints.at(sindex-3) + vsampledpoints.at(sindex-2)*tnewprev;
+                sd2 = sd*sd;
+                sd3 = sd2*sd;
+                sdd = vsampledpoints.at(sindex-2);
+                tnewdelta = tnewprev - tprev;
+                tprev = tnewprev;
+                bincrementsindex = false;
+                bincrementchunk = true;
+            }
+        }
+        else {
+            // have to get the real tnewdelta since this ramp could have been sampled several times.
+            tnewdelta = tdelta - tprev;
+        }
+//        if(s > curchunktime + itchunk->duration + TINY) {
+//            if( !SolveQuadraticEquation(sprev-(curchunktime + itchunk->duration), sdprev, 0.5*sddprev, tnewdelta, 0, tdelta) ) {
+//                RAVELOG_ERROR_FORMAT("failed to solve quadratic at s=%.15f", (curchunktime + itchunk->duration));
+//            }
+//            else {
+//                s = curchunktime + itchunk->duration; // have to store this point no matter what!
+//                sd = sdprev + sddprev*tnewdelta;
+//                sd2 = sd*sd;
+//                sd3 = sd2*sd;
+//                sdd = sddprev;
+//                bincrementsindex = false;
+//            }
+//            bincrementchunk = true;
+//            curchunktime += itchunk->duration;
+//            ++itchunk;
+//            if( itchunk == intraj.chunkslist.end() ) {
+//                break;
+//            }
+//        }
+//        else {
+//            // have to get the real tnewdelta since this ramp could have been sampled several times.
+//            if( !SolveQuadraticEquation(sprev-s, sdprev, 0.5*sddprev, tnewdelta, 0, tdelta) ) {
+//                RAVELOG_ERROR_FORMAT("failed to solve quadratic at s=%.15f", (curchunktime + itchunk->duration));
+//            }
+//        }
+
+        if( tnewdelta > 0 ) {
+            itchunk->Eval(s - curchunktime, p);
+            std::copy(p.begin(), p.end(), v.begin());
+            if( derivspecs.size() > 1 ) {
+                itchunk->Evald(s - curchunktime, pd);
+                for(size_t i = 0; i < pd.size(); ++i) {
+                    v[dof+i] = pd[i] * sd;
+                }
+                if( derivspecs.size() > 2 ) {
+                    itchunk->Evaldd(s - curchunktime, pdd);
+                    for(size_t i = 0; i < pdd.size(); ++i) {
+                        v[2*dof+i] = pdd[i]*sd2 + pd[i]*sdd;
+                    }
+                    if( derivspecs.size() > 3 ) {
+                        itchunk->Evalddd(s - curchunktime, pddd);
+                        for(size_t i = 0; i < pddd.size(); ++i) {
+                            v[3*dof+i] = pddd[i]*sd3 + 3*pdd[i]*sd*sdd;
+                        }
+                        if( derivspecs.size() > 4 ) {
+                            itchunk->Evaldddd(s - curchunktime, pdddd);
+                            for(size_t i = 0; i < pdddd.size(); ++i) {
+                                v[4*dof+i] = pdddd[i]*sd2*sd2 + 4*pddd[i]*sd2*sdd + 3*pdd[i]*sdd*sdd;
+                            }
+                        }
+                    }
+                }
+            }
+            v[timegroupindex] = tnewdelta;
+            v[sgroupindex] = s;
+            pouttraj->Insert(pouttraj->GetNumWaypoints(), v);
+        }
+        else if( tnewdelta < -TINY ) {
+            RAVELOG_WARN_FORMAT("bad delta (%.15e) at s=%.15e", tnewdelta%s);
+        }
+            
+        if( bincrementsindex ) {
+            sindex += 4;
+            tprev = 0;
+        }
+        if( bincrementchunk ) {
+            curchunktime += itchunk->duration;
+            ++itchunk;
+            if( itchunk == intraj.chunkslist.end() ) {
+                break;
+            }
+        }
+//        sprev = s;
+//        sdprev = sd;
+//        sddprev = sdd;
+    }
+
+    return true;
+}
+
+TorqueLimitsRave::TorqueLimitsRave(RobotBasePtr probot, std::string& constraintsstring, Trajectory* ptraj){
+    trajectory = *ptraj;
+    int ndof = trajectory.dimension;
+    std::istringstream iss(constraintsstring);
+    iss >> discrtimestep;
+    ReadVectorFromStream(iss, ndof, vmax);
+    ReadVectorFromStream(iss, ndof, taumin);
+    ReadVectorFromStream(iss, ndof, taumax);
+    hasvelocitylimits = false;
+    FOREACH(itv, vmax) {
+        if( std::abs(*itv) > TINY ) {
+            hasvelocitylimits = true;
+            break;
+        }
+    }
+
+    // Define the avect, bvect, cvect
+    int ndiscrsteps = int((trajectory.duration+TINY)/discrtimestep)+1;
+    std::vector<dReal> q(ndof), qd(ndof), qdd(ndof), tmp0(ndof), tmp1(ndof), torquesimple;
+    boost::array< std::vector< dReal >, 3 > torquecomponents;
+    {
+        avect.resize(ndiscrsteps);
+        bvect.resize(ndiscrsteps);
+        cvect.resize(ndiscrsteps);
+        EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex()); // lock environment
+        for(int i = 0; i<ndiscrsteps; i++) {
+            dReal s = i*discrtimestep;
+            trajectory.Eval(s,q);
+            trajectory.Evald(s,qd);
+            trajectory.Evaldd(s,qdd);
+            probot->SetDOFValues(q,KinBody::CLA_Nothing);
+            probot->SetDOFVelocities(qd,KinBody::CLA_Nothing);
+            probot->ComputeInverseDynamics(torquesimple,qd);
+            probot->ComputeInverseDynamics(torquecomponents,qdd);
+            VectorAdd(torquesimple,torquecomponents[1], bvect[i], 1, -1);
+            VectorAdd(bvect[i], torquecomponents[2], avect[i], 1, -1);
+            VectorAdd(torquecomponents[0],torquecomponents[1], bvect[i]);
+            cvect[i] = torquecomponents[2];
+        }
+    }
+}
+
+TorqueLimitsRave2::TorqueLimitsRave2(RobotBasePtr probot, OpenRAVE::TrajectoryBaseConstPtr ptraj, dReal _discrtimestep)
 {
     EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex()); // lock environment
     _probot = probot;
     RobotBase::RobotStateSaver robotsaver(probot, KinBody::Save_LinkTransformation|KinBody::Save_LinkVelocities);
     OPENRAVE_ASSERT_OP((int)probot->GetActiveDOFIndices().size(),==,probot->GetActiveDOF()); // don't allow affine dofs
-    this->discrtimestep = discrtimestep;
+    discrtimestep = _discrtimestep;
     ConvertToTOPPTrajectory(ptraj, probot->GetActiveConfigurationSpecification(), trajectory);
     int ndof = trajectory.dimension;
     probot->GetActiveDOFVelocityLimits(vmax);
@@ -291,7 +938,10 @@ TorqueLimitsRave2::TorqueLimitsRave2(RobotBasePtr probot, OpenRAVE::TrajectoryBa
     }
 
     // Define the avect, bvect, cvect
-    int ndiscrsteps = int((trajectory.duration+1e-10)/discrtimestep)+1;
+    int ndiscrsteps = int((trajectory.duration+TINY)/discrtimestep)+1;
+    if( ndiscrsteps > 1 ) {
+        discrtimestep = trajectory.duration/(ndiscrsteps-1);
+    }
     std::vector<dReal> q(ndof), qd(ndof), qdd(ndof), vfullvalues(probot->GetDOF()), torquesimple;
     probot->GetDOFValues(vfullvalues);
     boost::array< std::vector< dReal >, 3 > torquecomponents;
@@ -328,7 +978,7 @@ void TorqueLimitsRave2::InterpolateDynamics(dReal s, std::vector<dReal>& a, std:
     a.resize(trajectory.dimension);
     b.resize(trajectory.dimension);
     c.resize(trajectory.dimension);
-    assert(s >= -TINY && s <= trajectory.duration + TINY);
+    BOOST_ASSERT(s >= -TINY && s <= trajectory.duration + TINY);
     if(s < 0)
         s = 0;
     if(s >= trajectory.duration - TINY) {
@@ -341,11 +991,20 @@ void TorqueLimitsRave2::InterpolateDynamics(dReal s, std::vector<dReal>& a, std:
         return;
     }
     int n = int(s / discrtimestep);
-    dReal coef = (s - n * discrtimestep) / discrtimestep;
-    for(int i = 0; i < trajectory.dimension; i++) {
-        a[i] = (1-coef)*avect[n][i] + coef*avect[n+1][i];
-        b[i] = (1-coef)*bvect[n][i] + coef*bvect[n+1][i];
-        c[i] = (1-coef)*cvect[n][i] + coef*cvect[n+1][i];
+    dReal coef = s - n * discrtimestep;
+    if( std::abs(coef) <= TINY ) {
+        a = avect[n];
+        b = bvect[n];
+        c = cvect[n];
+    }
+    else {
+        BOOST_ASSERT(n+1 < (int)avect.size());
+        coef /= discrtimestep;
+        for(int i = 0; i < trajectory.dimension; i++) {
+            a[i] = (1-coef)*avect[n][i] + coef*avect[n+1][i];
+            b[i] = (1-coef)*bvect[n][i] + coef*bvect[n+1][i];
+            c[i] = (1-coef)*cvect[n][i] + coef*cvect[n+1][i];
+        }
     }
 }
 
@@ -421,21 +1080,22 @@ dReal TorqueLimitsRave2::SdLimitBobrowInit(dReal s){
             tau_beta[i] = taumin[i];
         }
     }
+
+    // at the limit, the alpha and beta curves of two dofs should meet. compute those points
     dReal sdmin = INF;
     for(int k=0; k<trajectory.dimension; k++) {
         for(int m=k+1; m<trajectory.dimension; m++) {
             dReal num, denum, r;
-            num = a[k]*(tau_alpha[m]-c[m])-a[m]*(tau_beta[k]-c[k]);
             denum = a[k]*b[m]-a[m]*b[k];
             if(std::abs(denum) > TINY) {
+                num = a[k]*(tau_alpha[m]-c[m])-a[m]*(tau_beta[k]-c[k]);
                 r = num/denum;
                 if(r>=0) {
                     sdmin = std::min(sdmin,sqrt(r));
                 }
-            }
-            num = a[m]*(tau_alpha[k]-c[k])-a[k]*(tau_beta[m]-c[m]);
-            denum = -denum;
-            if(std::abs(denum) > TINY) {
+
+                num = a[m]*(tau_alpha[k]-c[k])-a[k]*(tau_beta[m]-c[m]);
+                denum = -denum;
                 r = num/denum;
                 if(r>=0) {
                     sdmin = std::min(sdmin,sqrt(r));
@@ -473,9 +1133,49 @@ void TorqueLimitsRave2::FindSingularSwitchPoints(){
         }
         if(found) {
             //std::cout << discrsvect[i] << "," << minsd << "\n";
+            //std::cout << "singular switch: " << discrsvect[i] << " minsid=" << minsd << std::endl;
             AddSwitchPoint(i,SP_SINGULAR,minsd);
         }
-        aprev = a;
+        aprev.swap(a);
+    }
+}
+
+void TorqueLimitsRave2::FindDiscontinuousSwitchPoints() {
+    if(ndiscrsteps<3)
+        return;
+    int i = 0;
+    dReal sd, sdn, sdnn;
+    sd = SdLimitBobrow(discrsvect[i]);
+    sdn = SdLimitBobrow(discrsvect[i+1]);
+    // also look for the start of the chucks for the trajectory
+    std::list<dReal>::const_iterator itchuckstart = trajectory.chunkcumulateddurationslist.begin();
+    int nLastAddedSwitchIndex = -1;
+    for(int i=0; i<ndiscrsteps-2; i++) {
+        sdnn = SdLimitBobrow(discrsvect[i+2]);
+        if(std::abs(sdnn-sdn)>100*std::abs(sdn-sd)) {
+            if(sdn<sdnn) {
+                AddSwitchPoint(i+1,SP_DISCONTINUOUS);
+                nLastAddedSwitchIndex = i+1;
+            }
+            else{
+                AddSwitchPoint(i+2,SP_DISCONTINUOUS);
+                nLastAddedSwitchIndex = i+2;
+            }
+        }
+        if( trajectory.degree <= 3 ) {
+            // if the trajectory degree is <= 3, then the accelerations will not be differentiable at the trajectory chunk edges.
+            // therefore add those discontinuity points.
+            // perhaps there's a better way to compute this, but the above threshold doesn't catch it.
+            if( itchuckstart != trajectory.chunkcumulateddurationslist.end() && *itchuckstart <= discrsvect[i+2]+TINY ) {
+                if( nLastAddedSwitchIndex < i+1 ) {
+                    AddSwitchPoint(i+1,SP_DISCONTINUOUS);
+                    nLastAddedSwitchIndex = i+1;
+                }
+                ++itchuckstart;
+            }
+        }
+        sd = sdn;
+        sdn = sdnn;
     }
 }
 

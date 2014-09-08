@@ -55,7 +55,7 @@ void KinematicLimits::Discretize(){
 void KinematicLimits::InterpolateDynamics(dReal s, std::vector<dReal>& qd, std::vector<dReal>& qdd){
     qd.resize(trajectory.dimension);
     qdd.resize(trajectory.dimension);
-    assert(s>=-TINY && s<=trajectory.duration+TINY);
+    BOOST_ASSERT(s>=-TINY && s<=trajectory.duration+TINY);
     if(s<0) {
         s=0;
     }

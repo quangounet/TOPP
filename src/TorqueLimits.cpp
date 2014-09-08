@@ -51,7 +51,7 @@ void TorqueLimits::InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vect
     a.resize(trajectory.dimension);
     b.resize(trajectory.dimension);
     c.resize(trajectory.dimension);
-    assert(s >= -TINY && s <= trajectory.duration + TINY);
+    BOOST_ASSERT(s >= -TINY && s <= trajectory.duration + TINY);
     if(s < 0)
         s = 0;
     if(s >= trajectory.duration - TINY) {

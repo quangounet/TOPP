@@ -314,7 +314,7 @@ public:
     virtual void FixStart(dReal& sstartnew,dReal& sdstartnew, dReal timestep){
         sstartnew = 0;
     }
-
+    
     // Fix the integration at s=send when there is a singularity there
     // If there's nothing to do then sendnew = send
     // Else sendnew < send and sdendnew will be the value that allows going through the singularity

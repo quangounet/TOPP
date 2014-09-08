@@ -58,7 +58,7 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
     probot->GetDOFAccelerationLimits(amax);
 
     //Check Soundness
-    assert(ndof == ptraj->dimension);
+    BOOST_ASSERT(ndof == ptraj->dimension);
 
     //Links
     linksvector = probot->GetLinks();
@@ -313,10 +313,10 @@ boost::multi_array<dReal, 2> FrictionLimits::MatrixTrans(const boost::multi_arra
 }
 
 boost::multi_array<dReal, 2> FrictionLimits::MatricesMult3(const boost::multi_array<dReal, 2>& A, const boost::multi_array<dReal, 2>& B) {
-    assert(int(A.shape()[0] == 3));
-    assert(int(A.shape()[1] == 3));
-    assert(int(B.shape()[0] == 3));
-    assert(int(B.shape()[1] == 3));
+    BOOST_ASSERT(int(A.shape()[0] == 3));
+    BOOST_ASSERT(int(A.shape()[1] == 3));
+    BOOST_ASSERT(int(B.shape()[0] == 3));
+    BOOST_ASSERT(int(B.shape()[1] == 3));
     boost::multi_array<dReal, 2> C(boost::extents[3][3]);
     for(int i = 0; i < 3; i++) {
         for(int j = 0; j < 3; j++) {
@@ -330,7 +330,7 @@ boost::multi_array<dReal, 2> FrictionLimits::MatricesMult3(const boost::multi_ar
 
 
 Vector FrictionLimits::MatrixMultVector(const boost::multi_array<dReal, 2>& M, const std::vector<dReal>& v) {
-    assert(M.shape()[1] == v.size());
+    BOOST_ASSERT(M.shape()[1] == v.size());
     Vector res;
 
     for(int i = 0; i < int(M.shape()[0]); i++) {

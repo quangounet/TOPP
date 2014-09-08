@@ -33,6 +33,7 @@ class TorqueLimitsRave3 : public QuadraticConstraints
 {
 public:
     TorqueLimitsRave3(OpenRAVE::RobotBasePtr probot, OpenRAVE::TrajectoryBaseConstPtr ptraj, dReal discrtimestep);
+    TorqueLimitsRave3(OpenRAVE::RobotBasePtr probot, const std::list<OpenRAVE::TrajectoryBaseConstPtr>& listtrajectories, dReal discrtimestep);
 
 protected:
     //////////////// Specific members and methods //////////////////////
