@@ -57,14 +57,6 @@ class QuadraticConstraints(object):
         traj_str = self.solver.restrajectorystring
         return PiecewisePolynomialTrajectory.FromString(traj_str)
 
-    def GetAVP(self, sdmin, sdmax):
-        print "Warning: GetAVP is a legacy function"
-        return self.GetAVP(sdmin, sdmax)
-
-    def GetTrajectory(self, sdbeg=0., sdend=1e-4):
-        print "Warning: GetTrajectory is a legacy function"
-        return self.Reparameterize(sdbeg, sdend)
-
     def PlotProfiles(self):
         self.solver.WriteProfilesList()
         self.solver.WriteSwitchPointsList()
