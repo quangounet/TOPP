@@ -18,7 +18,7 @@
 
 import TOPPpy
 
-from Errors import NoTrajectoryFound
+from Errors import NoTrajectoryFound, TOPP_OK
 from Trajectory import PiecewisePolynomialTrajectory
 from TOPPbindings import TOPPInstance
 from TOPPpy import ProfilesFromString, SwitchPointsFromString, PlotProfiles
@@ -38,32 +38,24 @@ class QuadraticConstraints(object):
 
     def AVP(self, sdmin, sdmax):
         return_code = self.solver.RunVIP(sdmin, sdmax)
-        if return_code == 0:
-            raise NoTrajectoryFound
+        if return_code != TOPP_OK:
+            raise NoTrajectoryFound(return_code)
         sdendmin = self.solver.sdendmin
         sdendmax = self.solver.sdendmax
         return (sdendmin, sdendmax)
 
     def Reparameterize(self, sdbeg=0., sdend=0.):
         return_code = self.solver.RunComputeProfiles(sdbeg, sdend)
-        if return_code != 1:
-            raise NoTrajectoryFound(return_code, self)
+        if return_code != TOPP_OK:
+            raise NoTrajectoryFound(return_code)
 
         return_code = self.solver.ReparameterizeTrajectory()
         if return_code < 0:
-            raise NoTrajectoryFound(return_code, self)
+            raise NoTrajectoryFound(return_code)
 
         self.solver.WriteResultTrajectory()
         traj_str = self.solver.restrajectorystring
         return PiecewisePolynomialTrajectory.FromString(traj_str)
-
-    def GetAVP(self, sdmin, sdmax):
-        print "Warning: GetAVP is a legacy function"
-        return self.GetAVP(sdmin, sdmax)
-
-    def GetTrajectory(self, sdbeg=0., sdend=1e-4):
-        print "Warning: GetTrajectory is a legacy function"
-        return self.Reparameterize(sdbeg, sdend)
 
     def PlotProfiles(self):
         self.solver.WriteProfilesList()
