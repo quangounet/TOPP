@@ -147,7 +147,7 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=None):
         if sw[2] == 0:
             plot(sw[0], sw[1], 'ro', markersize=8)
         if sw[2] == 1:
-            plot(sw[0], sw[1], 'go', markersize=8)
+            plot(sw[0], sw[1], 'yo', markersize=8)
         if sw[2] == 2:
             plot(sw[0], sw[1], 'bo', markersize=8)
         if sw[2] == 3:
