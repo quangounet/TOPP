@@ -111,9 +111,7 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
 
             RaveTransform<dReal> Htray = probot->GetLinks()[traylinkindex]->GetTransform();
             // Vector Pt = probot->GetLinks()[traylinkindex]->GetGlobalCOM();
-            Vector nx = Htray.rotate(worldx);
-            Vector ny = Htray.rotate(worldy);
-            Vector nz = Htray.rotate(worldz); //normal vector of the tray described in world's frame
+            Vector nz_tray = Htray.rotate(worldz); //normal vector of the tray described in world's frame
 
             // calculate Jacobians of the tray
             // probot->CalculateJacobian(traylinkindex, Pt, jacobiant_p);
@@ -155,6 +153,10 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
 
                 RaveTransform<dReal> Hbottle = probot->GetLinks()[bottlelinkindex]->GetTransform();
                 Vector Pb = probot->GetLinks()[bottlelinkindex]->GetGlobalCOM();
+		
+                Vector nx_bottle = Hbottle.rotate(worldx);
+                Vector ny_bottle = Hbottle.rotate(worldy);
+		Vector nz_bottle = Hbottle.rotate(worldz);
 
                 //Calculate Jacobians of the bottle
                 probot->CalculateJacobian(bottlelinkindex, Pb, jacobianb_p);
@@ -177,9 +179,9 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
                 Vector Pbs = MatrixMultVector(jacobianb_p, qd);
                 Vector Pbss = MatrixMultVector(jacobianb_p, qdd) + MatrixMultVector(jacobianb_pdiff, qd);
 
-                dReal Ns = mb*nz.dot3(Pbs);
-                dReal Nss = mb*nz.dot3(Pbss);
-                dReal N0 = -mb*nz.dot3(g);
+                dReal Ns = mb*nz_tray.dot3(Pbs);
+                dReal Nss = mb*nz_tray.dot3(Pbss);
+                dReal N0 = -mb*nz_tray.dot3(g);
 
                 //**************** CONSTRAINT I : N >= 0 *****************
                 // actually this constraint will never be saturated.
@@ -188,28 +190,28 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
                 c.push_back(eps - N0);
                 //********************************************************
 
-                Vector fs = mb*Pbs - Ns*nz;
-                Vector fss = mb*Pbss - Nss*nz;
-                Vector f0 = -mb*g - N0*nz;
+                Vector fs = mb*Pbs - Ns*nz_tray;
+                Vector fss = mb*Pbss - Nss*nz_tray;
+                Vector f0 = -mb*g - N0*nz_tray;
 
                 //*************** relaxed conditions of friction cone ****************
                 //************************* CONSTAINT II/I ***************************
-                a.push_back(nx.dot3(fs) - (mu/r2)*Ns);
-                b.push_back(nx.dot3(fss) - (mu/r2)*Nss);
-                c.push_back(nx.dot3(f0) - (mu/r2)*N0);
+                a.push_back(nx_bottle.dot3(fs) - (mu/r2)*Ns);
+                b.push_back(nx_bottle.dot3(fss) - (mu/r2)*Nss);
+                c.push_back(nx_bottle.dot3(f0) - (mu/r2)*N0);
 
-                a.push_back(-nx.dot3(fs) - (mu/r2)*Ns);
-                b.push_back(-nx.dot3(fss) - (mu/r2)*Nss);
-                c.push_back(-nx.dot3(f0) - (mu/r2)*N0);
+                a.push_back(-nx_bottle.dot3(fs) - (mu/r2)*Ns);
+                b.push_back(-nx_bottle.dot3(fss) - (mu/r2)*Nss);
+                c.push_back(-nx_bottle.dot3(f0) - (mu/r2)*N0);
 
                 //************************ CONSTRAINT II/II **************************
-                a.push_back(ny.dot3(fs) - (mu/r2)*Ns);
-                b.push_back(ny.dot3(fss) - (mu/r2)*Nss);
-                c.push_back(ny.dot3(f0) - (mu/r2)*N0);
+                a.push_back(ny_bottle.dot3(fs) - (mu/r2)*Ns);
+                b.push_back(ny_bottle.dot3(fss) - (mu/r2)*Nss);
+                c.push_back(ny_bottle.dot3(f0) - (mu/r2)*N0);
 
-                a.push_back(-ny.dot3(fs) - (mu/r2)*Ns);
-                b.push_back(-ny.dot3(fss) - (mu/r2)*Nss);
-                c.push_back(-ny.dot3(f0) - (mu/r2)*N0);
+                a.push_back(-ny_bottle.dot3(fs) - (mu/r2)*Ns);
+                b.push_back(-ny_bottle.dot3(fss) - (mu/r2)*Nss);
+                c.push_back(-ny_bottle.dot3(f0) - (mu/r2)*N0);
                 //********************************************************************
 
                 //*************** general conditions of friction force : fz = 0 ****************
@@ -240,36 +242,33 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
                 Vector Mss = MatrixMultVector(Ib, temp2) + temp1.cross(Ms);
                 //*************************************************************************************************
 
-                Vector Es = nz.cross(Ms) + mb*bottleh*Pbs;
-                Vector Ess = nz.cross(Mss) + mb*bottleh*Pbss;
+                Vector Es = nz_bottle.cross(Ms) + mb*bottleh*Pbs;
+                Vector Ess = nz_bottle.cross(Mss) + mb*bottleh*Pbss;
                 Vector E0 = -mb*bottleh*g;
 
-                Vector nxbottle = Hbottle.rotate(worldx);
-                Vector nybottle = Hbottle.rotate(worldy);
-
-                Vector Ks = bottleh*Ns*nz - Es;
-                Vector Kss = bottleh*Nss*nz - Ess;
-                Vector K0 = bottleh*N0*nz - E0;
+                Vector Ks = bottleh*Ns*nz_bottle - Es;
+                Vector Kss = bottleh*Nss*nz_bottle - Ess;
+                Vector K0 = bottleh*N0*nz_bottle - E0;
 
                 //X
                 //************************* CONSTAINT III/I ***************************
-                a.push_back(nxbottle.dot3(Ks) - dx*Ns);
-                b.push_back(nxbottle.dot3(Kss) - dx*Nss);
-                c.push_back(nxbottle.dot3(K0) - dx*N0);
+                a.push_back(nx_bottle.dot3(Ks) - dx*Ns);
+                b.push_back(nx_bottle.dot3(Kss) - dx*Nss);
+                c.push_back(nx_bottle.dot3(K0) - dx*N0);
 
-                a.push_back(-nxbottle.dot3(Ks) - dx*Ns);
-                b.push_back(-nxbottle.dot3(Kss) - dx*Nss);
-                c.push_back(-nxbottle.dot3(K0) - dx*N0);
+                a.push_back(-nx_bottle.dot3(Ks) - dx*Ns);
+                b.push_back(-nx_bottle.dot3(Kss) - dx*Nss);
+                c.push_back(-nx_bottle.dot3(K0) - dx*N0);
 
                 //Y
                 //************************ CONSTRAINT III/II **************************
-                a.push_back(ny.dot3(Ks) - dy*Ns);
-                b.push_back(ny.dot3(Kss) - dy*Nss);
-                c.push_back(ny.dot3(K0) - dy*N0);
+                a.push_back(ny_bottle.dot3(Ks) - dy*Ns);
+                b.push_back(ny_bottle.dot3(Kss) - dy*Nss);
+                c.push_back(ny_bottle.dot3(K0) - dy*N0);
 
-                a.push_back(-nybottle.dot3(Ks) - dy*Ns);
-                b.push_back(-nybottle.dot3(Kss) - dy*Nss);
-                c.push_back(-nybottle.dot3(K0) - dy*N0);
+                a.push_back(-ny_bottle.dot3(Ks) - dy*Ns);
+                b.push_back(-ny_bottle.dot3(Kss) - dy*Nss);
+                c.push_back(-ny_bottle.dot3(K0) - dy*N0);
 
                 //std::cout << Ns << "\t" << Nss << "\t" << N0 << "\t" << "\n";
 
