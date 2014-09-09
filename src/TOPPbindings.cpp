@@ -120,6 +120,11 @@ public:
 #endif
     }
 
+    // Dummy instance
+    TOPPInstance(int x){
+        return;
+    }
+
     boost::shared_ptr<Constraints> pconstraints;
     TOPP::Trajectory restrajectory;
 
@@ -208,17 +213,19 @@ public:
         }
         return ret;
     }
-  
-  std::string RunComputePolygon(std::string q,std::string G,std::string A,std::string b,std::string h){
 
-    std::cout << "ahoj\n";
-    //std::cout << q ;
-    std::vector<std::pair<dReal,dReal> > resvect;
-    bool res = TOPP::ComputePolygon(q,G,A,b,h,resvect);
-    return "tata";
+    std::string RunComputePolygon(std::string q,std::string G,std::string A,std::string b,std::string h){
+        //std::cout << q ;
+        std::string resstring;
+        bool res = TOPP::ComputePolygon(q,G,A,b,h,resstring);
+        if(res) {
+            return resstring;
+        }
+        else{
+            return "";
+        }
+    }
 
-  }
-  
 
 #ifdef WITH_OPENRAVE
     object GetOpenRAVEResultTrajectory(object opyenv)
@@ -303,6 +310,7 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     using namespace boost::python;
     class_<TOPPInstance>("TOPPInstance", init<object,std::string,std::string,std::string>())
     .def(init<object,std::string,object,TOPP::dReal>(args("openraverobot","problemtype","openravetrajectory","discrtimestep")))
+    .def(init<int>())
     .def_readwrite("integrationtimestep", &TOPPInstance::integrationtimestep)
     .def_readwrite("reparamtimestep", &TOPPInstance::reparamtimestep)
     .def_readwrite("passswitchpointnsteps", &TOPPInstance::passswitchpointnsteps)

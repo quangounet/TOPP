@@ -29,13 +29,12 @@ public:
     Vertex();
     Vertex(dReal x0, dReal y0);
     dReal x,y;
-    bool expanded;
+    bool expanded, checked;
     Vertex* next;
     dReal length();
-    bool expand(soplex::SoPlex& lp, Vertex* vresg, std::chrono::duration<double>& duration);
+    bool expand(soplex::SoPlex& lp, Vertex* vresg);
     dReal area(std::pair<dReal,dReal> v1, std::pair<dReal,dReal> v2);
     std::string toString();
-
 };
 
 class Polygon {
@@ -44,14 +43,14 @@ public:
     std::list<Vertex*> vertices;
     Vertex* v1, v2, v3;
     bool all_expanded();
-    void iter_expand(soplex::SoPlex& lp, std::chrono::duration<double>& duration);
+    void iter_expand(soplex::SoPlex& lp);
     std::string toString();
 };
 
 
-bool OptimizeDirection(std::pair<dReal,dReal> v, soplex::SoPlex& lp, std::pair<dReal,dReal>& z, std::chrono::duration<double>& duration);
+bool OptimizeDirection(std::pair<dReal,dReal> v, soplex::SoPlex& lp, std::pair<dReal,dReal>& z);
 
- bool ComputePolygon(const std::string& lp_q,const std::string& lp_G,const std::string& lp_A,const std::string& lp_b,const std::string& lp_h, std::vector<std::pair<dReal,dReal> >& resvect);
+bool ComputePolygon(const std::string& lp_q,const std::string& lp_G,const std::string& lp_A,const std::string& lp_b,const std::string& lp_h, std::string& resstring);
 
 }
 
