@@ -112,6 +112,8 @@ if(ret == 1):
 else:
     print "Trajectory is not time-parameterizable"
 
+print x.RunComputePolygon('toto')
+
 # Execute trajectory
 # if(ret == 1):
 #     TOPPopenravepy.Execute(robot,traj1)

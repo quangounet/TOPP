@@ -18,6 +18,7 @@
 #include "KinematicLimits.h"
 #include "TorqueLimits.h"
 #include "PolygonConstraints.h"
+#include "ComputePolygon.h"
 
 #include <boost/format.hpp>
 #include <boost/python.hpp>
@@ -25,7 +26,7 @@
 #include <boost/python/def.hpp>
 
 #ifdef WITH_OPENRAVE
-#include "ComputePolygon.h"
+//#include "ComputePolygon.h"
 #include "TorqueLimitsRave.h"
 #include "TorqueLimitsRave3.h"
 //#include "ZMPTorqueLimits.h"
@@ -207,6 +208,17 @@ public:
         }
         return ret;
     }
+  
+  std::string RunComputePolygon(std::string q,std::string G,std::string A,std::string b,std::string h){
+
+    std::cout << "ahoj\n";
+    //std::cout << q ;
+    std::vector<std::pair<dReal,dReal> > resvect;
+    bool res = TOPP::ComputePolygon(q,G,A,b,h,resvect);
+    return "tata";
+
+  }
+  
 
 #ifdef WITH_OPENRAVE
     object GetOpenRAVEResultTrajectory(object opyenv)
@@ -320,6 +332,7 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def("WriteExtra",&TOPPInstance::WriteExtra)
     .def("WriteConstraints",&TOPPInstance::WriteConstraints)
     .def("WriteSwitchPointsList",&TOPPInstance::WriteSwitchPointsList)
+    .def("RunComputePolygon",&TOPPInstance::RunComputePolygon)
 #ifdef WITH_OPENRAVE
     .def("GetOpenRAVEResultTrajectory", &TOPPInstance::GetOpenRAVEResultTrajectory, args("pyenv"))
 #endif

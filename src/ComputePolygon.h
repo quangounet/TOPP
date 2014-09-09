@@ -20,11 +20,7 @@
 
 
 #include "TOPP.h"
-
-extern "C" {
-#include <stdlib.h>
-#include <glpk.h>
-}
+#include "soplex.h"
 
 namespace TOPP {
 
@@ -36,7 +32,9 @@ public:
     bool expanded;
     Vertex* next;
     dReal length();
-    bool expand(glp_prob& lp, Vertex& vres);
+    bool expand(soplex::SoPlex& lp, Vertex* vresg, std::chrono::duration<double>& duration);
+    dReal area(std::pair<dReal,dReal> v1, std::pair<dReal,dReal> v2);
+    std::string toString();
 
 };
 
@@ -46,13 +44,14 @@ public:
     std::list<Vertex*> vertices;
     Vertex* v1, v2, v3;
     bool all_expanded();
-    void iter_expand(glp_prob& lp);
+    void iter_expand(soplex::SoPlex& lp, std::chrono::duration<double>& duration);
+    std::string toString();
 };
 
 
-bool OptimizeDirection(std::pair<dReal,dReal> v, glp_prob& lp, std::pair<dReal,dReal>& z);
+bool OptimizeDirection(std::pair<dReal,dReal> v, soplex::SoPlex& lp, std::pair<dReal,dReal>& z, std::chrono::duration<double>& duration);
 
-std::vector<std::pair<dReal,dReal> > ComputePolygon(const std::string& lpstring);
+ bool ComputePolygon(const std::string& lp_q,const std::string& lp_G,const std::string& lp_A,const std::string& lp_b,const std::string& lp_h, std::vector<std::pair<dReal,dReal> >& resvect);
 
 }
 
