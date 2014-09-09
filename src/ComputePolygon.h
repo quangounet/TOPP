@@ -29,7 +29,7 @@ public:
     Vertex();
     Vertex(dReal x0, dReal y0);
     dReal x,y;
-    bool expanded, checked;
+    bool expanded;
     Vertex* next;
     dReal length();
     bool expand(soplex::SoPlex& lp, Vertex* vresg);

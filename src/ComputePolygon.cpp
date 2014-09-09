@@ -34,7 +34,6 @@ Vertex::Vertex(dReal x0, dReal y0){
     x = x0;
     y = y0;
     expanded = false;
-    checked = false;
     next = NULL;
 }
 
@@ -50,10 +49,10 @@ bool Vertex::expand(soplex::SoPlex& lp, Vertex* vres){
     // Calculate the unit vector normal to the edge [v,vnext]
     std::pair<dReal,dReal> vortho(next->y-y,x-next->x);
     dReal vnorm = sqrt(pow(vortho.first,2)+pow(vortho.second,2));
-    if(vnorm<1e-5) {
-        expanded = true;
-        return false;
-    }
+    // if(vnorm<1e-5) {
+    //     expanded = true;
+    //     return false;
+    // }
     vortho.first = vortho.first/vnorm;
     vortho.second = vortho.second/vnorm;
 
@@ -138,10 +137,11 @@ void Polygon::iter_expand(soplex::SoPlex& lp){
 std::string Polygon::toString(){
     std::ostringstream s("");
     Vertex* v = vertices.front();
-    while(!v->checked) {
+    int n = 0;
+    while(n < int(vertices.size())) {
         s << v->toString() << "\n";
-        v->checked = true;
         v = v->next;
+        n++;
     }
     return s.str();
 }
