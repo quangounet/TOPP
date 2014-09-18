@@ -207,7 +207,7 @@ void Constraints::AddSwitchPoint(int i, int switchpointtype, dReal sd){
         sw.slopesvector.resize(0);
         ComputeSlopeDynamicSingularity(s, sd, sw.slopesvector);
     }
-    switchpointslist.insert(it,sw);
+    switchpointslist.insert(it, sw);
 }
 
 void Constraints::AddSwitchPoint2(dReal s, dReal sd, int switchpointtype)
@@ -719,13 +719,15 @@ dReal QuadraticConstraints::SdLimitBobrowInit2(dReal s){
         InterpolateDynamics(s, a, b, c);
     }
 
+    bool possibleisland = false;
     // // This has problems when an island (Shin & McKay 1985, TAC) exist.
-    // std::pair<dReal, dReal> sddlimits = SddLimits(s,0);
-    // if (sddlimits.first >= sddlimits.second) {
-    //     return 0;
-    // }
+    std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
+    if (sddlimits.first >= sddlimits.second) {
+        possibleisland = true;
+    }
 
     std::vector<dReal> sdmin(0);
+    sdmin.push_back(INF);
     for (int k = 0; k < nconstraints; k++) {
         for (int m = k+1; m < nconstraints; m++) {
             dReal num, denum, r;
@@ -736,13 +738,34 @@ dReal QuadraticConstraints::SdLimitBobrowInit2(dReal s){
                 if (std::abs(denum) > TINY) {
                     r = num/denum;
                     if (r >= 0) {
-                        sdmin.push_back(sqrt(r));
+			r = sqrt(r);
+			std::vector<dReal>::iterator it = std::lower_bound(sdmin.begin(), sdmin.end(), r);
+                        sdmin.insert(it, r);
                     }
                 }
             }
         }
     }
-    return *(std::max_element(sdmin.begin(), sdmin.end()));
+
+    // if (sdmin.size() > 0){
+    // 	std::cout << "sdmin = [ "; 
+    // 	for (int k = 0; k < sdmin.size() - 1; k++) {
+    // 	    std::cout << sdmin[k] << ", ";
+    // 	}
+    // 	std::cout << sdmin[sdmin.size() - 1] << "]\n";
+    // }
+    
+    if (possibleisland) {
+	if (sdmin.size() > 1) {
+	    return sdmin[0];
+	}
+	else {
+	    return 0;
+	}
+    }
+    else {
+	return sdmin[0];
+    }
 }
     
 std::pair<dReal, dReal> QuadraticConstraints::SdLimitBobrowInit3(dReal s){
