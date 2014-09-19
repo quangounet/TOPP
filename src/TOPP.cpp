@@ -26,6 +26,8 @@ namespace TOPP {
 bool Constraints::Preprocess() {
     switchpointslist.clear();
     resprofileslist.resize(0);
+
+    bool hasislands = false;
     
     /// change discrimtestep such that it becomes a divisor of trajectory duration
     int ndiscrsteps = int((trajectory.duration + TINY)/discrtimestep);
@@ -42,7 +44,7 @@ bool Constraints::Preprocess() {
     std::chrono::duration<double> d1, d2, d3;
 
     t0 = std::chrono::system_clock::now();
-    ComputeMVCBobrow();
+    ComputeMVCBobrow2();
     t1 = std::chrono::system_clock::now();
     ComputeMVCCombined();
     t2 = std::chrono::system_clock::now();
@@ -284,7 +286,7 @@ void Constraints::FindDiscontinuousSwitchPoints() {
     dReal sd, sdn, sdnn;
     sd = SdLimitBobrow(discrsvect[i]);
     sdn = SdLimitBobrow(discrsvect[i + 1]);
-    // also look for the start of the chunks for the trajectory
+    /// also look for the start of the chunks for the trajectory
     std::list<dReal>::const_iterator itchunkstart = trajectory.chunkcumulateddurationslist.begin();
     int nLastAddedSwitchIndex = -1;
     for (int i = 0; i < ndiscrsteps - 2; i++) {
@@ -345,8 +347,8 @@ void Constraints::TrimSwitchPoints() {
     std::vector<dReal> slopesvector;
     std::list<SwitchPoint>::iterator it = switchpointslist.begin();
 
-    // Merge singular points
-    // Find the first singular point, if any
+    /// merge singular points
+    /// find the first singular point, if any
     while (it!=switchpointslist.end()) {
         if (it->switchpointtype == SP_SINGULAR) {
             scur = it->s;
@@ -356,7 +358,7 @@ void Constraints::TrimSwitchPoints() {
         }
         it++;
     }
-    // Merge consecutive singular points that are in a small radius
+    /// merge consecutive singular points that are in a small radius
     if (scur >= 0) {
         it++;
         while (it != switchpointslist.end()) {
@@ -395,8 +397,8 @@ void Constraints::TrimSwitchPoints() {
         }
     }
 
-    // Merge non-singular switchpoints
-    // Find the first non singular switchpoint, if any
+    /// merge non-singular switchpoints
+    /// find the first non singular switchpoint, if any
     it = switchpointslist.begin();
     while (it != switchpointslist.end()) {
         if (it->switchpointtype != SP_SINGULAR) {
@@ -407,7 +409,7 @@ void Constraints::TrimSwitchPoints() {
         }
         it++;
     }
-    // Merge consecutive non-singular switchpoints that are in a small radius
+    /// merge consecutive non-singular switchpoints that are in a small radius
     if (scur >= 0) {
         it++;
         while (it != switchpointslist.end()) {
@@ -423,9 +425,9 @@ void Constraints::TrimSwitchPoints() {
                     else{
                         slopesvector = itcur->slopesvector;
                         switchpointslist.erase(itcur);
-                        // don't set scur/sdcur since then radius will be sliding
-                        //scur = snext;
-                        //sdcur = sdnext;
+                        /// don't set scur/sdcur since then radius will be sliding
+                        // scur = snext;
+                        // sdcur = sdnext;
                         itcur = it;
                         it++;
                     }
@@ -446,7 +448,7 @@ void Constraints::TrimSwitchPoints() {
 
         }
     }
-    // Sort by sd
+    /// sort by sd
     std::list<SwitchPoint> splist;
     it = switchpointslist.begin();
     while (it != switchpointslist.end()) {
@@ -707,6 +709,9 @@ dReal QuadraticConstraints::SdLimitBobrowInit(dReal s){
 }
 
 dReal QuadraticConstraints::SdLimitBobrowInit2(dReal s){
+    /// \brief Returns sd which is the lowest edge between feasible-infeasible area
+    /// If there is any island, we have \alpha(s, sd - TINY) > \beta(s, sd - TINY) (infeasible area below)
+    /// Otherwise, we have \alpha(s, sd - TINY) < \beta(s, sd - TINY) (infeasible area above)
     std::vector<dReal> a, b, c;
     InterpolateDynamics(s, a, b, c);
     if (VectorNorm(a) < TINY) { ///? why check for VectorNorm(a)?
@@ -720,7 +725,7 @@ dReal QuadraticConstraints::SdLimitBobrowInit2(dReal s){
     }
 
     bool possibleisland = false;
-    // // This has problems when an island (Shin & McKay 1985, TAC) exist.
+
     std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
     if (sddlimits.first >= sddlimits.second) {
         possibleisland = true;
@@ -729,7 +734,7 @@ dReal QuadraticConstraints::SdLimitBobrowInit2(dReal s){
     std::vector<dReal> sdmin(0);
     sdmin.push_back(INF);
     for (int k = 0; k < nconstraints; k++) {
-        for (int m = k+1; m < nconstraints; m++) {
+        for (int m = k + 1; m < nconstraints; m++) {
             dReal num, denum, r;
             // If we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
             if (a[k]*a[m] < 0) {
@@ -746,22 +751,30 @@ dReal QuadraticConstraints::SdLimitBobrowInit2(dReal s){
             }
         }
     }
-
-    // if (sdmin.size() > 0){
-    // 	std::cout << "sdmin = [ "; 
-    // 	for (int k = 0; k < sdmin.size() - 1; k++) {
-    // 	    std::cout << sdmin[k] << ", ";
-    // 	}
-    // 	std::cout << sdmin[sdmin.size() - 1] << "]\n";
-    // }
     
     if (possibleisland) {
-	if (sdmin.size() > 1) {
-	    return sdmin[0];
+    	// std::cout << "sdmin = [ ";
+    	// int nprints = std::min(int(sdmin.size()), 3);
+    	// for (int k = 0; k < nprints - 1; k++) {
+    	//     std::cout << sdmin[k] << ": ";
+	//     sddlimits = SddLimits(s, sdmin[k]);
+	//     std::cout << "(" << sddlimits.first << ", " << sddlimits.second << "), ";
+    	// }
+    	// std::cout << sdmin[nprints - 1] << ": ";
+	// sddlimits = SddLimits(s, sdmin[nprints - 1]);
+	// std::cout << "(" << sddlimits.first << ", " << sddlimits.second << ")]\n";
+	
+	
+	std::vector<dReal>::iterator it;
+	for (it = sdmin.begin(); it != sdmin.end(); it++) {
+	    sddlimits = SddLimits(s, *it);
+	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
+		/// this is the sd at the edge of the lower island
+		hasislands = true;
+		return *it;
+	    }
 	}
-	else {
-	    return 0;
-	}
+	return 0;
     }
     else {
 	return sdmin[0];
@@ -769,6 +782,10 @@ dReal QuadraticConstraints::SdLimitBobrowInit2(dReal s){
 }
     
 std::pair<dReal, dReal> QuadraticConstraints::SdLimitBobrowInit3(dReal s){
+    /// \brief Returns a pair of sd, (sd_l, sd_u), which determine the valid interval of sd at s
+    /// If the interval of sd is valid from 0 upwards, assign sd_l = -1
+    
+    std::pair<dReal, dReal> result;
     std::vector<dReal> a, b, c;
     InterpolateDynamics(s, a, b, c);
     if (VectorNorm(a) < TINY) { ///? why check for VectorNorm(a)?
@@ -781,46 +798,57 @@ std::pair<dReal, dReal> QuadraticConstraints::SdLimitBobrowInit3(dReal s){
         InterpolateDynamics(s, a, b, c);
     }
 
-    // std::pair<dReal,dReal> sddlimits = SddLimits(s,0);
-    // if (sddlimits.first >= sddlimits.second) {
-    //     return 0;
-    // }
-    
-    std::vector<dReal> sdcandidates(0);
-    
-    // dReal sdmin = INF;
+    bool possibleisland = false;
+
+    std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
+    if (sddlimits.first >= sddlimits.second) {
+        possibleisland = true;
+    }
+
+    std::vector<dReal> sdmin(0);
+    sdmin.push_back(INF);
     for (int k = 0; k < nconstraints; k++) {
         for (int m = k + 1; m < nconstraints; m++) {
             dReal num, denum, r;
-            /// If we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
+            /// if we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
             if (a[k]*a[m] < 0) {
                 num = a[k]*c[m] - a[m]*c[k];
                 denum = -a[k]*b[m] + a[m]*b[k];
                 if (std::abs(denum) > TINY) {
                     r = num/denum;
                     if (r >= 0) {
-			sdcandidates.push_back(sqrt(r));
-                        // sdmin = std::min(sdmin, sqrt(r));
+			r = sqrt(r);
+			std::vector<dReal>::iterator it = std::lower_bound(sdmin.begin(), sdmin.end(), r);
+			/// sort all candidates with respect to sd
+                        sdmin.insert(it, r);
                     }
                 }
             }
         }
     }
     
-    if (sdcandidates.size() > 2) {
-	std::cout << "sdcandidates.size() > 2" << "\n";
-    }
-    
-    std::pair<dReal, dReal> result;
-    if (sdcandidates.size() > 1) {
-	result.first = *(std::min_element(sdcandidates.begin(), sdcandidates.end()));
-	result.second = *(std::max_element(sdcandidates.begin(), sdcandidates.end()));
+    if (possibleisland) {
+	/// now consider only the case when sd has ONE valid interval
+	std::vector<dReal>::iterator it;
+	for (it = sdmin.begin(); it != sdmin.end(); it++) {
+	    sddlimits = SddLimits(s, *it);
+	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
+		hasislands = true;
+		result.first = *it;
+		it++;
+		result.second = *it;
+		return result;
+	    }
+	}
+	result.first = -1;
+	result.second = 0;
+	return result;
     }
     else {
 	result.first = -1;
-	result.second = sdcandidates[0];
+	result.second = sdmin[0];
+	return result;
     }
-    return result;
 }
 
 dReal QuadraticConstraints::SdLimitBobrowExclude(dReal s, int iexclude) {
@@ -836,7 +864,7 @@ dReal QuadraticConstraints::SdLimitBobrowExclude(dReal s, int iexclude) {
         InterpolateDynamics(s, a, b, c);
     }
 
-    // This has problems when an island (Shin & McKay 1985, TAC) exist.
+    /// this has problems when an island (Shin & McKay 1985, TAC) exist.
     std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
     if (sddlimits.first > sddlimits.second) {
         return 0;
@@ -844,12 +872,12 @@ dReal QuadraticConstraints::SdLimitBobrowExclude(dReal s, int iexclude) {
 
     dReal sdmin = INF;
     for (int k = 0; k < nconstraints; k++) {
-        for (int m = k+1; m < nconstraints; m++) {
+        for (int m = k + 1; m < nconstraints; m++) {
             if (k == iexclude || m == iexclude) {
                 continue;
             }
             dReal num, denum, r;
-            // If we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
+            /// if we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
             if (a[k]*a[m] < 0) {
                 num = a[k]*c[m] - a[m]*c[k];
                 denum = -a[k]*b[m] + a[m]*b[k];
@@ -863,6 +891,153 @@ dReal QuadraticConstraints::SdLimitBobrowExclude(dReal s, int iexclude) {
         }
     }
     return sdmin;
+}
+
+dReal QuadraticConstraints::SdLimitBobrowExclude2(dReal s, int iexclude) {
+    /// \brief Returns sd which is the lowest edge between feasible-infeasible area
+    /// If there is any island, we have \alpha(s, sd - TINY) > \beta(s, sd - TINY) (infeasible area below)
+    /// Otherwise, we have \alpha(s, sd - TINY) < \beta(s, sd - TINY) (infeasible area above)
+    std::vector<dReal> a, b, c;
+    InterpolateDynamics(s, a, b, c);
+    if (VectorNorm(a) < TINY) { ///? why check for VectorNorm(a)?
+        if (s < 1e-2) {
+            s += 1e-3;
+        }
+        else {
+            s -= 1e-3;
+        }
+        InterpolateDynamics(s, a, b, c);
+    }
+
+    bool possibleisland = false;
+
+    std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
+    if (sddlimits.first >= sddlimits.second) {
+        possibleisland = true;
+    }
+
+    std::vector<dReal> sdmin(0);
+    sdmin.push_back(INF);
+    for (int k = 0; k < nconstraints; k++) {
+        for (int m = k + 1; m < nconstraints; m++) {
+	    if (k == iexclude || m == iexclude) {
+		continue;
+	    }
+            dReal num, denum, r;
+            // If we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
+            if (a[k]*a[m] < 0) {
+                num = a[k]*c[m] - a[m]*c[k];
+                denum = -a[k]*b[m] + a[m]*b[k];
+                if (std::abs(denum) > TINY) {
+                    r = num/denum;
+                    if (r >= 0) {
+			r = sqrt(r);
+			std::vector<dReal>::iterator it = std::lower_bound(sdmin.begin(), sdmin.end(), r);
+                        sdmin.insert(it, r);
+                    }
+                }
+            }
+        }
+    }
+    
+    if (possibleisland) {
+    	// std::cout << "sdmin = [ ";
+    	// int nprints = std::min(int(sdmin.size()), 3);
+    	// for (int k = 0; k < nprints - 1; k++) {
+    	//     std::cout << sdmin[k] << ": ";
+	//     sddlimits = SddLimits(s, sdmin[k]);
+	//     std::cout << "(" << sddlimits.first << ", " << sddlimits.second << "), ";
+    	// }
+    	// std::cout << sdmin[nprints - 1] << ": ";
+	// sddlimits = SddLimits(s, sdmin[nprints - 1]);
+	// std::cout << "(" << sddlimits.first << ", " << sddlimits.second << ")]\n";
+	
+	
+	std::vector<dReal>::iterator it;
+	for (it = sdmin.begin(); it != sdmin.end(); it++) {
+	    sddlimits = SddLimits(s, *it);
+	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
+		/// this is the sd at the edge of the lower island
+		return *it;
+	    }
+	}
+	return 0;
+    }
+    else {
+	return sdmin[0];
+    }
+}
+
+std::pair<dReal, dReal> QuadraticConstraints::SdLimitBobrowExclude3(dReal s, int iexclude) {
+    /// \brief Returns a pair of sd, (sd_l, sd_u), which determine the valid interval of sd at s
+    /// If the interval of sd is valid from 0 upwards, assign sd_l = -1
+    
+    std::pair<dReal, dReal> result;
+    std::vector<dReal> a, b, c;
+    InterpolateDynamics(s, a, b, c);
+    if (VectorNorm(a) < TINY) { ///? why check for VectorNorm(a)?
+        if (s < 1e-2) {
+            s += 1e-3;
+        }
+        else {
+            s -= 1e-3;
+        }
+        InterpolateDynamics(s, a, b, c);
+    }
+
+    bool possibleisland = false;
+
+    std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
+    if (sddlimits.first >= sddlimits.second) {
+        possibleisland = true;
+    }
+
+    std::vector<dReal> sdmin(0);
+    sdmin.push_back(INF);
+    for (int k = 0; k < nconstraints; k++) {
+        for (int m = k + 1; m < nconstraints; m++) {
+	    if (k == iexclude || m == iexclude) {
+		continue;
+	    }
+            dReal num, denum, r;
+            /// if we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
+            if (a[k]*a[m] < 0) {
+                num = a[k]*c[m] - a[m]*c[k];
+                denum = -a[k]*b[m] + a[m]*b[k];
+                if (std::abs(denum) > TINY) {
+                    r = num/denum;
+                    if (r >= 0) {
+			r = sqrt(r);
+			std::vector<dReal>::iterator it = std::lower_bound(sdmin.begin(), sdmin.end(), r);
+			/// sort all candidates with respect to sd
+                        sdmin.insert(it, r);
+                    }
+                }
+            }
+        }
+    }
+    
+    if (possibleisland) {
+	/// now consider only the case when sd has ONE valid interval
+	std::vector<dReal>::iterator it;
+	for (it = sdmin.begin(); it != sdmin.end(); it++) {
+	    sddlimits = SddLimits(s, *it);
+	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
+		result.first = *it;
+		it++;
+		result.second = *it;
+		return result;
+	    }
+	}
+	result.first = -1;
+	result.second = 0;
+	return result;
+    }
+    else {
+	result.first = -1;
+	result.second = sdmin[0];
+	return result;
+    }
 }
 
 void QuadraticConstraints::FindSingularSwitchPoints() {
@@ -884,7 +1059,7 @@ void QuadraticConstraints::FindSingularSwitchPoints() {
                 dReal adiff = a[j] - aprev[j];
                 dReal ccur=c[j], bcur = b[j], scur = discrsvect[i];
                 if (fabs(adiff) > TINY) {
-                    // compute the zero-crossing and linearly interpolate dynamics
+                    /// compute the zero-crossing and linearly interpolate dynamics
                     dReal interp = -aprev[j]/adiff;
                     scur = discrsvect[i - 1] + interp*(discrsvect[i] - discrsvect[i - 1]);
                     bcur = bprev[j] + interp*(b[j] - bprev[j]);
@@ -898,7 +1073,7 @@ void QuadraticConstraints::FindSingularSwitchPoints() {
                     if (sdplus > 0 && sdplus < sdstar) {
                         continue;
                     }
-                    if ( !found || sdstar < minsd ) {
+                    if (!found || sdstar < minsd) {
                         found = true;
                         minsd = sdstar;
                         mins = scur;

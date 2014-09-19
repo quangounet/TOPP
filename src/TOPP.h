@@ -383,10 +383,13 @@ class QuadraticConstraints : public Constraints {
     
     ////////////////////////////// Specific Members & Methods //////////////////////////////
     int nconstraints;  ///< Number of constraints
+    bool hasislands;
     std::vector<std::vector<dReal> > avect, bvect, cvect;
 
     dReal SdLimitBobrowInit2(dReal s);
     std::pair<dReal, dReal> SdLimitBobrowInit3(dReal s);
+    dReal SdLimitBobrowExclude2(dReal s, int iexclude);
+    std::pair<dReal, dReal> SdLimitBobrowExclude3(dReal s, int iexclude);
     
     void InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c);
     /// Linearly interpolates the dynamics coefficients a, b, c
