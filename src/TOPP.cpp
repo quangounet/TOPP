@@ -82,18 +82,18 @@ void Constraints::Discretize() {
 void Constraints::ComputeMVCBobrow() {
     mvcbobrow.resize(ndiscrsteps);
     for (int i = 0; i < ndiscrsteps; i++) {
-        mvcbobrow[i] = SdLimitBobrowInit2(discrsvect[i]);
+        mvcbobrow[i] = SdLimitBobrowInit(discrsvect[i]);
     }
 }
 
 void Constraints::ComputeMVCBobrow2() {
+    /// \brief Computes both lower and upper limits of sd
+    /// for handling the case with islands
     mvcbobrow.resize(ndiscrsteps);
-    mvcbobrow2.resize(ndiscrsteps);
-    std::pair<dReal, dReal> res;
+    mvcbobrowlower.resize(ndiscrsteps);
     for (int i = 0; i < ndiscrsteps; i++) {
-	res = SdLimitBobrowInit3(discrsvect[i]);
-	mvcbobrow[i] = res.second;
-	mvcbobrow2[i] = res.first;
+	mvcbobrow[i] = SdLimitBobrowInitUpper(discrsvect[i]);
+	mvcbobrowlower[i] = SdLimitBobrowInitLower(discrsvect[i]);
     }
 }
 
@@ -104,7 +104,7 @@ void Constraints::ComputeMVCCombined() {
     }
 }
 
-dReal Constraints::SdLimitCombinedInit(dReal s){
+dReal Constraints::SdLimitCombinedInit(dReal s) {
     dReal res = SdLimitBobrow(s);
     std::vector<dReal> qd(trajectory.dimension);
     if (hasvelocitylimits) {
@@ -121,6 +121,16 @@ dReal Constraints::SdLimitCombinedInit(dReal s){
 dReal Constraints::SdLimitBobrow(dReal s) {
     return Interpolate1D(s, mvcbobrow);
 }
+
+
+dReal Constraints::SdLimitBobrowUpper(dReal s) {
+    return Interpolate1D(s, mvcbobrow);
+}
+
+dReal Constraints::SdLimitBobrowLower(dReal s) {
+    return Interpolate1D(s, mvcbobrowlower);
+}
+
 
 dReal Constraints::SdLimitCombined(dReal s) {
     return Interpolate1D(s, mvccombined);
@@ -184,7 +194,7 @@ bool CompareSwitchPoint(const SwitchPoint& sw0, const SwitchPoint& sw1) {
     return sw0.s < sw1.s;
 }
 
-void Constraints::AddSwitchPoint(int i, int switchpointtype, dReal sd){
+void Constraints::AddSwitchPoint(int i, int switchpointtype, dReal sd) {
     dReal s = discrsvect[i];
     /// If no sd is specified, then take the value of the mvc
     /// (The case when sd is specified corresponds to a singular switchpoint in some cases)
@@ -212,10 +222,9 @@ void Constraints::AddSwitchPoint(int i, int switchpointtype, dReal sd){
     switchpointslist.insert(it, sw);
 }
 
-void Constraints::AddSwitchPoint2(dReal s, dReal sd, int switchpointtype)
-{
-    // If no sd is specified, then take the value of the mvc
-    // (The case when sd is specified corresponds to a singular switchpoint in some cases)
+void Constraints::AddSwitchPoint2(dReal s, dReal sd, int switchpointtype) {
+    /// \brief If no sd is specified, then take the value of the mvc
+    /// (The case when sd is specified corresponds to a singular switchpoint in some cases)
     if (sd > MAXSD) {
         return;
     }
@@ -233,8 +242,27 @@ void Constraints::AddSwitchPoint2(dReal s, dReal sd, int switchpointtype)
     }
     switchpointslist.insert(it, sw);
 }
+
+void Constraints::AddSwitchPointLower(dReal s, dReal sd, int switchpointtype) {
+    if (sd > MAXSD) {
+        return;
+    }
+    SwitchPoint sw(s, sd, switchpointtype);
+    std::list<SwitchPoint>::iterator it = std::lower_bound(switchpointslistlower.begin(), switchpointslistlower.end(), sw, CompareSwitchPoint);
+    if ( it != switchpointslistlower.end() ) {
+        if ( s >= it->s + TINY ) {
+            std::cout << "switch point already exists, type=" << it->switchpointtype;
+            return;
+        }
+    }
+    if (switchpointtype == SP_SINGULAR) {
+        sw.slopesvector.resize(0);
+        ComputeSlopeDynamicSingularity(s, sd, sw.slopesvector);
+    }
+    switchpointslistlower.insert(it, sw);
+}
     
-void Constraints::FindTangentSwitchPoints(){
+void Constraints::FindTangentSwitchPoints() {
     if (ndiscrsteps < 3)
         return;
     dReal s, sd, snext, sdnext, alpha;
@@ -316,7 +344,7 @@ void Constraints::FindDiscontinuousSwitchPoints() {
     }
 }
 
-void InsertInSpList(std::list<SwitchPoint>& splist, SwitchPoint sp){
+void InsertInSpList(std::list<SwitchPoint>& splist, SwitchPoint sp) {
     if (splist.size() == 0) {
         splist.push_back(sp);
         return;
@@ -485,7 +513,7 @@ QuadraticConstraints::QuadraticConstraints(const std::string& constraintsstring)
     hasvelocitylimits =  VectorMax(vmax) > TINY;
 }
 
-void QuadraticConstraints::WriteConstraints(std::stringstream& ss){
+void QuadraticConstraints::WriteConstraints(std::stringstream& ss) {
     ss << discrtimestep << "\n";
     for (int i = 0; i < int(vmax.size()); i++) {
         ss << vmax[i] << " ";
@@ -558,7 +586,7 @@ void QuadraticConstraints::FixStart(dReal& sstart,dReal& sdstart, dReal timestep
     sstart = 0;
     dReal delta = TINY2, ap, bp, cp, slope;
     InterpolateDynamics(0, a, b, c);
-    dReal sdcurrent2 = INF; // squared
+    dReal sdcurrent2 = INF; /// squared
     int indexcurrent = 0;
     for (int j = 0; j < int(a.size()); j++) {
         if (std::abs(a[j]) < TINY2) {
@@ -584,7 +612,7 @@ void QuadraticConstraints::FixStart(dReal& sstart,dReal& sdstart, dReal timestep
     }
 }
 
-void QuadraticConstraints::FixEnd(dReal& sendnew,dReal& sdendnew){
+void QuadraticConstraints::FixEnd(dReal& sendnew,dReal& sdendnew) {
     std::vector<dReal> a, b, c, a2, b2, c2;
     dReal delta = TINY2, ap, bp, cp, slope;
     dReal send = trajectory.duration;
@@ -635,7 +663,7 @@ void QuadraticConstraints::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std
     }
 }
 
-std::pair<dReal,dReal> QuadraticConstraints::SddLimits(dReal s, dReal sd){
+std::pair<dReal,dReal> QuadraticConstraints::SddLimits(dReal s, dReal sd) {
     dReal dtsq = integrationtimestep;
     dtsq = dtsq*dtsq;
     dReal safetybound = discrtimestep/dtsq;
@@ -669,7 +697,7 @@ std::pair<dReal,dReal> QuadraticConstraints::SddLimits(dReal s, dReal sd){
     return result;
 }
 
-dReal QuadraticConstraints::SdLimitBobrowInit(dReal s){
+dReal QuadraticConstraints::SdLimitBobrowInit(dReal s) {
     std::vector<dReal> a, b, c;
     InterpolateDynamics(s, a, b, c);
     if (VectorNorm(a) < TINY) { ///? why check for VectorNorm(a)?
@@ -708,10 +736,9 @@ dReal QuadraticConstraints::SdLimitBobrowInit(dReal s){
     return sdmin;
 }
 
-dReal QuadraticConstraints::SdLimitBobrowInit2(dReal s){
-    /// \brief Returns sd which is the lowest edge between feasible-infeasible area
-    /// If there is any island, we have \alpha(s, sd - TINY) > \beta(s, sd - TINY) (infeasible area below)
-    /// Otherwise, we have \alpha(s, sd - TINY) < \beta(s, sd - TINY) (infeasible area above)
+dReal QuadraticConstraints::SdLimitBobrowInitUpper(dReal s) {
+    /// \brief Returns sd which is the highest edge between feasible-infeasible area
+    /// We have \alpha(s, sd - TINY) < \beta(s, sd - TINY) (infeasible area above)
     std::vector<dReal> a, b, c;
     InterpolateDynamics(s, a, b, c);
     if (VectorNorm(a) < TINY) { ///? why check for VectorNorm(a)?
@@ -725,86 +752,9 @@ dReal QuadraticConstraints::SdLimitBobrowInit2(dReal s){
     }
 
     bool possibleisland = false;
-
     std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
-    if (sddlimits.first >= sddlimits.second) {
-        possibleisland = true;
-    }
-
-    std::vector<dReal> sdmin(0);
-    sdmin.push_back(INF);
-    for (int k = 0; k < nconstraints; k++) {
-        for (int m = k + 1; m < nconstraints; m++) {
-            dReal num, denum, r;
-            // If we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
-            if (a[k]*a[m] < 0) {
-                num = a[k]*c[m] - a[m]*c[k];
-                denum = -a[k]*b[m] + a[m]*b[k];
-                if (std::abs(denum) > TINY) {
-                    r = num/denum;
-                    if (r >= 0) {
-			r = sqrt(r);
-			std::vector<dReal>::iterator it = std::lower_bound(sdmin.begin(), sdmin.end(), r);
-                        sdmin.insert(it, r);
-                    }
-                }
-            }
-        }
-    }
+    if (sddlimits.first >= sddlimits.second) possibleisland = true;
     
-    if (possibleisland) {
-    	// std::cout << "sdmin = [ ";
-    	// int nprints = std::min(int(sdmin.size()), 3);
-    	// for (int k = 0; k < nprints - 1; k++) {
-    	//     std::cout << sdmin[k] << ": ";
-	//     sddlimits = SddLimits(s, sdmin[k]);
-	//     std::cout << "(" << sddlimits.first << ", " << sddlimits.second << "), ";
-    	// }
-    	// std::cout << sdmin[nprints - 1] << ": ";
-	// sddlimits = SddLimits(s, sdmin[nprints - 1]);
-	// std::cout << "(" << sddlimits.first << ", " << sddlimits.second << ")]\n";
-	
-	
-	std::vector<dReal>::iterator it;
-	for (it = sdmin.begin(); it != sdmin.end(); it++) {
-	    sddlimits = SddLimits(s, *it);
-	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
-		/// this is the sd at the edge of the lower island
-		hasislands = true;
-		return *it;
-	    }
-	}
-	return 0;
-    }
-    else {
-	return sdmin[0];
-    }
-}
-    
-std::pair<dReal, dReal> QuadraticConstraints::SdLimitBobrowInit3(dReal s){
-    /// \brief Returns a pair of sd, (sd_l, sd_u), which determine the valid interval of sd at s
-    /// If the interval of sd is valid from 0 upwards, assign sd_l = -1
-    
-    std::pair<dReal, dReal> result;
-    std::vector<dReal> a, b, c;
-    InterpolateDynamics(s, a, b, c);
-    if (VectorNorm(a) < TINY) { ///? why check for VectorNorm(a)?
-        if (s < 1e-2) {
-            s += 1e-3;
-        }
-        else {
-            s -= 1e-3;
-        }
-        InterpolateDynamics(s, a, b, c);
-    }
-
-    bool possibleisland = false;
-
-    std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
-    if (sddlimits.first >= sddlimits.second) {
-        possibleisland = true;
-    }
-
     std::vector<dReal> sdmin(0);
     sdmin.push_back(INF);
     for (int k = 0; k < nconstraints; k++) {
@@ -819,7 +769,6 @@ std::pair<dReal, dReal> QuadraticConstraints::SdLimitBobrowInit3(dReal s){
                     if (r >= 0) {
 			r = sqrt(r);
 			std::vector<dReal>::iterator it = std::lower_bound(sdmin.begin(), sdmin.end(), r);
-			/// sort all candidates with respect to sd
                         sdmin.insert(it, r);
                     }
                 }
@@ -827,27 +776,81 @@ std::pair<dReal, dReal> QuadraticConstraints::SdLimitBobrowInit3(dReal s){
         }
     }
     
-    if (possibleisland) {
-	/// now consider only the case when sd has ONE valid interval
+    if (possibleisland) {		
 	std::vector<dReal>::iterator it;
 	for (it = sdmin.begin(); it != sdmin.end(); it++) {
 	    sddlimits = SddLimits(s, *it);
 	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
+		/// this is the sd at the edge of the lower island
 		hasislands = true;
-		result.first = *it;
 		it++;
-		result.second = *it;
-		return result;
+		return *it; /// return the upper edge
 	    }
 	}
-	result.first = -1;
-	result.second = 0;
-	return result;
+	/// the normal mvc hits zero
+	return 0;
     }
     else {
-	result.first = -1;
-	result.second = sdmin[0];
-	return result;
+	/// no island
+	return sdmin[0];
+    }
+}
+
+dReal QuadraticConstraints::SdLimitBobrowInitLower(dReal s) {
+    /// \brief Returns sd which is the lowest edge between feasible-infeasible area
+    /// If there is any island, we have \alpha(s, sd - TINY) > \beta(s, sd - TINY) (infeasible area below)
+    std::vector<dReal> a, b, c;
+    InterpolateDynamics(s, a, b, c);
+    if (VectorNorm(a) < TINY) { ///? why check for VectorNorm(a)?
+        if (s < 1e-2) {
+            s += 1e-3;
+        }
+        else {
+            s -= 1e-3;
+        }
+        InterpolateDynamics(s, a, b, c);
+    }
+
+    bool possibleisland = false;
+
+    std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
+    if (sddlimits.first >= sddlimits.second) possibleisland = true;
+    
+    if (possibleisland) {    
+	std::vector<dReal> sdmin(0);
+	sdmin.push_back(INF);
+	for (int k = 0; k < nconstraints; k++) {
+	    for (int m = k + 1; m < nconstraints; m++) {
+		dReal num, denum, r;
+		// If we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
+		if (a[k]*a[m] < 0) {
+		    num = a[k]*c[m] - a[m]*c[k];
+		    denum = -a[k]*b[m] + a[m]*b[k];
+		    if (std::abs(denum) > TINY) {
+			r = num/denum;
+			if (r >= 0) {
+			    r = sqrt(r);
+			    std::vector<dReal>::iterator it = std::lower_bound(sdmin.begin(), sdmin.end(), r);
+			    sdmin.insert(it, r);
+			}
+		    }
+		}
+	    }
+	}		
+	std::vector<dReal>::iterator it;
+	for (it = sdmin.begin(); it != sdmin.end(); it++) {
+	    sddlimits = SddLimits(s, *it);
+	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
+		/// this is the sd at the edge of the lower island
+		hasislands = true;
+		return *it;
+	    }
+	}
+	return INF;
+    }
+    else {
+	/// no island
+	return -1;
     }
 }
 
@@ -893,10 +896,9 @@ dReal QuadraticConstraints::SdLimitBobrowExclude(dReal s, int iexclude) {
     return sdmin;
 }
 
-dReal QuadraticConstraints::SdLimitBobrowExclude2(dReal s, int iexclude) {
-    /// \brief Returns sd which is the lowest edge between feasible-infeasible area
-    /// If there is any island, we have \alpha(s, sd - TINY) > \beta(s, sd - TINY) (infeasible area below)
-    /// Otherwise, we have \alpha(s, sd - TINY) < \beta(s, sd - TINY) (infeasible area above)
+ dReal QuadraticConstraints::SdLimitBobrowExcludeUpper(dReal s, int iexclude) {
+    /// \brief Returns sd which is the highest edge between feasible-infeasible area
+    /// We have \alpha(s, sd - TINY) < \beta(s, sd - TINY) (infeasible area above)
     std::vector<dReal> a, b, c;
     InterpolateDynamics(s, a, b, c);
     if (VectorNorm(a) < TINY) { ///? why check for VectorNorm(a)?
@@ -910,12 +912,9 @@ dReal QuadraticConstraints::SdLimitBobrowExclude2(dReal s, int iexclude) {
     }
 
     bool possibleisland = false;
-
     std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
-    if (sddlimits.first >= sddlimits.second) {
-        possibleisland = true;
-    }
-
+    if (sddlimits.first >= sddlimits.second) possibleisland = true;
+    
     std::vector<dReal> sdmin(0);
     sdmin.push_back(INF);
     for (int k = 0; k < nconstraints; k++) {
@@ -940,39 +939,29 @@ dReal QuadraticConstraints::SdLimitBobrowExclude2(dReal s, int iexclude) {
         }
     }
     
-    if (possibleisland) {
-    	// std::cout << "sdmin = [ ";
-    	// int nprints = std::min(int(sdmin.size()), 3);
-    	// for (int k = 0; k < nprints - 1; k++) {
-    	//     std::cout << sdmin[k] << ": ";
-	//     sddlimits = SddLimits(s, sdmin[k]);
-	//     std::cout << "(" << sddlimits.first << ", " << sddlimits.second << "), ";
-    	// }
-    	// std::cout << sdmin[nprints - 1] << ": ";
-	// sddlimits = SddLimits(s, sdmin[nprints - 1]);
-	// std::cout << "(" << sddlimits.first << ", " << sddlimits.second << ")]\n";
-	
-	
+    if (possibleisland) {		
 	std::vector<dReal>::iterator it;
 	for (it = sdmin.begin(); it != sdmin.end(); it++) {
 	    sddlimits = SddLimits(s, *it);
 	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
 		/// this is the sd at the edge of the lower island
-		return *it;
+		hasislands = true;
+		it++;
+		return *it; /// return the upper edge
 	    }
 	}
+	/// the normal mvc hits zero
 	return 0;
     }
     else {
+	/// no island
 	return sdmin[0];
     }
 }
 
-std::pair<dReal, dReal> QuadraticConstraints::SdLimitBobrowExclude3(dReal s, int iexclude) {
-    /// \brief Returns a pair of sd, (sd_l, sd_u), which determine the valid interval of sd at s
-    /// If the interval of sd is valid from 0 upwards, assign sd_l = -1
-    
-    std::pair<dReal, dReal> result;
+ dReal QuadraticConstraints::SdLimitBobrowExcludeLower(dReal s, int iexclude) {
+    /// \brief Returns sd which is the lowest edge between feasible-infeasible area
+    /// If there is any island, we have \alpha(s, sd - TINY) > \beta(s, sd - TINY) (infeasible area below)
     std::vector<dReal> a, b, c;
     InterpolateDynamics(s, a, b, c);
     if (VectorNorm(a) < TINY) { ///? why check for VectorNorm(a)?
@@ -988,59 +977,203 @@ std::pair<dReal, dReal> QuadraticConstraints::SdLimitBobrowExclude3(dReal s, int
     bool possibleisland = false;
 
     std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
-    if (sddlimits.first >= sddlimits.second) {
-        possibleisland = true;
-    }
-
-    std::vector<dReal> sdmin(0);
-    sdmin.push_back(INF);
-    for (int k = 0; k < nconstraints; k++) {
-        for (int m = k + 1; m < nconstraints; m++) {
-	    if (k == iexclude || m == iexclude) {
-		continue;
-	    }
-            dReal num, denum, r;
-            /// if we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
-            if (a[k]*a[m] < 0) {
-                num = a[k]*c[m] - a[m]*c[k];
-                denum = -a[k]*b[m] + a[m]*b[k];
-                if (std::abs(denum) > TINY) {
-                    r = num/denum;
-                    if (r >= 0) {
-			r = sqrt(r);
-			std::vector<dReal>::iterator it = std::lower_bound(sdmin.begin(), sdmin.end(), r);
-			/// sort all candidates with respect to sd
-                        sdmin.insert(it, r);
-                    }
-                }
-            }
-        }
-    }
+    if (sddlimits.first >= sddlimits.second) possibleisland = true;
     
-    if (possibleisland) {
-	/// now consider only the case when sd has ONE valid interval
+    if (possibleisland) {    
+	std::vector<dReal> sdmin(0);
+	sdmin.push_back(INF);
+	for (int k = 0; k < nconstraints; k++) {
+	    for (int m = k + 1; m < nconstraints; m++) {
+		if (k == iexclude || m == iexclude) {
+		    continue;
+		}
+		dReal num, denum, r;
+		// If we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
+		if (a[k]*a[m] < 0) {
+		    num = a[k]*c[m] - a[m]*c[k];
+		    denum = -a[k]*b[m] + a[m]*b[k];
+		    if (std::abs(denum) > TINY) {
+			r = num/denum;
+			if (r >= 0) {
+			    r = sqrt(r);
+			    std::vector<dReal>::iterator it = std::lower_bound(sdmin.begin(), sdmin.end(), r);
+			    sdmin.insert(it, r);
+			}
+		    }
+		}
+	    }
+	}		
 	std::vector<dReal>::iterator it;
 	for (it = sdmin.begin(); it != sdmin.end(); it++) {
 	    sddlimits = SddLimits(s, *it);
 	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
-		result.first = *it;
-		it++;
-		result.second = *it;
-		return result;
+		/// this is the sd at the edge of the lower island
+		hasislands = true;
+		return *it;
 	    }
 	}
-	result.first = -1;
-	result.second = 0;
-	return result;
+	return INF;
     }
     else {
-	result.first = -1;
-	result.second = sdmin[0];
-	return result;
+	/// no island
+	return -1;
     }
 }
 
+
+// dReal QuadraticConstraints::SdLimitBobrowExclude2(dReal s, int iexclude) {
+//     /// \brief Returns sd which is the lowest edge between feasible-infeasible area
+//     /// If there is any island, we have \alpha(s, sd - TINY) > \beta(s, sd - TINY) (infeasible area below)
+//     /// Otherwise, we have \alpha(s, sd - TINY) < \beta(s, sd - TINY) (infeasible area above)
+//     std::vector<dReal> a, b, c;
+//     InterpolateDynamics(s, a, b, c);
+//     if (VectorNorm(a) < TINY) { ///? why check for VectorNorm(a)?
+//         if (s < 1e-2) {
+//             s += 1e-3;
+//         }
+//         else {
+//             s -= 1e-3;
+//         }
+//         InterpolateDynamics(s, a, b, c);
+//     }
+
+//     bool possibleisland = false;
+
+//     std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
+//     if (sddlimits.first >= sddlimits.second) {
+//         possibleisland = true;
+//     }
+
+//     std::vector<dReal> sdmin(0);
+//     sdmin.push_back(INF);
+//     for (int k = 0; k < nconstraints; k++) {
+//         for (int m = k + 1; m < nconstraints; m++) {
+// 	    if (k == iexclude || m == iexclude) {
+// 		continue;
+// 	    }
+//             dReal num, denum, r;
+//             // If we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
+//             if (a[k]*a[m] < 0) {
+//                 num = a[k]*c[m] - a[m]*c[k];
+//                 denum = -a[k]*b[m] + a[m]*b[k];
+//                 if (std::abs(denum) > TINY) {
+//                     r = num/denum;
+//                     if (r >= 0) {
+// 			r = sqrt(r);
+// 			std::vector<dReal>::iterator it = std::lower_bound(sdmin.begin(), sdmin.end(), r);
+//                         sdmin.insert(it, r);
+//                     }
+//                 }
+//             }
+//         }
+//     }
+    
+//     if (possibleisland) {
+//     	// std::cout << "sdmin = [ ";
+//     	// int nprints = std::min(int(sdmin.size()), 3);
+//     	// for (int k = 0; k < nprints - 1; k++) {
+//     	//     std::cout << sdmin[k] << ": ";
+// 	//     sddlimits = SddLimits(s, sdmin[k]);
+// 	//     std::cout << "(" << sddlimits.first << ", " << sddlimits.second << "), ";
+//     	// }
+//     	// std::cout << sdmin[nprints - 1] << ": ";
+// 	// sddlimits = SddLimits(s, sdmin[nprints - 1]);
+// 	// std::cout << "(" << sddlimits.first << ", " << sddlimits.second << ")]\n";
+	
+	
+// 	std::vector<dReal>::iterator it;
+// 	for (it = sdmin.begin(); it != sdmin.end(); it++) {
+// 	    sddlimits = SddLimits(s, *it);
+// 	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
+// 		/// this is the sd at the edge of the lower island
+// 		return *it;
+// 	    }
+// 	}
+// 	return 0;
+//     }
+//     else {
+// 	return sdmin[0];
+//     }
+// }
+
+// std::pair<dReal, dReal> QuadraticConstraints::SdLimitBobrowExclude3(dReal s, int iexclude) {
+//     /// \brief Returns a pair of sd, (sd_l, sd_u), which determine the valid interval of sd at s
+//     /// If the interval of sd is valid from 0 upwards, assign sd_l = -1
+    
+//     std::pair<dReal, dReal> result;
+//     std::vector<dReal> a, b, c;
+//     InterpolateDynamics(s, a, b, c);
+//     if (VectorNorm(a) < TINY) { ///? why check for VectorNorm(a)?
+//         if (s < 1e-2) {
+//             s += 1e-3;
+//         }
+//         else {
+//             s -= 1e-3;
+//         }
+//         InterpolateDynamics(s, a, b, c);
+//     }
+
+//     bool possibleisland = false;
+
+//     std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
+//     if (sddlimits.first >= sddlimits.second) {
+//         possibleisland = true;
+//     }
+
+//     std::vector<dReal> sdmin(0);
+//     sdmin.push_back(INF);
+//     for (int k = 0; k < nconstraints; k++) {
+//         for (int m = k + 1; m < nconstraints; m++) {
+// 	    if (k == iexclude || m == iexclude) {
+// 		continue;
+// 	    }
+//             dReal num, denum, r;
+//             /// if we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
+//             if (a[k]*a[m] < 0) {
+//                 num = a[k]*c[m] - a[m]*c[k];
+//                 denum = -a[k]*b[m] + a[m]*b[k];
+//                 if (std::abs(denum) > TINY) {
+//                     r = num/denum;
+//                     if (r >= 0) {
+// 			r = sqrt(r);
+// 			std::vector<dReal>::iterator it = std::lower_bound(sdmin.begin(), sdmin.end(), r);
+// 			/// sort all candidates with respect to sd
+//                         sdmin.insert(it, r);
+//                     }
+//                 }
+//             }
+//         }
+//     }
+    
+//     if (possibleisland) {
+// 	/// now consider only the case when sd has ONE valid interval
+// 	std::vector<dReal>::iterator it;
+// 	for (it = sdmin.begin(); it != sdmin.end(); it++) {
+// 	    sddlimits = SddLimits(s, *it);
+// 	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
+// 		result.first = *it;
+// 		it++;
+// 		result.second = *it;
+// 		return result;
+// 	    }
+// 	}
+// 	result.first = -1;
+// 	result.second = 0;
+// 	return result;
+//     }
+//     else {
+// 	result.first = -1;
+// 	result.second = sdmin[0];
+// 	return result;
+//     }
+// }
+
 void QuadraticConstraints::FindSingularSwitchPoints() {
+    FindSingularSwitchPointsUpper();
+    FindSingularSwitchPointsLower();
+}
+
+void QuadraticConstraints::FindSingularSwitchPointsUpper() {
     if (ndiscrsteps < 3) {
         return;
     }
@@ -1069,7 +1202,7 @@ void QuadraticConstraints::FindSingularSwitchPoints() {
                 dReal f = ccur/bcur;
                 if (f < 0) {
                     dReal sdstar = sqrt(-f);
-                    dReal sdplus = SdLimitBobrowExclude(scur, j);
+                    dReal sdplus = SdLimitBobrowExcludeUpper(scur, j);
                     if (sdplus > 0 && sdplus < sdstar) {
                         continue;
                     }
@@ -1082,12 +1215,18 @@ void QuadraticConstraints::FindSingularSwitchPoints() {
             }
         }
         if (found) {
-            AddSwitchPoint2(mins, minsd, SP_SINGULAR);
+	    if (std::abs(SdLimitBobrowLower(mins) - minsd) > std::abs(SdLimitBobrowUpper(mins) - minsd)) {
+		/// this switch point is not on mvcbobrowlower
+		AddSwitchPoint2(mins, minsd, SP_SINGULAR);
+	    }
         }
         aprev.swap(a);
         bprev.swap(b);
         cprev.swap(c);
     }
+}
+
+void QuadraticConstraints::FindSingularSwitchPointsLower() {
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -1241,7 +1380,7 @@ bool PassSwitchPoint(Constraints& constraints, dReal s, dReal sd, dReal dt) {
     return false;
 }
 
-dReal BisectionSearch(Constraints& constraints, dReal s, dReal sdbottom, dReal sdtop, dReal dt, int position){
+dReal BisectionSearch(Constraints& constraints, dReal s, dReal sdbottom, dReal sdtop, dReal dt, int position) {
     /// Does bisection search to find the highest sd that allows going through a tangent or discontinuous switch point
     if (position != 1 && PassSwitchPoint(constraints, s, sdtop, dt)) {
         return sdtop;
@@ -1369,7 +1508,7 @@ bool IntegrateRecover(Constraints& constraints, dReal s, dReal sd, dReal dt, Pro
     return false;
 }
 
-bool RecoverGap(Constraints& constraints, dReal s, dReal dt){
+bool RecoverGap(Constraints& constraints, dReal s, dReal dt) {
     int ntries = 100;
     dReal sdtop =  constraints.SdLimitCombined(s);
     dReal dsd = sdtop / ntries;
@@ -1384,7 +1523,7 @@ bool RecoverGap(Constraints& constraints, dReal s, dReal dt){
     return false;
 }
 
-dReal Recover(Constraints& constraints, dReal ds){
+dReal Recover(Constraints& constraints, dReal ds) {
     dReal s = 0, gapstart = 0, gapend = constraints.trajectory.duration;
     while (s <= constraints.trajectory.duration) {
         ProfileSample lowestsample = FindLowestProfileFast(s, 1e30, constraints.resprofileslist);
@@ -1549,7 +1688,7 @@ int FlowVsMVC(Constraints& constraints, dReal s, dReal sd, int flag, dReal dt) {
     }
 }
 
-int FlowVsMVCBackward(Constraints& constraints, dReal s, dReal sd, dReal dt){
+int FlowVsMVCBackward(Constraints& constraints, dReal s, dReal sd, dReal dt) {
     /// Determines the relative positions of the alpha flow and the slope of the MVC
     /// \return = -1 if alpha points below MVC
     /// \return = +1 if alpha points above MVC
@@ -1828,7 +1967,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
     return returntype;
 }
 
-int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile,  int maxsteps, bool testaboveexistingprofiles, bool testmvc,bool zlajpah){
+int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile,  int maxsteps, bool testaboveexistingprofiles, bool testmvc,bool zlajpah) {
     dReal dtsq = dt*dt;
     dReal scur = sstart, sdcur = sdstart;
     // std::list<dReal> slist, sdlist, sddlist;
@@ -2005,7 +2144,7 @@ Profile StraightProfile(dReal sbackward,dReal sforward, dReal sdbackward, dReal 
     return Profile(slist, sdlist, sddlist, dtmod, true);
 }
 
-int ComputeLimitingCurves(Constraints& constraints){
+int ComputeLimitingCurves(Constraints& constraints) {
     // std::list<SwitchPoint> switchpointslist0(constraints.switchpointslist);
     Profile tmpprofile;
     dReal sswitch, sdswitch, sbackward, sdbackward, sforward, sdforward;
@@ -2087,7 +2226,7 @@ int ComputeLimitingCurves(Constraints& constraints){
     return CLC_OK;
 }
 
-int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
+int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
     std::chrono::time_point<std::chrono::system_clock> t0, t1, t2, t3;
     // std::chrono::duration<double> d1, d2, d3, dtot;
 
@@ -2381,7 +2520,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
     return TOPP_OK;
 }
 
-int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmin, dReal& sdendmax){
+int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmin, dReal& sdendmax) {
     if (constraints.trajectory.duration <= 0) {
         std::cout << "[TOPP::VIP] Warning : trajectory duration is <= 0 \n";
         return TOPP_SHORT_TRAJ;
@@ -2732,7 +2871,7 @@ dReal EmergencyStop(Constraints& constraints, dReal sdbeg, Trajectory& restrajec
 /////////////////////////// Utilities //////////////////////////////
 ////////////////////////////////////////////////////////////////////
 
-void VectorFromString(std::string& s, std::vector<dReal>& resvect){
+void VectorFromString(std::string& s, std::vector<dReal>& resvect) {
     s.erase(std::find_if (s.rbegin(), s.rend(), std::bind1st(std::not_equal_to<char>(), ' ')).base(), s.end()); //remove trailing spaces
     std::istringstream iss(s);
     std::string sub;
@@ -2756,7 +2895,7 @@ void ReadVectorFromStream(std::istream& s, size_t N, std::vector<dReal>& resvect
     }
 }
 
-dReal VectorMin(const std::vector<dReal>& v){
+dReal VectorMin(const std::vector<dReal>& v) {
     dReal res = INF;
     for (int i = 0; i < int(v.size()); i++) {
         res = std::min(res, v[i]);
@@ -2765,7 +2904,7 @@ dReal VectorMin(const std::vector<dReal>& v){
 }
 
 
-dReal VectorMax(const std::vector<dReal>& v){
+dReal VectorMax(const std::vector<dReal>& v) {
     dReal res = -INF;
     for (int i = 0; i < int(v.size()); i++) {
         res = std::max(res, v[i]);
@@ -2774,7 +2913,7 @@ dReal VectorMax(const std::vector<dReal>& v){
 }
 
 
-void PrintVector(const std::vector<dReal>& v){
+void PrintVector(const std::vector<dReal>& v) {
     std::cout << "[";
     for (int i = 0; i < int(v.size()); i++) {
         std::cout<< v[i] << ", ";
@@ -2782,7 +2921,7 @@ void PrintVector(const std::vector<dReal>& v){
     std::cout << "] \n ";
 }
 
-void VectorAdd(const std::vector<dReal>& a, const std::vector<dReal>& b,  std::vector<dReal>& res, dReal coefa, dReal coefb){
+void VectorAdd(const std::vector<dReal>& a, const std::vector<dReal>& b,  std::vector<dReal>& res, dReal coefa, dReal coefb) {
     res.resize(a.size());
     BOOST_ASSERT(a.size() == b.size());
     for (int i = 0; i < int(a.size()); i++) {
@@ -2790,7 +2929,7 @@ void VectorAdd(const std::vector<dReal>& a, const std::vector<dReal>& b,  std::v
     }
 }
 
-void VectorMultScalar(const std::vector<dReal>& a, std::vector<dReal>& res, dReal scalar){
+void VectorMultScalar(const std::vector<dReal>& a, std::vector<dReal>& res, dReal scalar) {
     res.resize(a.size());
     for (int i = 0; i < int(a.size()); i++) {
         res[i] = scalar*a[i];
@@ -2798,7 +2937,7 @@ void VectorMultScalar(const std::vector<dReal>& a, std::vector<dReal>& res, dRea
 }
 
 
-dReal VectorNorm(const std::vector<dReal>&v){
+dReal VectorNorm(const std::vector<dReal>&v) {
     dReal norm = 0;
     for (int i = 0; i < int(v.size()); i++) {
         norm += v[i]*v[i];
@@ -2837,7 +2976,7 @@ bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal& sol, dReal lowe
     return sol >= lowerbound - epsilon && sol <= upperbound + epsilon;
 }
 
-bool IsAboveProfilesList(dReal s, dReal sd, const std::list<Profile>&resprofileslist, bool searchbackward, dReal softborder){
+bool IsAboveProfilesList(dReal s, dReal sd, const std::list<Profile>&resprofileslist, bool searchbackward, dReal softborder) {
     ProfileSample sample = FindLowestProfileFast(s, 1e30, resprofileslist);
     if ( sample.itprofile != resprofileslist.end() ) {
         if (sd > sample.sd+softborder) {
@@ -2856,7 +2995,7 @@ bool IsAboveProfilesList(dReal s, dReal sd, const std::list<Profile>&resprofiles
     // return false;
 }
 
-bool FindLowestProfile(dReal s, Profile& profile, dReal& tres, const std::list<Profile>& resprofileslist){
+bool FindLowestProfile(dReal s, Profile& profile, dReal& tres, const std::list<Profile>& resprofileslist) {
     /// note: still being used in Trajectory.cpp
     dReal t;
     dReal sdmin;
@@ -3087,7 +3226,7 @@ ProfileSample FindEarliestProfileIntersection(dReal sstart, dReal sdstart, dReal
     return bestprofile;
 }
 
-void CheckInsert(std::list<std::pair<dReal,dReal> >&reslist, std::pair<dReal,dReal> e, bool inverse){
+void CheckInsert(std::list<std::pair<dReal,dReal> >&reslist, std::pair<dReal,dReal> e, bool inverse) {
     std::list<std::pair<dReal,dReal> >::iterator it = reslist.begin();
     while (it != reslist.end()) {
         if (inverse) {
@@ -3116,7 +3255,7 @@ void CheckInsert(std::list<std::pair<dReal,dReal> >&reslist, std::pair<dReal,dRe
     reslist.push_back(e);
 }
 
-void FindMaxima(const std::list<std::pair<dReal, dReal> >& origlist, std::list<std::pair<dReal, dReal> >& reslist, bool inverse){
+void FindMaxima(const std::list<std::pair<dReal, dReal> >& origlist, std::list<std::pair<dReal, dReal> >& reslist, bool inverse) {
     reslist.resize(0);
     if (origlist.size() == 0) {
         return;

@@ -157,10 +157,10 @@ class Profile {
  public:
     Profile(const std::list<dReal>& slist, const std::list<dReal>& sdlist, const std::list<dReal>& sddlist, dReal integrationtimestep, bool forward);
     Profile(const std::vector<dReal>& svect, const std::vector<dReal>& sdvect, const std::vector<dReal>& sddvect, dReal integrationtimestep, bool forward);
-    Profile(){
+    Profile() {
     }
 
-    inline void Reset(){
+    inline void Reset() {
 	svect.resize(0);
 	sdvect.resize(0);
 	sddvect.resize(0);
@@ -208,12 +208,13 @@ class Constraints {
     std::vector<dReal> discrsvect;   ///< discretized points on the s-axis
     int ndiscrsteps;                 ///< ndiscrsteps = discrvect.size() - 1
     std::vector<dReal> mvcbobrow;    ///< normal MVC above which has an infeasible area
-    std::vector<dReal> mvcbobrow2;   ///< special MVC below which has an infeasible area
+    std::vector<dReal> mvcbobrowlower;   ///< special MVC below which has an infeasible area
     std::vector<dReal> mvccombined;
     bool hasvelocitylimits;
     std::vector<dReal> vmax;
 
     std::list<SwitchPoint> switchpointslist;         ///< list of switch points, ordered by s (ascending)
+    std::list<SwitchPoint> switchpointslistlower;    ///< list of switch points on the lower MVC, ordered by s (ascending)
     std::list<std::pair<dReal, dReal> > zlajpahlist; ///< list of zlajpah points
     
     std::list<Profile> resprofileslist; ///< resulting profiles from integrations
@@ -242,19 +243,19 @@ class Constraints {
     
     virtual void ComputeMVCBobrow();
     /// Computes the MVC given by acceleration constraints
-    
+
     virtual void ComputeMVCBobrow2();
-    /// Computes the MVC given by acceleration constraints
-    
+    /// Computes the lower MVC and the upper MVC given by acceleration constraints
+        
     virtual void ComputeMVCCombined();
     /// Computes the combined MVC (incorporating pure velocity constraints)
     
     virtual void WriteMVCBobrow(std::stringstream& ss, dReal dt = 0.01);
     virtual void WriteMVCDirect(std::stringstream& ss, dReal dt = 0.01);
-    virtual void WriteExtra(std::stringstream& ss){
+    virtual void WriteExtra(std::stringstream& ss) {
         return;
     }
-    virtual void WriteConstraints(std::stringstream& ss){
+    virtual void WriteConstraints(std::stringstream& ss) {
         return;
     }
     
@@ -263,21 +264,7 @@ class Constraints {
     
     ////////////////////////////// Limits //////////////////////////////
     
-    virtual dReal SdLimitBobrowInit(dReal s){
-        /// Computes an upper limit on sd given by acceleration constraints (Bobrow)
-	/// Called at initialization
-	std::cout << "Virtual method not implemented\n";
-        throw TOPPException("Virtual method not implemented");
-    }
-
-    virtual dReal SdLimitBobrowInit2(dReal s){
-        /// Computes an upper limit on sd given by acceleration constraints (Bobrow)
-	/// Called at initialization
-	std::cout << "Virtual method not implemented\n";
-        throw TOPPException("Virtual method not implemented");
-    }
-
-    virtual std::pair<dReal, dReal> SdLimitBobrowInit3(dReal s){
+    virtual dReal SdLimitBobrowInit(dReal s) {
         /// Computes an upper limit on sd given by acceleration constraints (Bobrow)
 	/// Called at initialization
 	std::cout << "Virtual method not implemented\n";
@@ -288,7 +275,7 @@ class Constraints {
     /// Computes an upper limit on sd given by acceleration constraints (Bobrow)
     /// Called after mvcbobrow exists
     
-    dReal SdLimitBobrowExclude(dReal s, int iexclude){
+    dReal SdLimitBobrowExclude(dReal s, int iexclude) {
         /// Computes an upper limit on sd given by acceleration constraints (except the iexclude-th constraint)
 	return BOBROWEXCLUDENOTDEFINED;
     }
@@ -298,18 +285,43 @@ class Constraints {
 
     virtual dReal SdLimitCombined(dReal s);
     
-    virtual std::pair<dReal,dReal> SddLimits(dReal s, dReal sd){
+    virtual std::pair<dReal,dReal> SddLimits(dReal s, dReal sd) {
 	/// Computes lower and upper limits on sdd
 	/// Returns (\alpha, \beta)
         std::cout << "Virtual method not implemented\n";
         throw TOPPException("Virtual method not implemented");
     }
     
-    virtual dReal SddLimitAlpha(dReal s, dReal sd){
+    ///
+    virtual dReal SdLimitBobrowInitUpper(dReal s) {
+        /// Computes an upper limit on sd given by acceleration constraints (Bobrow)
+	/// Called at initialization
+	std::cout << "Virtual method not implemented\n";
+        throw TOPPException("Virtual method not implemented");
+    }
+    virtual dReal SdLimitBobrowInitLower(dReal s) {
+        /// Computes a lower limit on sd given by acceleration constraints (Bobrow)
+	/// Called at initialization
+	std::cout << "Virtual method not implemented\n";
+        throw TOPPException("Virtual method not implemented");
+    }
+    virtual dReal SdLimitBobrowExcludeUpper(dReal s, int iexclude) {
+        /// Computes an upper limit on sd given by acceleration constraints (except the iexclude-th constraint)
+	return BOBROWEXCLUDENOTDEFINED;
+    }
+    virtual dReal SdLimitBobrowExcludeLower(dReal s, int iexclude) {
+        /// Computes a lower limit on sd given by acceleration constraints (except the iexclude-th constraint)
+	return BOBROWEXCLUDENOTDEFINED;
+    }
+    virtual dReal SdLimitBobrowUpper(dReal s);                      ///< Computes sd at s on mvcbobrow
+    virtual dReal SdLimitBobrowLower(dReal s);                      ///< Comptues sd at s on mvcbobrowlower
+    ///
+    
+    virtual dReal SddLimitAlpha(dReal s, dReal sd) {
         return SddLimits(s, sd).first;
     }
     
-    virtual dReal SddLimitBeta(dReal s, dReal sd){
+    virtual dReal SddLimitBeta(dReal s, dReal sd) {
         return SddLimits(s, sd).second;
     }
 
@@ -321,31 +333,41 @@ class Constraints {
     virtual void FindSwitchPoints();
     virtual void FindTangentSwitchPoints();
     virtual void FindDiscontinuousSwitchPoints();
-    virtual void FindSingularSwitchPoints(){
+    virtual void FindSingularSwitchPoints() {
         std::cout << "Virtual method not implemented\n";
         throw TOPPException("Virtual method not implemented");
-    };
+    }
     /// Finds all switch points and add them to switchpointslist
     
+    virtual void FindSingularSwitchPointsUpper() {
+	///< Finds singular switch points on mvcbobrow
+        std::cout << "Virtual method not implemented\n";
+        throw TOPPException("Virtual method not implemented");
+    }
+    virtual void FindSingularSwitchPointsLower() {
+	///< Finds singular switch points on mvcbobrowlower
+        std::cout << "Virtual method not implemented\n";
+        throw TOPPException("Virtual method not implemented");
+    }
 
     virtual void TrimSwitchPoints();
     /// Replaces switch points that are close to each other by a single switch point
     /// Modifies switchpointslist
     
-    virtual void ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector){
+    virtual void ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector) {
 	/// Computes the slope of the profiles near a dynamic singularity at (s, sd)
         std::cout << "Virtual method not implemented\n";
         throw TOPPException("Virtual method not implemented");
     }
     
-    virtual void FixStart(dReal& sstartnew, dReal& sdstartnew, dReal timestep){
+    virtual void FixStart(dReal& sstartnew, dReal& sdstartnew, dReal timestep) {
 	// Fixes the integration at s = 0 when there is a singularity there
 	// If there's nothing to do, then sstartnew = 0
 	// Else sstartnew > 0 and sdstartnew will be the value that allows going through the singularity
         sstartnew = 0;
     }
 
-    virtual void FixEnd(dReal& sendnew,dReal& sdendnew){
+    virtual void FixEnd(dReal& sendnew,dReal& sdendnew) {
 	// Fix the integration at s = send when there is a singularity there
 	// If there's nothing to do, then sendnew = send
 	// Else sendnew < send and sdendnew will be the value that allows going through the singularity
@@ -354,6 +376,7 @@ class Constraints {
 
     virtual void AddSwitchPoint(int i, int switchpointtype, dReal sd = -1);
     virtual void AddSwitchPoint2(dReal s, dReal sd, int switchpointtype);
+    virtual void AddSwitchPointLower(dReal s, dReal sd, int switchpointtype);
 
     std::vector<dReal> _svectcache, _sdvectcache, _sddvectcache; ///< caches
     bool _busingcache;
@@ -368,7 +391,7 @@ class QuadraticConstraints : public Constraints {
     /// \brief Constraints of the form a(s)sdd + b(s)sd^2 + c(s) <= 0
     /// See our article http://arxiv.org/abs/1312.6533 for more details
  public:
-    QuadraticConstraints() : Constraints(){
+    QuadraticConstraints() : Constraints() {
     }
     QuadraticConstraints(const std::string& constraintsstring);
     
@@ -377,19 +400,21 @@ class QuadraticConstraints : public Constraints {
     dReal SdLimitBobrowExclude(dReal s, int iexclude);
     std::pair<dReal, dReal> SddLimits(dReal s, dReal sd);
     void CheckInput();
-    void FindSingularSwitchPoints();
     void ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector);
     void WriteConstraints(std::stringstream& ss);
     
+    dReal SdLimitBobrowInitUpper(dReal s);                  ///< Computes mvcbobrow
+    dReal SdLimitBobrowInitLower(dReal s);                  ///< Computes mvcbobrowlower
+    dReal SdLimitBobrowExcludeUpper(dReal s, int iexclude);
+    dReal SdLimitBobrowExcludeLower(dReal s, int iexclude);
+    void FindSingularSwitchPoints();                        ///< Finds all singular switch points
+    void FindSingularSwitchPointsUpper();                   ///< Finds singular switch points on mvcbobrow
+    void FindSingularSwitchPointsLower();                   ///< Finds singular switch points on mvcbobrowlower
+
     ////////////////////////////// Specific Members & Methods //////////////////////////////
-    int nconstraints;  ///< Number of constraints
+    int nconstraints;  ///< number of constraints
     bool hasislands;
     std::vector<std::vector<dReal> > avect, bvect, cvect;
-
-    dReal SdLimitBobrowInit2(dReal s);
-    std::pair<dReal, dReal> SdLimitBobrowInit3(dReal s);
-    dReal SdLimitBobrowExclude2(dReal s, int iexclude);
-    std::pair<dReal, dReal> SdLimitBobrowExclude3(dReal s, int iexclude);
     
     void InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c);
     /// Linearly interpolates the dynamics coefficients a, b, c
