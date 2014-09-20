@@ -1098,97 +1098,97 @@ void QuadraticConstraints::FindSingularSwitchPoints() {
     }
 }
 
-// void QuadraticConstraints::FindTangentSwitchPoints() {
-//     /// overloaded method
+void QuadraticConstraints::FindTangentSwitchPoints() {
+    /// overloaded method
     
-//     if (ndiscrsteps < 3)
-//         return;
+    if (ndiscrsteps < 3)
+        return;
     
-//     dReal s, sd, snext, sdnext, alpha;
-//     dReal diff, diffprev, tangent, prevtangent;
-//     std::pair<dReal,dReal> sddlimits;
+    dReal s, sd, snext, sdnext, alpha;
+    dReal diff, diffprev, tangent, prevtangent;
+    std::pair<dReal,dReal> sddlimits;
     
-//     dReal thresh_discontinuous_sp = 2; ///< threshold for selecting discont-sp
-//     dReal thresh_tangent_sp = 1;       ///< threshold for selecting tangent-sp
+    dReal thresh_discontinuous_sp = 2; ///< threshold for selecting discont-sp
+    dReal thresh_tangent_sp = 1;       ///< threshold for selecting tangent-sp
 
-//     /// find tangent switch points on the normal mvc (mvcbobrow)
-//     int i = 1;
-//     s = discrsvect[i];
-//     snext = discrsvect[i + 1];
-//     sd = SdLimitBobrow(s);
-//     sdnext = SdLimitBobrow(snext);
+    /// find tangent switch points on the normal mvc (mvcbobrow)
+    int i = 1;
+    s = discrsvect[i];
+    snext = discrsvect[i + 1];
+    sd = SdLimitBobrow(s);
+    sdnext = SdLimitBobrow(snext);
     
-//     tangent = (sdnext - sd)/discrtimestep; ///< tangent of the MVC in s-sd plane
-//     prevtangent = (sd - SdLimitBobrow(discrsvect[i - 1]))/discrtimestep;
-//     sddlimits = SddLimits(s, sd);
-//     alpha = sddlimits.first;
-//     diffprev = alpha/sd - tangent;         ///< difference of slopes of the MVC and the trajectory
+    tangent = (sdnext - sd)/discrtimestep; ///< tangent of the MVC in s-sd plane
+    prevtangent = (sd - SdLimitBobrow(discrsvect[i - 1]))/discrtimestep;
+    sddlimits = SddLimits(s, sd);
+    alpha = sddlimits.first;
+    diffprev = alpha/sd - tangent;         ///< difference of slopes of the MVC and the trajectory
 
-//     for (int i = 2; i < ndiscrsteps - 1; i++) {
-//         s = discrsvect[i];
-//         snext = discrsvect[i + 1];
-//         sd = SdLimitBobrow(s);
-//         sdnext = SdLimitBobrow(snext);
-//         sddlimits = SddLimits(s, sd);
-//         alpha = sddlimits.first;
-//         if (std::abs(prevtangent - tangent) > thresh_discontinuous_sp && prevtangent < 0 && tangent > 0) {
-//             AddSwitchPoint2(s, sd, SP_DISCONTINUOUS);
-//         }
-//         prevtangent = tangent;
-//         tangent = (sdnext - sd)/discrtimestep;
-//         diff = alpha/sd - tangent;
-//         if (diffprev*diff < 0 && std::abs(diff) < thresh_tangent_sp) {
-//             AddSwitchPoint2(s, sd, SP_TANGENT);
-//         }
-//         diffprev = diff;
-//     }
+    for (int i = 2; i < ndiscrsteps - 1; i++) {
+        s = discrsvect[i];
+        snext = discrsvect[i + 1];
+        sd = SdLimitBobrow(s);
+        sdnext = SdLimitBobrow(snext);
+        sddlimits = SddLimits(s, sd);
+        alpha = sddlimits.first;
+        if (std::abs(prevtangent - tangent) > thresh_discontinuous_sp && prevtangent < 0 && tangent > 0) {
+            AddSwitchPoint2(s, sd, SP_DISCONTINUOUS);
+        }
+        prevtangent = tangent;
+        tangent = (sdnext - sd)/discrtimestep;
+        diff = alpha/sd - tangent;
+        if (diffprev*diff < 0 && std::abs(diff) < thresh_tangent_sp) {
+            AddSwitchPoint2(s, sd, SP_TANGENT);
+        }
+        diffprev = diff;
+    }
 
-//     /// find tangent switch points on the lower mvc (mvcbobrowlower)
-//     if (hasislands) {
-// 	std::vector<dReal>::iterator it = std::lower_bound(mvcbobrowlower.begin(), mvcbobrowlower.end(), -TINY);
-// 	it++;
-// 	size_t index = it - mvcbobrowlower.begin();
+    /// find tangent switch points on the lower mvc (mvcbobrowlower)
+    if (hasislands) {
+	std::vector<dReal>::iterator it = std::lower_bound(mvcbobrowlower.begin(), mvcbobrowlower.end(), -TINY);
+	it++;
+	size_t index = it - mvcbobrowlower.begin(); ///< index to the second element on the island
 	
-// 	s = discrsvect[index];
-// 	snext = discrsvect[index + 1];
-// 	sd = SdLimitBobrowLower(s);
-// 	sdnext = SdLimitBobrowLower(snext);
+	s = discrsvect[index];
+	snext = discrsvect[index + 1];
+	sd = mvcbobrowlower[index];
+	sdnext = mvcbobrowlower[index + 1];
 
-// 	tangent = (sdnext - sd)/discrtimestep; ///< tangent of the MVC in s-sd plane
-// 	prevtangent = (sd - SdLimitBobrowLower(discrsvect[index - 1]))/discrtimestep;
-// 	sddlimits = SddLimits(s, sd);
-// 	alpha = sddlimits.first;
-// 	diffprev = alpha/sd - tangent;         ///< difference of slopes of the MVC and the trajectory
+	tangent = (sdnext - sd)/discrtimestep; ///< tangent of the MVC in s-sd plane
+	prevtangent = (sd - mvcbobrowlower[i - 1])/discrtimestep;
+	sddlimits = SddLimits(s, sd);
+	alpha = sddlimits.first;
+	diffprev = alpha/sd - tangent;         ///< difference of slopes of the MVC and the trajectory
 	
-// 	for (int i = index; i < discrsvect.size() - 1; i++) {
-// 	    if (mvcbobrowlower[i + 1] < -TINY) {
-// 		/// reach the end of this island
-// 		continue;
-// 	    }
-// 	    if (mvcbobrowlower[i] < -TINY) {
-// 		/// still do not reach the next island
-// 		continue;
-// 	    }
+	for (int i = index; i < discrsvect.size() - 1; i++) {
+	    if (sdnext < -TINY) {
+		/// reach the end of this island
+		continue;
+	    }
+	    if (sd < -TINY) {
+		/// still do not reach the next island
+		continue;
+	    }
 	    
-// 	    s = discrsvect[i];
-// 	    snext = discrsvect[i + 1];
-// 	    sd = SdLimitBobrowLower(s);
-// 	    sdnext = SdLimitBobrowLower(snext);
-// 	    sddlimits = SddLimits(s, sd);
-// 	    alpha = sddlimits.first;
-// 	    if (std::abs(prevtangent - tangent) > thresh_discontinuous_sp && prevtangent > 0 && tangent < 0) {
-// 		AddSwitchPointLower(s, sd, SP_DISCONTINUOUS);
-// 	    }
-// 	    prevtangent = tangent;
-// 	    tangent = (sdnext - sd)/discrtimestep;
-// 	    diff = alpha/sd - tangent;
-// 	    if (diffprev*diff < 0 && std::abs(diff) < thresh_tangent_sp) {
-// 		AddSwitchPointLower(s, sd, SP_TANGENT);
-// 	    }
-// 	    diffprev = diff;
-// 	}
-//     }
-// }
+	    s = discrsvect[i];
+	    snext = discrsvect[i + 1];
+	    sd = mvcbobrowlower[i];
+	    sdnext = mvcbobrowlower[i + 1];
+	    sddlimits = SddLimits(s, sd);
+	    alpha = sddlimits.first;
+	    if (std::abs(prevtangent - tangent) > thresh_discontinuous_sp && prevtangent > 0 && tangent < 0) {
+		AddSwitchPointLower(s, sd, SP_DISCONTINUOUS);
+	    }
+	    prevtangent = tangent;
+	    tangent = (sdnext - sd)/discrtimestep;
+	    diff = alpha/sd - tangent;
+	    if (diffprev*diff < 0 && std::abs(diff) < thresh_tangent_sp) {
+		AddSwitchPointLower(s, sd, SP_TANGENT);
+	    }
+	    diffprev = diff;
+	}
+    }
+}
 
 void QuadraticConstraints::FindDiscontinuousSwitchPoints() {
     /// overload method
