@@ -397,7 +397,7 @@ class QuadraticConstraints : public Constraints {
     dReal SdLimitBobrowExcludeLower(dReal s, int iexclude);
     
     void FindSingularSwitchPoints();                        ///< Finds all singular switch points
-    void FindTangentSwitchPoints();                         ///< Finds all tangent switch points
+    // void FindTangentSwitchPoints();                         ///< Finds all tangent switch points
     void FindDiscontinuousSwitchPoints();                   ///< Finds all discontinuous switch points
     /// Finds all switch points on both mvcbobrow & mvcbobrowlower
 
