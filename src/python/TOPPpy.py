@@ -128,7 +128,7 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=None):
     plot(mvcbobrow[2], mvcbobrow[3], 'm', linewidth = 4)
     ###
     mvcbobrowlower = profileslist.pop(0)
-    plot(mvcbobrowlower[2], mvcbobrowlower[3], 'm', linewidth = 4)
+    plot(mvcbobrowlower[2], mvcbobrowlower[3], '#f96f00', linewidth = 4) ## orange
     ###
     mvcdirect = profileslist.pop(0)
     plot(mvcdirect[2], mvcdirect[3], 'm--', linewidth = 4)
@@ -153,14 +153,14 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=None):
         if sw[2] == 1:
             plot(sw[0], sw[1], 'go', markersize = 8)
         if sw[2] == 2:
-            plot(sw[0], sw[1], 'bo', markersize=8)
+            plot(sw[0], sw[1], 'bo', markersize = 8)
         if sw[2] == 3:
-            plot(sw[0], sw[1], 'yo', markersize=8)
+            plot(sw[0], sw[1], 'yo', markersize = 8)
     smax, sdmax = mvcbobrow[0], M
     axis([0, smax, 0, sdmax])
     #title('Maximum Velocity Curves and profiles', fontsize=20)
-    xlabel('$s$', fontsize=22)
-    ylabel('$\dot s$', fontsize=22)
+    xlabel('$s$', fontsize = 22)
+    ylabel('$\dot s$', fontsize = 22)
     return smax, sdmax  # return this for PlotPhase (yurk!)
 
 

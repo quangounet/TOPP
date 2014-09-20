@@ -284,9 +284,10 @@ void Constraints::FindTangentSwitchPoints() {
     dReal diff, diffprev, tangent, prevtangent;
     std::pair<dReal,dReal> sddlimits;
     
-    dReal thresh_discontinuous_sp = 2;
-    dReal thresh_tangent_sp = 1;
+    dReal thresh_discontinuous_sp = 2; ///< threshold for selecting discont-sp
+    dReal thresh_tangent_sp = 1;       ///< threshold for selecting tangent-sp
 
+    /// find tangent switch points on the normal mvc (mvcbobrow)
     int i = 1;
     s = discrsvect[i];
     snext = discrsvect[i + 1];
@@ -336,10 +337,10 @@ void Constraints::FindDiscontinuousSwitchPoints() {
         sdnn = SdLimitBobrow(discrsvect[i + 2]);
         if (std::abs(sdnn - sdn) > thresh_discontinuous_sp*std::abs(sdn - sd)) {
             if (sdn < sdnn) {
-                AddSwitchPoint2(discrsvect[i + 1],mvcbobrow[i + 1], SP_DISCONTINUOUS);
+                AddSwitchPoint2(discrsvect[i + 1], mvcbobrow[i + 1], SP_DISCONTINUOUS);
             }
             else{
-                AddSwitchPoint2(discrsvect[i + 2],mvcbobrow[i + 2], SP_DISCONTINUOUS);
+                AddSwitchPoint2(discrsvect[i + 2], mvcbobrow[i + 2], SP_DISCONTINUOUS);
             }
         }
         // if ( trajectory.degree <= 3 ) {
@@ -1035,154 +1036,6 @@ dReal QuadraticConstraints::SdLimitBobrowExclude(dReal s, int iexclude) {
     }
 }
 
-
-// dReal QuadraticConstraints::SdLimitBobrowExclude2(dReal s, int iexclude) {
-//     /// \brief Returns sd which is the lowest edge between feasible-infeasible area
-//     /// If there is any island, we have \alpha(s, sd - TINY) > \beta(s, sd - TINY) (infeasible area below)
-//     /// Otherwise, we have \alpha(s, sd - TINY) < \beta(s, sd - TINY) (infeasible area above)
-//     std::vector<dReal> a, b, c;
-//     InterpolateDynamics(s, a, b, c);
-//     if (VectorNorm(a) < TINY) { ///? why check for VectorNorm(a)?
-//         if (s < 1e-2) {
-//             s += 1e-3;
-//         }
-//         else {
-//             s -= 1e-3;
-//         }
-//         InterpolateDynamics(s, a, b, c);
-//     }
-
-//     bool possibleisland = false;
-
-//     std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
-//     if (sddlimits.first >= sddlimits.second) {
-//         possibleisland = true;
-//     }
-
-//     std::vector<dReal> sdmin(0);
-//     sdmin.push_back(INF);
-//     for (int k = 0; k < nconstraints; k++) {
-//         for (int m = k + 1; m < nconstraints; m++) {
-// 	    if (k == iexclude || m == iexclude) {
-// 		continue;
-// 	    }
-//             dReal num, denum, r;
-//             // If we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
-//             if (a[k]*a[m] < 0) {
-//                 num = a[k]*c[m] - a[m]*c[k];
-//                 denum = -a[k]*b[m] + a[m]*b[k];
-//                 if (std::abs(denum) > TINY) {
-//                     r = num/denum;
-//                     if (r >= 0) {
-// 			r = sqrt(r);
-// 			std::vector<dReal>::iterator it = std::lower_bound(sdmin.begin(), sdmin.end(), r);
-//                         sdmin.insert(it, r);
-//                     }
-//                 }
-//             }
-//         }
-//     }
-    
-//     if (possibleisland) {
-//     	// std::cout << "sdmin = [ ";
-//     	// int nprints = std::min(int(sdmin.size()), 3);
-//     	// for (int k = 0; k < nprints - 1; k++) {
-//     	//     std::cout << sdmin[k] << ": ";
-// 	//     sddlimits = SddLimits(s, sdmin[k]);
-// 	//     std::cout << "(" << sddlimits.first << ", " << sddlimits.second << "), ";
-//     	// }
-//     	// std::cout << sdmin[nprints - 1] << ": ";
-// 	// sddlimits = SddLimits(s, sdmin[nprints - 1]);
-// 	// std::cout << "(" << sddlimits.first << ", " << sddlimits.second << ")]\n";
-	
-	
-// 	std::vector<dReal>::iterator it;
-// 	for (it = sdmin.begin(); it != sdmin.end(); it++) {
-// 	    sddlimits = SddLimits(s, *it);
-// 	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
-// 		/// this is the sd at the edge of the lower island
-// 		return *it;
-// 	    }
-// 	}
-// 	return 0;
-//     }
-//     else {
-// 	return sdmin[0];
-//     }
-// }
-
-// std::pair<dReal, dReal> QuadraticConstraints::SdLimitBobrowExclude3(dReal s, int iexclude) {
-//     /// \brief Returns a pair of sd, (sd_l, sd_u), which determine the valid interval of sd at s
-//     /// If the interval of sd is valid from 0 upwards, assign sd_l = -1
-    
-//     std::pair<dReal, dReal> result;
-//     std::vector<dReal> a, b, c;
-//     InterpolateDynamics(s, a, b, c);
-//     if (VectorNorm(a) < TINY) { ///? why check for VectorNorm(a)?
-//         if (s < 1e-2) {
-//             s += 1e-3;
-//         }
-//         else {
-//             s -= 1e-3;
-//         }
-//         InterpolateDynamics(s, a, b, c);
-//     }
-
-//     bool possibleisland = false;
-
-//     std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
-//     if (sddlimits.first >= sddlimits.second) {
-//         possibleisland = true;
-//     }
-
-//     std::vector<dReal> sdmin(0);
-//     sdmin.push_back(INF);
-//     for (int k = 0; k < nconstraints; k++) {
-//         for (int m = k + 1; m < nconstraints; m++) {
-// 	    if (k == iexclude || m == iexclude) {
-// 		continue;
-// 	    }
-//             dReal num, denum, r;
-//             /// if we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
-//             if (a[k]*a[m] < 0) {
-//                 num = a[k]*c[m] - a[m]*c[k];
-//                 denum = -a[k]*b[m] + a[m]*b[k];
-//                 if (std::abs(denum) > TINY) {
-//                     r = num/denum;
-//                     if (r >= 0) {
-// 			r = sqrt(r);
-// 			std::vector<dReal>::iterator it = std::lower_bound(sdmin.begin(), sdmin.end(), r);
-// 			/// sort all candidates with respect to sd
-//                         sdmin.insert(it, r);
-//                     }
-//                 }
-//             }
-//         }
-//     }
-    
-//     if (possibleisland) {
-// 	/// now consider only the case when sd has ONE valid interval
-// 	std::vector<dReal>::iterator it;
-// 	for (it = sdmin.begin(); it != sdmin.end(); it++) {
-// 	    sddlimits = SddLimits(s, *it);
-// 	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
-// 		result.first = *it;
-// 		it++;
-// 		result.second = *it;
-// 		return result;
-// 	    }
-// 	}
-// 	result.first = -1;
-// 	result.second = 0;
-// 	return result;
-//     }
-//     else {
-// 	result.first = -1;
-// 	result.second = sdmin[0];
-// 	return result;
-//     }
-// }
-
 void QuadraticConstraints::FindSingularSwitchPoints() {
     if (ndiscrsteps < 3) {
         return;
@@ -1239,6 +1092,160 @@ void QuadraticConstraints::FindSingularSwitchPoints() {
         cprev.swap(c);
     }
 }
+
+void QuadraticConstraints::FindTangentSwitchPoints() {
+    /// overloaded method
+    
+    if (ndiscrsteps < 3)
+        return;
+    
+    dReal s, sd, snext, sdnext, alpha;
+    dReal diff, diffprev, tangent, prevtangent;
+    std::pair<dReal,dReal> sddlimits;
+    
+    dReal thresh_discontinuous_sp = 2; ///< threshold for selecting discont-sp
+    dReal thresh_tangent_sp = 1;       ///< threshold for selecting tangent-sp
+
+    /// find tangent switch points on the normal mvc (mvcbobrow)
+    int i = 1;
+    s = discrsvect[i];
+    snext = discrsvect[i + 1];
+    sd = SdLimitBobrow(s);
+    sdnext = SdLimitBobrow(snext);
+    
+    tangent = (sdnext - sd)/discrtimestep; ///< tangent of the MVC in s-sd plane
+    prevtangent = (sd - SdLimitBobrow(discrsvect[i - 1]))/discrtimestep;
+    sddlimits = SddLimits(s, sd);
+    alpha = sddlimits.first;
+    diffprev = alpha/sd - tangent;         ///< difference of slopes of the MVC and the trajectory
+
+    for (int i = 2; i < ndiscrsteps - 1; i++) {
+        s = discrsvect[i];
+        snext = discrsvect[i + 1];
+        sd = SdLimitBobrow(s);
+        sdnext = SdLimitBobrow(snext);
+        sddlimits = SddLimits(s, sd);
+        alpha = sddlimits.first;
+        if (std::abs(prevtangent - tangent) > thresh_discontinuous_sp && prevtangent < 0 && tangent > 0) {
+            AddSwitchPoint2(s, sd, SP_DISCONTINUOUS);
+        }
+        prevtangent = tangent;
+        tangent = (sdnext - sd)/discrtimestep;
+        diff = alpha/sd - tangent;
+        if (diffprev*diff < 0 && std::abs(diff) < thresh_tangent_sp) {
+            AddSwitchPoint2(s, sd, SP_TANGENT);
+        }
+        diffprev = diff;
+    }
+
+    /// find tangent switch points on the lower mvc (mvcbobrowlower)
+    if (hasislands) {
+	std::vector<dReal>::iterator it = std::lower_bound(mvcbobrowlower.begin(), mvcbobrowlower.end(), -TINY);
+	it++;
+	size_t index = it - mvcbobrowlower.begin();
+	
+	s = discrsvect[index];
+	snext = discrsvect[index + 1];
+	sd = SdLimitBobrowLower(s);
+	sdnext = SdLimitBobrowLower(snext);
+
+	tangent = (sdnext - sd)/discrtimestep; ///< tangent of the MVC in s-sd plane
+	prevtangent = (sd - SdLimitBobrowLower(discrsvect[index - 1]))/discrtimestep;
+	sddlimits = SddLimits(s, sd);
+	alpha = sddlimits.first;
+	diffprev = alpha/sd - tangent;         ///< difference of slopes of the MVC and the trajectory
+	
+	for (int i = index; i < discrsvect.size() - 1; i++) {
+	    if (mvcbobrowlower[i + 1] < -TINY) {
+		/// reach the end of this island
+		continue;
+	    }
+	    if (mvcbobrowlower[i] < -TINY) {
+		/// still do not reach the next island
+		continue;
+	    }
+	    
+	    s = discrsvect[i];
+	    snext = discrsvect[i + 1];
+	    sd = SdLimitBobrowLower(s);
+	    sdnext = SdLimitBobrowLower(snext);
+	    sddlimits = SddLimits(s, sd);
+	    alpha = sddlimits.first;
+	    if (std::abs(prevtangent - tangent) > thresh_discontinuous_sp && prevtangent > 0 && tangent < 0) {
+		AddSwitchPointLower(s, sd, SP_DISCONTINUOUS);
+	    }
+	    prevtangent = tangent;
+	    tangent = (sdnext - sd)/discrtimestep;
+	    diff = alpha/sd - tangent;
+	    if (diffprev*diff < 0 && std::abs(diff) < thresh_tangent_sp) {
+		AddSwitchPointLower(s, sd, SP_TANGENT);
+	    }
+	    diffprev = diff;
+	}
+    }
+}
+
+void QuadraticConstraints::FindDiscontinuousSwitchPoints() {
+    /// overload method
+    
+    if (ndiscrsteps < 3)
+        return;
+    
+    dReal thresh_discontinuous_sp = 100;
+
+    /// find discontinuous switch points on the normal mvc (mvcbobrow)
+    int i = 0;
+    dReal sd, sdn, sdnn;
+    sd = SdLimitBobrow(discrsvect[i]);
+    sdn = SdLimitBobrow(discrsvect[i + 1]);
+    for (int i = 0; i < ndiscrsteps - 2; i++) {
+        sdnn = SdLimitBobrow(discrsvect[i + 2]);
+        if (std::abs(sdnn - sdn) > thresh_discontinuous_sp*std::abs(sdn - sd)) {
+            if (sdn < sdnn) {
+                AddSwitchPoint2(discrsvect[i + 1], mvcbobrow[i + 1], SP_DISCONTINUOUS);
+            }
+            else{
+                AddSwitchPoint2(discrsvect[i + 2], mvcbobrow[i + 2], SP_DISCONTINUOUS);
+            }
+        }
+        sd = sdn;
+        sdn = sdnn;
+    }
+
+    /// find discontinuous switch points on the lower mvc (mvcbobrowlower)
+    if (hasislands) {
+	std::vector<dReal>::iterator it = std::lower_bound(mvcbobrowlower.begin(), mvcbobrowlower.end(), -TINY);
+	it++;
+	size_t index = it - mvcbobrowlower.begin();
+	
+	sd = SdLimitBobrowLower(discrsvect[index]);
+	sdn = SdLimitBobrowLower(discrsvect[index + 1]);
+	for (int i = index; i < ndiscrsteps - 2; i++) {
+	    if (mvcbobrowlower[i + 1] < 0) {
+		/// reach the end of this island
+		continue;
+	    }
+	    if (mvcbobrowlower[i] < 0) {
+		/// still do not reach the next island
+		continue;
+	    }
+	    sdnn = SdLimitBobrowLower(discrsvect[i + 2]);
+	    if (sdnn < 0) continue;
+	    
+	    if (std::abs(sdnn - sdn) > thresh_discontinuous_sp*std::abs(sdn - sd)) {
+		if (sdn < sdnn) {
+		    AddSwitchPointLower(discrsvect[i + 2], mvcbobrowlower[i + 2], SP_DISCONTINUOUS);
+		}
+		else{
+		    AddSwitchPointLower(discrsvect[i + 1], mvcbobrowlower[i + 1], SP_DISCONTINUOUS);
+		}
+	    }
+	    sd = sdn;
+	    sdn = sdnn;
+	}
+    }
+}
+
 
 ////////////////////////////////////////////////////////////////////
 /////////////////////////// Profile ////////////////////////////////
@@ -2177,13 +2184,12 @@ int ComputeLimitingCurves(Constraints& constraints) {
         if (sdswitch > constraints.SdLimitCombined(sswitch) + TINY2)
             continue;
 	
-	///
-	std::cout << "addressing a switch point at s =" << sswitch << "\n";
+	// std::cout << "addressing a switch point at s =" << sswitch << "\n";
 	
         /// address Switch Point
         if (!AddressSwitchPoint(constraints, switchpoint, sbackward,
                                 sdbackward, sforward, sdforward))
-	    std::cout << "    addressing failed\n";///
+	    // std::cout << "    addressing failed\n";///
             continue;
 
         bool shiller = false;
@@ -2219,7 +2225,7 @@ int ComputeLimitingCurves(Constraints& constraints) {
             constraints.resprofileslist.push_back(tmpprofile);
         }
 	
-	std::cout << "backward integration status :" << integratestatus << "\n";
+	// std::cout << "backward integration status :" << integratestatus << "\n";
 
         if (integratestatus == INT_BOTTOM) {
             std::cerr << str(boost::format("IntegrateBackward INT_BOTTOM, s=%.15e, sd=%.15e\n")%sbackward%sdbackward);
@@ -2235,7 +2241,7 @@ int ComputeLimitingCurves(Constraints& constraints) {
             // std::cout << "Forward : " << tmpprofile.nsteps << " " << tmpprofile.duration << "\n";
         }
 
-	std::cout << "foreward integration status :" << integratestatus << "\n";
+	// std::cout << "foreward integration status :" << integratestatus << "\n";
 
         if (integratestatus == INT_BOTTOM) {
             std::cerr << str(boost::format("IntegrateForward INT_BOTTOM, s=%.15e, sd=%.15e\n")%sforward%sdforward);

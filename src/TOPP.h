@@ -395,11 +395,16 @@ class QuadraticConstraints : public Constraints {
     dReal SdLimitBobrowInitLower(dReal s);                  ///< Computes mvcbobrowlower
     dReal SdLimitBobrowExcludeUpper(dReal s, int iexclude);
     dReal SdLimitBobrowExcludeLower(dReal s, int iexclude);
+    
     void FindSingularSwitchPoints();                        ///< Finds all singular switch points
+    void FindTangentSwitchPoints();                         ///< Finds all tangent switch points
+    void FindDiscontinuousSwitchPoints();                   ///< Finds all discontinuous switch points
+    /// Finds all switch points on both mvcbobrow & mvcbobrowlower
 
     ////////////////////////////// Specific Members & Methods //////////////////////////////
     int nconstraints;  ///< number of constraints
     bool hasislands;
+    // int nislands;      ///< number of islands
     std::vector<std::vector<dReal> > avect, bvect, cvect;
     
     void InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c);
