@@ -337,18 +337,6 @@ class Constraints {
         std::cout << "Virtual method not implemented\n";
         throw TOPPException("Virtual method not implemented");
     }
-    /// Finds all switch points and add them to switchpointslist
-    
-    virtual void FindSingularSwitchPointsUpper() {
-	///< Finds singular switch points on mvcbobrow
-        std::cout << "Virtual method not implemented\n";
-        throw TOPPException("Virtual method not implemented");
-    }
-    virtual void FindSingularSwitchPointsLower() {
-	///< Finds singular switch points on mvcbobrowlower
-        std::cout << "Virtual method not implemented\n";
-        throw TOPPException("Virtual method not implemented");
-    }
 
     virtual void TrimSwitchPoints();
     /// Replaces switch points that are close to each other by a single switch point
@@ -408,8 +396,6 @@ class QuadraticConstraints : public Constraints {
     dReal SdLimitBobrowExcludeUpper(dReal s, int iexclude);
     dReal SdLimitBobrowExcludeLower(dReal s, int iexclude);
     void FindSingularSwitchPoints();                        ///< Finds all singular switch points
-    void FindSingularSwitchPointsUpper();                   ///< Finds singular switch points on mvcbobrow
-    void FindSingularSwitchPointsLower();                   ///< Finds singular switch points on mvcbobrowlower
 
     ////////////////////////////// Specific Members & Methods //////////////////////////////
     int nconstraints;  ///< number of constraints
