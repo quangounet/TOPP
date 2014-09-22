@@ -25,6 +25,7 @@ namespace TOPP {
 
 bool Constraints::Preprocess() {
     switchpointslist.clear();
+    switchpointslistlower.clear();
     resprofileslist.resize(0);
 
     bool hasislands = false;
@@ -199,6 +200,7 @@ void Constraints::WriteMVCDirect(std::stringstream& ss, dReal dt) {
 
 void Constraints::FindSwitchPoints() {
     switchpointslist.clear();
+    switchpointslistlower.clear();
     FindSingularSwitchPoints();
     FindTangentSwitchPoints();
     FindDiscontinuousSwitchPoints();
@@ -1239,11 +1241,9 @@ void QuadraticConstraints::FindDiscontinuousSwitchPoints() {
 	    
 	    if (std::abs(sdnn - sdn) > thresh_discontinuous_sp*std::abs(sdn - sd)) {
 		if (sdn < sdnn) {
-		    std::cout << discrsvect[i + 2] << " " << sd << " " << sdn << " " << sdnn;
 		    AddSwitchPointLower(discrsvect[i + 2], mvcbobrowlower[i + 2], SP_DISCONTINUOUS);
 		}
 		else{
-		    std::cout << discrsvect[i + 1] << " " << sd << " " << sdn << " " << sdnn;
 		    AddSwitchPointLower(discrsvect[i + 1], mvcbobrowlower[i + 1], SP_DISCONTINUOUS);
 		}
 	    }
