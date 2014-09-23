@@ -1,0 +1,51 @@
+<Robot name="ArmCut">
+  <KinBody>
+    <Body name="BaseX" type="dynamic">
+      <Translation>0.0  0.0  0.0</Translation>
+      <Geom type="cylinder">
+        <rotationaxis>1 0 0 90</rotationaxis>
+        <radius>0.03</radius>
+        <height>0.02</height>
+        <diffuseColor>0.05 0.05 0.05</diffuseColor>
+      </Geom>
+    </Body>
+    <Body name="Arm0X" type="dynamic">
+      <offsetfrom>BaseX</offsetfrom>
+      <Translation>0 0 0.005</Translation>
+      <Geom type="box">
+        <Translation>0.08 0 0</Translation>
+        <Extents>0.08 0.01 0.005</Extents>
+        <diffuseColor>0 0 0.5</diffuseColor>
+      </Geom>
+    </Body>
+    <Joint circular="true" name="Arm0X" type="hinge">
+      <Body>BaseX</Body>
+      <Body>Arm0X</Body>
+      <offsetfrom>Arm0X</offsetfrom>
+      <weight>4</weight>
+      <limitsdeg>-180 180</limitsdeg>
+      <axis>0 0 1</axis>
+      <maxvel>3</maxvel>
+      <resolution>1</resolution>
+    </Joint>
+      <Body name="Arm1X" type="dynamic">
+      <offsetfrom>Arm0X</offsetfrom>
+      <Translation>0.14 0 0.01</Translation>
+      <Geom type="box">
+        <Translation>0.08 0.0 0</Translation>
+        <Extents>0.08 0.0075 0.005</Extents>
+        <diffuseColor>0 0 0.5</diffuseColor>
+      </Geom>
+    </Body>
+    <Joint circular="true" name="Arm1X" type="hinge">
+      <Body>Arm0X</Body>
+      <Body>Arm1X</Body>
+      <offsetfrom>Arm1X</offsetfrom>
+      <weight>3</weight>
+      <limitsdeg>-180 180</limitsdeg>
+      <axis>0 0 1</axis>
+      <maxvel>4</maxvel>
+      <resolution>1</resolution>
+    </Joint>
+  </KinBody>
+</Robot>
