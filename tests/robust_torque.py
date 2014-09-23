@@ -45,7 +45,7 @@ RaveSetDebugLevel(0)
 
 
 # Set-up
-ntraj = 10000
+ntraj = 1000
 ncurve = 1
 discrtimestep = 0.01
 vmax = zeros(ndof)
