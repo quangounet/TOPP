@@ -2053,6 +2053,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
             message = str(boost::format("Could not recover from CLC discontinuous s=%.15e")%sdiscontinuous);
         }
 
+
         // Estimate resulting trajectory duration
         constraints.resduration = 0;
         //Profile profile;
@@ -2069,15 +2070,6 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
             integrateprofilesstatus = false;
             continue;
         }
-//        if(FindLowestProfile(0,profile,tres,constraints.resprofileslist)) {
-//            sdcur = profile.Evald(tres);
-//        }
-//        else{
-//            message = "CLC discontinuous at 0";
-//            std::cout << message << std::endl;
-//            integrateprofilesstatus = false;
-//            continue;
-//        }
         bool clcdiscontinuous = false;
         for(int i=1; i<=nsamples; i++) {
             s = i*ds;
