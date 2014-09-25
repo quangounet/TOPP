@@ -2318,6 +2318,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
 
         /////////////////  Compute the CLC /////////////////////
         ret = ComputeLimitingCurves(constraints);
+	std::cout << "COMPUTE CLC result: " << ret << "\n"; 
         if (ret != CLC_OK) {
             message = "CLC failed";
             std::cout << message << std::endl;
@@ -2345,7 +2346,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
             /// check whether sdbeg > CLC or MVC
             ProfileSample lowestsample = FindLowestProfileFast(smallincrement, 1e30, constraints.resprofileslist);
             if ( lowestsample.itprofile != constraints.resprofileslist.end() ) {
-                bound = std::min(lowestsample.sd,constraints.mvccombined[0]);
+                bound = std::min(lowestsample.sd, constraints.mvccombined[0]);
             }
             else {
                 bound = constraints.mvccombined[0];
@@ -2360,7 +2361,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
                 break;
             }
         }
-        if (sdstartnew >bound) {
+        if (sdstartnew > bound) {
             message = str(boost::format("Sdbeg (%.15e) > CLC or MVC (%.15e), s=%.15e")%sdstartnew%bound%sstartnew);
             std::cout << message << std::endl;
             sdstartnew = bound;
@@ -2373,23 +2374,21 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
             // this is a HACK in order to get things working.
             constraints.resprofileslist.push_back(StraightProfile(0, sstartnew, 0, bound));
         }
-        // Integrate from s = 0
+        /// integrate from s = 0
         ret = IntegrateForward(constraints, sstartnew, sdstartnew, constraints.integrationtimestep, resprofile, 1e5, testaboveexistingprofiles, testmvc, zlajpah);
-        // if (ret==INT_BOTTOM) {
-        // sometimes sdstartnew can be too low and sd goes negative. therefore, try some random sd
-            // for (int itry = 1; itry <= 5; ++itry) {
-            //     ret = IntegrateForward(constraints,sstartnew,sdstartnew+0.2*itry,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
-            //       if (resprofile.nsteps>1) {
-            //           constraints.resprofileslist.push_back(resprofile);
-            //       }
-        // if (ret!=INT_BOTTOM) {
-        //  break;
-        // }
-        // }
+        
         if (ret == INT_BOTTOM) {
             message = str(boost::format("FW reached 0 from IntegrateForward. sstartnew=%.15e, sdstartnew=%.15e")%sstartnew%sdstartnew);
             std::cout << message << std::endl;
             integrateprofilesstatus = false;
+
+	    /// keep record where it hits zero
+	    if (rep == constraints.extrareps) {
+		if (resprofile.nsteps > 1) {
+		    constraints.resprofileslist.push_back(resprofile);
+		}
+	    }
+	    
             continue;
         }
         // }
@@ -2400,14 +2399,14 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
         /////////////////  Integrate from end /////////////////////
         /// fix end
         dReal sendnew = constraints.trajectory.duration, sdendnew = sdend;
-        constraints.FixEnd(sendnew,sdendnew);
+        constraints.FixEnd(sendnew, sdendnew);
         if (constraints.trajectory.duration - sendnew <= TINY2 || sdendnew > constraints.SdLimitCombined(sendnew) - TINY2 || sdendnew < 0 ) {
             sdendnew = sdend;
         }
         /// check whether sdend > CLC or MVC
         ProfileSample lowestsample = FindLowestProfileFast(constraints.trajectory.duration - smallincrement, 1e30, constraints.resprofileslist);
-        if ( lowestsample.itprofile != constraints.resprofileslist.end() ) {
-            bound = std::min(lowestsample.sd,constraints.mvccombined[constraints.mvccombined.size() - 1]);
+        if (lowestsample.itprofile != constraints.resprofileslist.end()) {
+            bound = std::min(lowestsample.sd, constraints.mvccombined[constraints.mvccombined.size() - 1]);
         }
         else {
             bound = constraints.mvccombined[constraints.mvccombined.size() - 1];
@@ -2424,23 +2423,21 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
             integrateprofilesstatus = false;
             continue;
         }
-        // Integrate back from s = send
+        /// integrate back from s = send
         ret = IntegrateBackward(constraints, sendnew, sdendnew, constraints.integrationtimestep, resprofile, 1e5, testaboveexistingprofiles, testmvc);
-        // if (ret==INT_BOTTOM) {
-        //     // sometimes sdendnew can be too low and sd goes negative. therefore, try some random sd
-        //     for (int itry = 1; itry <= 5; ++itry) {
-        //         ret = IntegrateBackward(constraints,sendnew,sdendnew+0.2*itry,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
-        //        if (resprofile.nsteps>1) {
-        //            constraints.resprofileslist.push_back(resprofile);
-        //        }
-        //         if (ret!=INT_BOTTOM) {
-        //             break;
-        //         }
-        //     }
-        if ( ret == INT_BOTTOM ) {
+        
+        if (ret == INT_BOTTOM) {
             message = str(boost::format("BW reached 0, s=%.15e, sd=%.15e")%sendnew%sdendnew);
             std::cout << message << std::endl;
             integrateprofilesstatus = false;
+
+	    /// keep record where it hits zero
+	    if (rep == constraints.extrareps) {
+		if (resprofile.nsteps > 1) {
+		    constraints.resprofileslist.push_back(resprofile);
+		}
+	    }
+
             continue;
         }
         // }
