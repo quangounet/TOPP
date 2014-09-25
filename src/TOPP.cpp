@@ -155,38 +155,82 @@ void Constraints::WriteMVCBobrow(std::stringstream& ss, dReal dt) {
     dReal duration = trajectory.duration;
     /// write mvcbobrow
     ss << duration << " " << dt << "\n";
-    for (dReal t = 0; t <= duration; t += dt) {
+    for (dReal t = 0; t < duration; t += dt) {
         ss << t << " ";
     }
-    ss << "\n";
-    for (dReal t = 0; t <= duration; t += dt) {
+    ss << duration << "\n";
+    for (dReal t = 0; t < duration; t += dt) {
         ss << SdLimitBobrow(t) << " ";
     }
+    ss << SdLimitBobrow(duration);
+    
     /// write mvcbobrowlower
+    
+    
     ss << "\n";
     ss << duration << " " << dt << "\n";
-    for (dReal t = 0; t <= duration; t += dt) {
-	if (SdLimitBobrowLower(t) >= 0) {
-	    ss << t << " ";
-	}
+    for (dReal t = 0; t < duration; t += dt) {
+        ss << t << " ";
     }
-    ss << "\n";
-    for (dReal t = 0; t <= duration; t += dt) {
-	if (SdLimitBobrowLower(t) >= 0) {
-	    ss << SdLimitBobrowLower(t) << " ";
-	}
+    ss << duration << "\n";
+    for (dReal t = 0; t < duration; t += dt) {
+        ss << SdLimitBobrowLower(t) << " ";
     }
+    ss << SdLimitBobrowLower(duration);
+    
+    // /// TODO : change it to be more efficient
+    // bool hasmvclower = false;
+    // const char* separator = "";
+    // dReal sd;
+    // for (dReal t = 0; t < duration; t += dt) {
+    // 	if (SdLimitBobrowLower(t) >= 0) {
+    // 	    hasmvclower = true;
+    // 	    break;
+    // 	}
+    // }
+    // if (hasmvclower) {
+    // // if (hasislands) {
+    // 	std::cout << "HEYYYYY\n"; 
+    // 	ss << "\n";
+    // 	ss << duration << " " << dt << "\n";
+    // 	for (dReal t = 0; t < duration; t += dt) {
+    // 	    if (SdLimitBobrowLower(t) >= 0) {
+    // 		ss << separator << t;
+    // 		separator = " ";
+    // 	    }
+    // 	}
+    // 	if (SdLimitBobrowLower(duration) >= 0) {
+    // 	    ss << separator << duration << "\n";
+    // 	}
+    // 	else {
+    // 	    ss << "\n";
+    // 	}
+	
+    // 	separator = ""; /// reset the separator
+    // 	for (dReal t = 0; t < duration; t += dt) {
+    // 	    sd = SdLimitBobrowLower(t);
+    // 	    if (sd >= 0) {
+    // 		ss << separator << sd;
+    // 		separator = " ";
+    // 	}
+    // 	}
+    // 	sd = SdLimitBobrowLower(duration);
+    // 	if (sd >= 0) {
+    // 	    ss << separator << sd;
+    // 	}
+    // }
 }
 
 void Constraints::WriteMVCDirect(std::stringstream& ss, dReal dt) {
     std::vector<dReal> qd(trajectory.dimension);
     dReal duration = trajectory.duration;
     ss << duration << " " << dt << "\n";
-    for (dReal t = 0; t <= duration; t += dt) {
+    for (dReal t = 0; t < duration; t += dt) {
         ss << t << " ";
     }
-    ss << "\n";
-    for (dReal t = 0; t <= duration; t += dt) {
+    ss << duration << "\n";
+    
+    for (dReal t = 0; t < duration; t += dt) {
         dReal res = INF;
         trajectory.Evald(t, qd);
         for (int i = 0; i < trajectory.dimension; i++) {
@@ -196,6 +240,14 @@ void Constraints::WriteMVCDirect(std::stringstream& ss, dReal dt) {
         }
         ss << res << " ";
     }
+    dReal res = INF;
+    trajectory.Evald(duration, qd);
+    for (int i = 0; i < trajectory.dimension; i++) {
+	if (std::abs(qd[i]) > TINY && std::abs(vmax[i]) > 0) {
+	    res = std::min(res, vmax[i]/std::abs(qd[i]));
+	}
+    }
+    ss << res;
 }
 
 void Constraints::FindSwitchPoints() {
@@ -805,6 +857,7 @@ dReal QuadraticConstraints::SdLimitBobrowInitUpper(dReal s) {
 	    sddlimits = SddLimits(s, *it);
 	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
 		/// this is the sd at the edge of the lower island
+		std::cout << "hasisland at " << s << "\n";
 		hasislands = true;
 		it++;
 		return *it; /// return the upper edge
@@ -865,6 +918,7 @@ dReal QuadraticConstraints::SdLimitBobrowInitLower(dReal s) {
 	    sddlimits = SddLimits(s, *it);
 	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
 		/// this is the sd at the edge of the lower island
+		std::cout << "hasisland at " << s << "\n";
 		hasislands = true;
 		return *it;
 	    }
@@ -968,6 +1022,7 @@ dReal QuadraticConstraints::SdLimitBobrowExclude(dReal s, int iexclude) {
 	    sddlimits = SddLimits(s, *it);
 	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
 		/// this is the sd at the edge of the lower island
+		std::cout << "hasisland at " << s << "\n";
 		hasislands = true;
 		it++;
 		return *it; /// return the upper edge
@@ -1031,6 +1086,7 @@ dReal QuadraticConstraints::SdLimitBobrowExclude(dReal s, int iexclude) {
 	    sddlimits = SddLimits(s, *it);
 	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
 		/// this is the sd at the edge of the lower island
+		std::cout << "hasisland at " << s << "\n";
 		hasislands = true;
 		return *it;
 	    }
@@ -1376,13 +1432,14 @@ void Profile::Print() const {
 
 void Profile::Write(std::stringstream& ss, dReal dt) const {
     ss << duration << " " << dt << "\n";
-    for (dReal t = 0; t <= duration; t += dt) {
+    for (dReal t = 0; t < duration; t += dt) {
         ss << Eval(t) << " ";
     }
-    ss << "\n";
-    for (dReal t = 0; t <= duration; t += dt) {
+    ss << Eval(duration) << "\n";
+    for (dReal t = 0; t < duration; t += dt) {
         ss << Evald(t) << " ";
     }
+    ss << Evald(duration);
 }
 
 
@@ -1981,7 +2038,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
 	    svect.push_back(scur);
 	    sdvect.push_back(sdcur);
 	    sddvect.push_back(0);
-	    returntype = INT_MVC;
+	    returntype = INT_BOTTOM;
 	    break;
 	}
         else{
@@ -2135,7 +2192,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
 	    svect.push_back(scur);
             sdvect.push_back(sdcur);
             sddvect.push_back(0);
-            returntype = INT_MVC;
+            returntype = INT_BOTTOM;
             break;
 	}
         else{
