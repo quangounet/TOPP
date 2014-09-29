@@ -22,7 +22,6 @@ import time
 import string
 from pylab import *
 from numpy import *
-from scipy import interpolate
 from openravepy import *
 from TOPP import Trajectory
 from TOPP import TOPPpy

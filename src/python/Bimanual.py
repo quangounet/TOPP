@@ -3,6 +3,7 @@ from pylab import *
 from numpy import *
 import cvxopt
 import cvxopt.solvers
+from scipy import interpolate
 from openravepy import *
 from TOPP import TOPPpy
 from TOPP import Trajectory
