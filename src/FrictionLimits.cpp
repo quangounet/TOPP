@@ -353,18 +353,22 @@ Vector FrictionLimits::MatrixMultVector(const boost::multi_array<dReal, 2>& M, c
     return res;
 }
 
-boost::multi_array<dReal, 2> FrictionLimits::ExtractI(const RaveTransformMatrix<dReal>& H) {
+boost::multi_array<dReal, 2> FrictionLimits::ExtractI(const RaveTransformMatrix<dReal>& T) { //H) {
     boost::multi_array<dReal, 2> I(boost::extents[3][3]);
-    Vector x(1, 0, 0), y(0, 1, 0), z(0, 0, 1);
-    Vector resx, resy, resz;
+    // Vector x(1, 0, 0), y(0, 1, 0), z(0, 0, 1);
+    // Vector resx, resy, resz;
 
-    resx = H.rotate(x);
-    resy = H.rotate(y);
-    resz = H.rotate(z);
+    I[0][0] = T.m[0]; I[0][1] = T.m[1]; I[0][2] = T.m[2];
+    I[1][0] = T.m[4]; I[1][1] = T.m[5]; I[1][2] = T.m[6];
+    I[2][0] = T.m[8]; I[2][1] = T.m[9]; I[2][2] = T.m[10];
+        
+    // resx = H.rotate(x);
+    // resy = H.rotate(y);
+    // resz = H.rotate(z);
 
-    I[0][0] = resx[0]; I[0][1] = resy[0]; I[0][2] = resz[0];
-    I[1][0] = resx[1]; I[1][1] = resy[1]; I[1][2] = resz[1];
-    I[2][0] = resx[2]; I[2][1] = resy[2]; I[2][2] = resz[2];
+    // I[0][0] = resx[0]; I[0][1] = resy[0]; I[0][2] = resz[0];
+    // I[1][0] = resx[1]; I[1][1] = resy[1]; I[1][2] = resz[1];
+    // I[2][0] = resx[2]; I[2][1] = resy[2]; I[2][2] = resz[2];
     return I;
 }
 

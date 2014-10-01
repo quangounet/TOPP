@@ -45,7 +45,7 @@ public:
     Vector MatrixMultVector(const boost::multi_array<dReal, 2>& M, const std::vector<dReal>& v);
     Vector MatrixMultVector(const boost::multi_array<dReal, 2>& M, const Vector& v);
 
-    boost::multi_array<dReal, 2> ExtractI(const RaveTransformMatrix<dReal>& H);
+    boost::multi_array<dReal, 2> ExtractI(const RaveTransformMatrix<dReal>& T);
     boost::multi_array<dReal, 2> ExtractR(const RaveTransform<dReal>& H);
     Vector ExtractT(const RaveTransform<dReal>& H);
 
