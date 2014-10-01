@@ -128,7 +128,8 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=None):
     plot(mvcbobrow[2], mvcbobrow[3], 'm', linewidth = 4)
     ###
     mvcbobrowlower = profileslist.pop(0)
-    plot(mvcbobrowlower[2], mvcbobrowlower[3], '#f96f00', linewidth = 4) ## orange
+    sd_mvcbobrowlower = [max(0, mvcbobrowlower[3][i]) for i in range(len(mvcbobrowlower[3]))]
+    plot(mvcbobrowlower[2], sd_mvcbobrowlower, '#f96f00', linewidth = 4) ## orange
     ###
     mvcdirect = profileslist.pop(0)
     plot(mvcdirect[2], mvcdirect[3], 'm--', linewidth = 4)
