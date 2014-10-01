@@ -131,20 +131,37 @@ class PiecewisePolynomialTrajectory():
         i, remainder = self.FindChunkIndex(s)
         return self.chunkslist[i].Evaldn(remainder,n)
 
-    def Plot(self, dt, f=''):
+    def Plot(self, dt, f = ''):
         tvect = arange(0, self.duration + dt, dt)
         qvect = array([self.Eval(t) for t in tvect])
-        plot(tvect, qvect, f, linewidth=2)
+        plot(tvect, qvect, f, linewidth = 2)
 
-    def Plotd(self, dt, f=''):
+    def Plotd(self, dt, f = ''):
         tvect = arange(0, self.duration + dt, dt)
         qdvect = array([self.Evald(t) for t in tvect])
-        plot(tvect, qdvect, f, linewidth=2)
+        plot(tvect, qdvect, f, linewidth = 2)
 
-    def Plotdd(self, dt, f=''):
+    def Plotdd(self, dt, f = ''):
         tvect = arange(0, self.duration + dt, dt)
         qddvect = array([self.Evaldd(t) for t in tvect])
-        plot(tvect, qddvect, f, linewidth=2)
+        plot(tvect, qddvect, f, linewidth = 2)
+
+    def PlotDeg(self, dt, f = ''):
+        tvect = arange(0, self.duration + dt, dt)
+        qvect = rad2deg(array([self.Eval(t) for t in tvect]))
+        plot(tvect, qvect, f, linewidth = 2)
+
+    def PlotdDeg(self, dt, f = ''):
+        tvect = arange(0, self.duration + dt, dt)
+        qdvect = rad2deg(array([self.Evald(t) for t in tvect]))
+        plot(tvect, qdvect, f, linewidth = 2)
+
+    def PlotddDeg(self, dt, f = ''):
+        tvect = arange(0, self.duration + dt, dt)
+        qddvect = rad2deg(array([self.Evaldd(t) for t in tvect]))
+        plot(tvect, qddvect, f, linewidth = 2)
+        
+    
 
     def __str__(self):
         return '\n'.join([str(chunk) for chunk in self.chunkslist])
