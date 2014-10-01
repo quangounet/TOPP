@@ -150,23 +150,29 @@ public:
     // Tuning parameters
     TOPP::dReal integrationtimestep, reparamtimestep;
     int passswitchpointnsteps, extrareps;
-
+    
 #ifdef WITH_OPENRAVE
     OpenRAVE::RobotBasePtr _probot;
 #endif
-
+    
     TOPP::dReal GetAlpha(TOPP::dReal s, TOPP::dReal sd) {
         std::pair<TOPP::dReal, TOPP::dReal> sdd_lim = pconstraints->SddLimits(s, sd);
         return sdd_lim.first;
     }
-
-
+    
+    
     TOPP::dReal GetBeta(TOPP::dReal s, TOPP::dReal sd) {
         std::pair<TOPP::dReal, TOPP::dReal> sdd_lim = pconstraints->SddLimits(s, sd);
         return sdd_lim.second;
     }
-
-
+    
+    void GetABC(TOPP::dReal s) {
+	std::vector<std::vector<TOPP::dReal> > res = pconstraints->GetABCConstraints(s);
+        std::cout << res[0][0] << " " << res[0][1] << "\n";
+        std::cout << res[1][0] << " " << res[1][1] << "\n";
+        std::cout << res[2][0] << " " << res[2][1] << "\n";
+    }
+    
     int RunComputeProfiles(TOPP::dReal sdbeg, TOPP::dReal sdend) {
         // Set tuning parameters
         pconstraints->integrationtimestep = integrationtimestep;
@@ -327,40 +333,41 @@ BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ReparameterizeTrajectory_overloads, Repar
 BOOST_PYTHON_MODULE(TOPPbindings) {
     using namespace boost::python;
     class_<TOPPInstance>("TOPPInstance", init<object,std::string,std::string,std::string>())
-    .def(init<object,std::string,object,TOPP::dReal>(args("openraverobot","problemtype","openravetrajectory","discrtimestep")))
-    .def_readwrite("integrationtimestep", &TOPPInstance::integrationtimestep)
-    .def_readwrite("reparamtimestep", &TOPPInstance::reparamtimestep)
-    .def_readwrite("passswitchpointnsteps", &TOPPInstance::passswitchpointnsteps)
-    .def_readwrite("extrareps", &TOPPInstance::extrareps)
-    .def_readonly("restrajectorystring", &TOPPInstance::restrajectorystring)
-    .def_readonly("outconstraintstring", &TOPPInstance::outconstraintstring)
-    .def_readonly("resprofilesliststring", &TOPPInstance::resprofilesliststring)
-    .def_readonly("resextrastring", &TOPPInstance::resextrastring)
-    .def_readonly("switchpointsliststring", &TOPPInstance::switchpointsliststring)
-    .def_readonly("ntangenttreated", &TOPPInstance::ntangenttreated)
-    .def_readonly("nsingulartreated", &TOPPInstance::nsingulartreated)
-    .def_readonly("resduration", &TOPPInstance::resduration)
-    .def_readonly("sdbegmin", &TOPPInstance::sdbegmin)
-    .def_readonly("sdbegmax", &TOPPInstance::sdbegmax)
-    .def_readonly("sdendmin", &TOPPInstance::sdendmin)
-    .def_readonly("sdendmax", &TOPPInstance::sdendmax)
-    .def_readonly("pconstraints", &TOPPInstance::pconstraints)
-    .def("GetAlpha",&TOPPInstance::GetAlpha)
-    .def("GetBeta",&TOPPInstance::GetBeta)
-    .def("RunComputeProfiles",&TOPPInstance::RunComputeProfiles)
-    .def("ReparameterizeTrajectory",&TOPPInstance::ReparameterizeTrajectory, ReparameterizeTrajectory_overloads(args("reparamtimestep")))
-    .def("RunVIP",&TOPPInstance::RunVIP)
-    .def("RunVIPBackward",&TOPPInstance::RunVIPBackward)
-    .def("RunEmergencyStop",&TOPPInstance::RunEmergencyStop)
-    .def("WriteResultTrajectory",&TOPPInstance::WriteResultTrajectory)
-    .def("WriteProfilesList",&TOPPInstance::WriteProfilesList)
-    .def("WriteExtra",&TOPPInstance::WriteExtra)
-    .def("WriteConstraints",&TOPPInstance::WriteConstraints)
-    .def("WriteSwitchPointsList",&TOPPInstance::WriteSwitchPointsList)
-    .def("SerializeInputTrajectory", &TOPPInstance::SerializeInputTrajectory)
+	.def(init<object,std::string,object,TOPP::dReal>(args("openraverobot","problemtype","openravetrajectory","discrtimestep")))
+	.def_readwrite("integrationtimestep", &TOPPInstance::integrationtimestep)
+	.def_readwrite("reparamtimestep", &TOPPInstance::reparamtimestep)
+	.def_readwrite("passswitchpointnsteps", &TOPPInstance::passswitchpointnsteps)
+	.def_readwrite("extrareps", &TOPPInstance::extrareps)
+	.def_readonly("restrajectorystring", &TOPPInstance::restrajectorystring)
+	.def_readonly("outconstraintstring", &TOPPInstance::outconstraintstring)
+	.def_readonly("resprofilesliststring", &TOPPInstance::resprofilesliststring)
+	.def_readonly("resextrastring", &TOPPInstance::resextrastring)
+	.def_readonly("switchpointsliststring", &TOPPInstance::switchpointsliststring)
+	.def_readonly("ntangenttreated", &TOPPInstance::ntangenttreated)
+	.def_readonly("nsingulartreated", &TOPPInstance::nsingulartreated)
+	.def_readonly("resduration", &TOPPInstance::resduration)
+	.def_readonly("sdbegmin", &TOPPInstance::sdbegmin)
+	.def_readonly("sdbegmax", &TOPPInstance::sdbegmax)
+	.def_readonly("sdendmin", &TOPPInstance::sdendmin)
+	.def_readonly("sdendmax", &TOPPInstance::sdendmax)
+	.def_readonly("pconstraints", &TOPPInstance::pconstraints)
+	.def("GetAlpha",&TOPPInstance::GetAlpha)
+	.def("GetBeta",&TOPPInstance::GetBeta)
+	.def("GetABC", &TOPPInstance::GetABC)
+	.def("RunComputeProfiles",&TOPPInstance::RunComputeProfiles)
+	.def("ReparameterizeTrajectory",&TOPPInstance::ReparameterizeTrajectory, ReparameterizeTrajectory_overloads(args("reparamtimestep")))
+	.def("RunVIP",&TOPPInstance::RunVIP)
+	.def("RunVIPBackward",&TOPPInstance::RunVIPBackward)
+	.def("RunEmergencyStop",&TOPPInstance::RunEmergencyStop)
+	.def("WriteResultTrajectory",&TOPPInstance::WriteResultTrajectory)
+	.def("WriteProfilesList",&TOPPInstance::WriteProfilesList)
+	.def("WriteExtra",&TOPPInstance::WriteExtra)
+	.def("WriteConstraints",&TOPPInstance::WriteConstraints)
+	.def("WriteSwitchPointsList",&TOPPInstance::WriteSwitchPointsList)
+	.def("SerializeInputTrajectory", &TOPPInstance::SerializeInputTrajectory)
 #ifdef WITH_OPENRAVE
-    .def("ExtractOpenRAVETrajectoryFromProfiles", &TOPPInstance::ExtractOpenRAVETrajectoryFromProfiles, args("pyenv"), "extract openrave trajectory directly from profiles without reparameterizing")
-    .def("GetOpenRAVEResultTrajectory", &TOPPInstance::GetOpenRAVEResultTrajectory, args("pyenv"), "resulting re-parameterized trajectory")
+	.def("ExtractOpenRAVETrajectoryFromProfiles", &TOPPInstance::ExtractOpenRAVETrajectoryFromProfiles, args("pyenv"), "extract openrave trajectory directly from profiles without reparameterizing")
+	.def("GetOpenRAVEResultTrajectory", &TOPPInstance::GetOpenRAVEResultTrajectory, args("pyenv"), "resulting re-parameterized trajectory")
 #endif
-    ;
+	;
 }

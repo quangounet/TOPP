@@ -258,6 +258,11 @@ class Constraints {
     virtual void WriteConstraints(std::stringstream& ss) {
         return;
     }
+
+    virtual std::vector<std::vector<dReal> > GetABCConstraints(dReal s) {
+	std::cout << "Virtual method not implemented\n";
+        throw TOPPException("Virtual method not implemented");
+    }
     
     virtual dReal Interpolate1D(dReal s, const std::vector<dReal>& v);
     /// Linearly interpolates between two points in 1D
@@ -413,6 +418,8 @@ class QuadraticConstraints : public Constraints {
     virtual void FixStart(dReal& sstartnew, dReal& sdstartnew, dReal timestep);
     void FixEnd(dReal& sendnew, dReal& sdendnew);
 
+    std::vector<std::vector<dReal> > GetABCConstraints(dReal s);
+
 };
 
 ////////////////////////////////////////////////////////////////////
@@ -434,13 +441,13 @@ enum CLCReturnType {
 };
  
 int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, 
-		     int maxsteps = 1e6, bool testaboveexistingprofiles=true, bool testmvc=true, bool zlajpah=false);
+		     int maxsteps = 1e7, bool testaboveexistingprofiles = true, bool testmvc = true, bool zlajpah = false);
 /// Integrates forward from (sstart, sdstart)
 /// \param[in] dt the integration timestep
 /// \param[in] maxsteps the maximum steps to integrate for
 
 int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, 
-		      int maxsteps = 1e6, bool testaboveexistingprofiles=true, bool testmvc=true, bool zlajpah=false);
+		      int maxsteps = 1e7, bool testaboveexistingprofiles  =true, bool testmvc = true, bool zlajpah = false);
 /// Integrate backward from (sstart,sdstart)
 /// \param[in] dt the integration timestep
 /// \param[in] maxsteps the maximum steps to integrate for

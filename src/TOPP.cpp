@@ -772,6 +772,60 @@ std::pair<dReal,dReal> QuadraticConstraints::SddLimits(dReal s, dReal sd) {
     return result;
 }
 
+std::vector<std::vector<dReal> > QuadraticConstraints::GetABCConstraints(dReal s) {
+    std::vector<dReal> a, b, c;
+    InterpolateDynamics(s, a, b, c);
+    int index_alpha = 0;
+    int index_beta = 0;
+    dReal alpha_i, beta_i;
+
+    dReal sd = Interpolate1D(s, mvcbobrow);
+    
+    dReal dtsq = integrationtimestep;
+    dtsq = dtsq*dtsq;
+    dReal safetybound = discrtimestep/dtsq;
+    dReal alpha = -safetybound;
+    dReal beta = safetybound;
+    dReal sdsq = sd*sd;
+
+    for (int i = 0; i < nconstraints; i++) {
+        if (std::abs(a[i]) < TINY) {
+            if (b[i]*sdsq + c[i] > 0) {
+                /// this constraint is not satisfied
+                beta = -INF;
+                alpha = INF;
+            }
+            continue;
+        }
+        if (a[i] > 0) {
+            beta_i = (-sdsq*b[i] - c[i])/a[i];
+	    if (beta_i < beta) {
+		beta = beta_i;
+		index_beta = i;
+	    }
+        }
+        else {
+            alpha_i = (-sdsq*b[i] - c[i])/a[i];
+	    if (alpha_i > alpha) {
+		alpha = alpha_i;
+	        index_alpha = i;
+	    }
+        }
+    }
+    std::vector<dReal> resa, resb, resc;
+    std::vector<std::vector<dReal> > res;
+    resa.push_back(a[index_alpha]);
+    resa.push_back(a[index_beta]);
+    resb.push_back(b[index_alpha]);
+    resb.push_back(b[index_beta]);
+    resc.push_back(c[index_alpha]);
+    resc.push_back(c[index_beta]);
+    res.push_back(a);
+    res.push_back(b);
+    res.push_back(c);
+    return res;
+}
+
 dReal QuadraticConstraints::SdLimitBobrowInit(dReal s) {
     std::vector<dReal> a, b, c;
     InterpolateDynamics(s, a, b, c);
@@ -857,7 +911,7 @@ dReal QuadraticConstraints::SdLimitBobrowInitUpper(dReal s) {
 	    sddlimits = SddLimits(s, *it);
 	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
 		/// this is the sd at the edge of the lower island
-		std::cout << "hasisland at " << s << "\n";
+		// std::cout << "hasisland at " << s << "\n";
 		hasislands = true;
 		it++;
 		return *it; /// return the upper edge
@@ -918,7 +972,7 @@ dReal QuadraticConstraints::SdLimitBobrowInitLower(dReal s) {
 	    sddlimits = SddLimits(s, *it);
 	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
 		/// this is the sd at the edge of the lower island
-		std::cout << "hasisland at " << s << "\n";
+		// std::cout << "hasisland at " << s << "\n";
 		hasislands = true;
 		return *it;
 	    }
@@ -1022,7 +1076,7 @@ dReal QuadraticConstraints::SdLimitBobrowExclude(dReal s, int iexclude) {
 	    sddlimits = SddLimits(s, *it);
 	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
 		/// this is the sd at the edge of the lower island
-		std::cout << "hasisland at " << s << "\n";
+		// std::cout << "hasisland at " << s << "\n";
 		hasislands = true;
 		it++;
 		return *it; /// return the upper edge
@@ -1086,7 +1140,7 @@ dReal QuadraticConstraints::SdLimitBobrowExclude(dReal s, int iexclude) {
 	    sddlimits = SddLimits(s, *it);
 	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
 		/// this is the sd at the edge of the lower island
-		std::cout << "hasisland at " << s << "\n";
+		// std::cout << "hasisland at " << s << "\n";
 		hasislands = true;
 		return *it;
 	    }
@@ -2039,6 +2093,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
 	    sdvect.push_back(sdcur);
 	    sddvect.push_back(0);
 	    returntype = INT_BOTTOM;
+	    std::cout << "Forward integration hits mvcbobrowlower\n";
 	    break;
 	}
         else{
@@ -2193,6 +2248,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
             sdvect.push_back(sdcur);
             sddvect.push_back(0);
             returntype = INT_BOTTOM;
+	    std::cout << "Backward integration hits mvcbobrowlower\n";
             break;
 	}
         else{
@@ -2301,6 +2357,12 @@ int ComputeLimitingCurves(Constraints& constraints) {
         /// integrate backward
         integratestatus = IntegrateBackward(constraints, sbackward, sdbackward,
                                             constraints.integrationtimestep, tmpprofile);
+	if (integratestatus == INT_MAXSTEPS) {
+	    std::string message = str(boost::format("MAXSTEPS = %d has been reached while integrating backward from s = %.15e, sd = %.15e")
+				      %1e6%sbackward%sdbackward);
+	    std::cout << message << "\n";
+	}
+	
         if (tmpprofile.nsteps > 2) {
             constraints.resprofileslist.push_back(tmpprofile);
         }
@@ -2308,14 +2370,20 @@ int ComputeLimitingCurves(Constraints& constraints) {
 	// std::cout << "backward integration status :" << integratestatus << "\n";
 
         if (integratestatus == INT_BOTTOM) {
-            std::cerr << str(boost::format("IntegrateBackward INT_BOTTOM, s=%.15e, sd=%.15e\n")%sbackward%sdbackward);
+            std::cerr << str(boost::format("IntegrateBackward INT_BOTTOM, s = %.15e, sd = %.15e\n")%sbackward%sdbackward);
             return CLC_BOTTOM;
         }
 
         /// integrate forward
         integratestatus = IntegrateForward(constraints, sforward, sdforward,
-                                           constraints.integrationtimestep, tmpprofile, 1e5,
+                                           constraints.integrationtimestep, tmpprofile, 1e7,
                                            testaboveexistingprofiles, testmvc, zlajpah);
+	if (integratestatus == INT_MAXSTEPS) {
+	    std::string message = str(boost::format("MAXSTEPS = %d has been reached while integrating forward from s = %.15e, sd = %.15e")
+				      %1e6%sforward%sdforward);
+	    std::cout << message << "\n";
+	}
+
         if (tmpprofile.nsteps > 2) {
             constraints.resprofileslist.push_back(tmpprofile);
             // std::cout << "Forward : " << tmpprofile.nsteps << " " << tmpprofile.duration << "\n";
@@ -2324,7 +2392,7 @@ int ComputeLimitingCurves(Constraints& constraints) {
 	// std::cout << "foreward integration status :" << integratestatus << "\n";
 
         if (integratestatus == INT_BOTTOM) {
-            std::cerr << str(boost::format("IntegrateForward INT_BOTTOM, s=%.15e, sd=%.15e\n")%sforward%sdforward);
+            std::cerr << str(boost::format("IntegrateForward INT_BOTTOM, s = %.15e, sd = %.15e\n")%sforward%sdforward);
             return CLC_BOTTOM;
         }
     }
@@ -2419,7 +2487,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
             }
         }
         if (sdstartnew > bound) {
-            message = str(boost::format("Sdbeg (%.15e) > CLC or MVC (%.15e), s=%.15e")%sdstartnew%bound%sstartnew);
+            message = str(boost::format("Sdbeg (%.15e) > CLC or MVC (%.15e), s = %.15e")%sdstartnew%bound%sstartnew);
             std::cout << message << std::endl;
             sdstartnew = bound;
 
@@ -2484,7 +2552,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
         ret = IntegrateBackward(constraints, sendnew, sdendnew, constraints.integrationtimestep, resprofile, 1e5, testaboveexistingprofiles, testmvc);
         
         if (ret == INT_BOTTOM) {
-            message = str(boost::format("BW reached 0, s=%.15e, sd=%.15e")%sendnew%sdendnew);
+            message = str(boost::format("BW reached 0, s = %.15e, sd = %.15e")%sendnew%sdendnew);
             std::cout << message << std::endl;
             integrateprofilesstatus = false;
 
@@ -2547,7 +2615,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
         /// check whether CLC is continuous and recover if not
         dReal sdiscontinuous = Recover(constraints, constraints.integrationtimestep);
         if (sdiscontinuous > -0.5) {
-            message = str(boost::format("Could not recover from CLC discontinuous s=%.15e")%sdiscontinuous);
+            message = str(boost::format("Could not recover from CLC discontinuous s = %.15e")%sdiscontinuous);
         }
 
         /// estimate resulting trajectory duration
@@ -2591,7 +2659,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
             }
         }
         if (clcdiscontinuous) {
-            message = str(boost::format("CLC discontinuous s=%.15e")%s);
+            message = str(boost::format("CLC discontinuous s = %.15e")%s);
             std::cout << message << std::endl;
             integrateprofilesstatus = false;
             continue;
@@ -2761,7 +2829,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
     }
 
     Profile tmpprofile;
-    //dReal tres;
+    // dReal tres;
     dReal smallincrement = constraints.integrationtimestep*2;
 
     /// compute the limiting curves
@@ -3257,7 +3325,7 @@ ProfileSample FindEarliestProfileIntersection(dReal sstart, dReal sdstart, dReal
                 if ( fabs(sddstart) <= TINY ) {
                     if ( fabs(sddnext) <= TINY ) {
                         if ( fabs(sdstart-sdnext) > TINY ) {
-                            RAVELOG_ERROR_FORMAT("sddstart and sddnext are both close to 0 at s=%.15e, sd diff=%.15e, don't know that to do", sstart%fabs(sdstart-sdnext));
+                            RAVELOG_ERROR_FORMAT("sddstart and sddnext are both close to 0 at s = %.15e, sd diff = %.15e, don't know that to do", sstart%fabs(sdstart-sdnext));
                             continue;
                         }
                         else {
