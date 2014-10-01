@@ -2756,7 +2756,7 @@ ProfileSample FindEarliestProfileIntersection(dReal sstart, dReal sdstart, dReal
                 if( fabs(sddstart) <= TINY ) {
                     if( fabs(sddnext) <= TINY ) {
                         if( fabs(sdstart-sdnext) > TINY ) {
-                            RAVELOG_ERROR_FORMAT("sddstart and sddnext are both close to 0 at s=%.15e, sd diff=%.15e, don't know that to do", sstart%fabs(sdstart-sdnext));
+                            //RAVELOG_ERROR_FORMAT("sddstart and sddnext are both close to 0 at s=%.15e, sd diff=%.15e, don't know that to do", sstart%fabs(sdstart-sdnext));
                             continue;
                         }
                         else {

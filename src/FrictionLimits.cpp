@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef WITH_OPENRAVE
 
 #include "FrictionLimits.h"
 #include <math.h>
@@ -153,10 +154,10 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
 
                 RaveTransform<dReal> Hbottle = probot->GetLinks()[bottlelinkindex]->GetTransform();
                 Vector Pb = probot->GetLinks()[bottlelinkindex]->GetGlobalCOM();
-		
+
                 Vector nx_bottle = Hbottle.rotate(worldx);
                 Vector ny_bottle = Hbottle.rotate(worldy);
-		Vector nz_bottle = Hbottle.rotate(worldz);
+                Vector nz_bottle = Hbottle.rotate(worldz);
 
                 //Calculate Jacobians of the bottle
                 probot->CalculateJacobian(bottlelinkindex, Pb, jacobianb_p);
@@ -390,3 +391,5 @@ Vector FrictionLimits::ExtractT(const RaveTransform<dReal>& H) {
 }
 
 }
+
+#endif
