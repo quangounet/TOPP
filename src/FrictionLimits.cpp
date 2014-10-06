@@ -91,7 +91,7 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
 
     {
         EnvironmentMutex::scoped_lock lock(probot->GetEnv()->GetMutex());
-        for(int t = 0; t < ndiscrsteps; t++) {
+        for (int t = 0; t < ndiscrsteps; t++) {
             dReal s = t*discrtimestep;
 
             ptraj->Eval(s, q);
@@ -107,6 +107,7 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
 
             if(!qdiszero) {
                 VectorAdd(q, qd, qplusdeltaqd, 1, delta/norm_qd);
+		// VectorAdd(q, qd, qplusdeltaqd, 1, delta);
             }
 
             RaveTransform<dReal> Htray = probot->GetLinks()[traylinkindex]->GetTransform();
@@ -171,6 +172,8 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
                     probot->CalculateAngularVelocityJacobian(bottlelinkindex, jacobianb_odelta);
                     MatrixAdd(jacobianb_pdelta, jacobianb_p, jacobianb_pdiff, norm_qd/delta, -norm_qd/delta);
                     MatrixAdd(jacobianb_odelta, jacobianb_o, jacobianb_odiff, norm_qd/delta, -norm_qd/delta);
+		    // MatrixAdd(jacobianb_pdelta, jacobianb_p, jacobianb_pdiff, 1.0/delta, -1.0/delta);
+		    // MatrixAdd(jacobianb_odelta, jacobianb_o, jacobianb_odiff, 1.0/delta, -1.0/delta);
                 }
 
                 Vector temp1 = MatrixMultVector(jacobianb_o, qd);
@@ -294,8 +297,8 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
 
 
 void FrictionLimits::MatrixAdd(const boost::multi_array<dReal, 2>& A, const boost::multi_array<dReal, 2>& B, boost::multi_array<dReal, 2>& C, dReal coefA, dReal coefB) {
-    for(int i = 0; i < int(A.shape()[0]); i++) {
-        for(int j = 0; j < int(A.shape()[1]); j++) {
+    for (int i = 0; i < int(A.shape()[0]); i++) {
+        for (int j = 0; j < int(A.shape()[1]); j++) {
             C[i][j] = coefA*A[i][j] + coefB*B[i][j];
         }
     }
@@ -303,8 +306,8 @@ void FrictionLimits::MatrixAdd(const boost::multi_array<dReal, 2>& A, const boos
 
 boost::multi_array<dReal, 2> FrictionLimits::MatrixTrans(const boost::multi_array<dReal, 2>& A) {
     boost::multi_array<dReal, 2> At(boost::extents[int(A.shape()[1])][int(A.shape()[0])]);
-    for(int i = 0; i < int(A.shape()[1]); i++) {
-        for(int j = 0; j < int(A.shape()[0]); j++) {
+    for (int i = 0; i < int(A.shape()[1]); i++) {
+        for (int j = 0; j < int(A.shape()[0]); j++) {
             At[i][j] = A[j][i];
         }
     }
@@ -317,8 +320,8 @@ boost::multi_array<dReal, 2> FrictionLimits::MatricesMult3(const boost::multi_ar
     BOOST_ASSERT(int(B.shape()[0] == 3));
     BOOST_ASSERT(int(B.shape()[1] == 3));
     boost::multi_array<dReal, 2> C(boost::extents[3][3]);
-    for(int i = 0; i < 3; i++) {
-        for(int j = 0; j < 3; j++) {
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
             C[i][j] = A[i][0]*B[0][j] + A[i][1]*B[1][j] + A[i][2]*B[2][j];
         }
     }
@@ -332,9 +335,9 @@ Vector FrictionLimits::MatrixMultVector(const boost::multi_array<dReal, 2>& M, c
     BOOST_ASSERT(M.shape()[1] == v.size());
     Vector res;
 
-    for(int i = 0; i < int(M.shape()[0]); i++) {
+    for (int i = 0; i < int(M.shape()[0]); i++) {
         res[i] = 0;
-        for(int j = 0; j < int(v.size()); j++) {
+        for (int j = 0; j < int(v.size()); j++) {
             res[i] += M[i][j]*v[j];
         }
     }
@@ -344,9 +347,9 @@ Vector FrictionLimits::MatrixMultVector(const boost::multi_array<dReal, 2>& M, c
 Vector FrictionLimits::MatrixMultVector(const boost::multi_array<dReal, 2>& M, const Vector& v) {
     Vector res;
 
-    for(int i = 0; i < int(M.shape()[0]); i++) {
+    for (int i = 0; i < int(M.shape()[0]); i++) {
         res[i] = 0;
-        for(int j = 0; j < 3; j++) {
+        for (int j = 0; j < 3; j++) {
             res[i] += M[i][j]*v[j];
         }
     }
