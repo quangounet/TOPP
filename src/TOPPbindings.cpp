@@ -140,6 +140,7 @@ public:
     std::string restrajectorystring;
     std::string resextrastring;
     std::string resprofilesliststring;
+    std::string resfinalprofilestring;
     std::string switchpointsliststring;
     int ntangenttreated;
     int nsingulartreated;
@@ -285,6 +286,33 @@ public:
         }
         resprofilesliststring = ss.str();
     }
+    
+    void WriteFinalProfile() {
+	TOPP::dReal ds = 1e-4;
+	TOPP::dReal s = 0;
+	TOPP::dReal dur = pconstraints->trajectory.duration;
+	std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+	std::string separator = "";
+	
+	ss << dur << " " << ds << "\n";
+	while (s < dur) {
+	    ss << separator << s;
+	    separator = " ";
+	    s += ds;
+	}
+	ss << separator << dur << "\n";
+	s = 0;
+	separator = "";
+	while (s < pconstraints->trajectory.duration) {
+	    TOPP::ProfileSample sample = TOPP::FindLowestProfileFast(s, 1e30, pconstraints->resprofileslist);
+	    ss << separator << sample.sd;
+	    separator = " ";
+	    s += ds;
+	}
+	TOPP::ProfileSample sample = TOPP::FindLowestProfileFast(dur, 1e30, pconstraints->resprofileslist);
+	ss << separator << sample.sd;
+	resfinalprofilestring = ss.str();
+    }
 
     std::string SerializeInputTrajectory() {
         std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
@@ -341,6 +369,7 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
 	.def_readonly("restrajectorystring", &TOPPInstance::restrajectorystring)
 	.def_readonly("outconstraintstring", &TOPPInstance::outconstraintstring)
 	.def_readonly("resprofilesliststring", &TOPPInstance::resprofilesliststring)
+	.def_readonly("resfinalprofilestring", &TOPPInstance::resfinalprofilestring)
 	.def_readonly("resextrastring", &TOPPInstance::resextrastring)
 	.def_readonly("switchpointsliststring", &TOPPInstance::switchpointsliststring)
 	.def_readonly("ntangenttreated", &TOPPInstance::ntangenttreated)
@@ -361,6 +390,7 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
 	.def("RunEmergencyStop",&TOPPInstance::RunEmergencyStop)
 	.def("WriteResultTrajectory",&TOPPInstance::WriteResultTrajectory)
 	.def("WriteProfilesList",&TOPPInstance::WriteProfilesList)
+	.def("WriteFinalProfile", &TOPPInstance::WriteFinalProfile)
 	.def("WriteExtra",&TOPPInstance::WriteExtra)
 	.def("WriteConstraints",&TOPPInstance::WriteConstraints)
 	.def("WriteSwitchPointsList",&TOPPInstance::WriteSwitchPointsList)
