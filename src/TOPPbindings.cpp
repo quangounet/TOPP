@@ -300,12 +300,12 @@ public:
             ss << itsw->s << " " << itsw->sd << " " << itsw->switchpointtype << "\n";
             itsw++;
         }
-	/// switch points on mvcbobrowlower
-	itsw = pconstraints->switchpointslistlower.begin();
-	while (itsw != pconstraints->switchpointslistlower.end()) {
-            ss << itsw->s << " " << itsw->sd << " " << itsw->switchpointtype << "\n";
-            itsw++;
-        }
+	// /// switch points on mvcbobrowlower
+	// itsw = pconstraints->switchpointslistlower.begin();
+	// while (itsw != pconstraints->switchpointslistlower.end()) {
+        //     ss << itsw->s << " " << itsw->sd << " " << itsw->switchpointtype << "\n";
+        //     itsw++;
+        // }
         switchpointsliststring = ss.str();
         ntangenttreated = pconstraints->ntangenttreated;
         nsingulartreated = pconstraints->nsingulartreated;
