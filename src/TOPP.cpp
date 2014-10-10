@@ -1921,7 +1921,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                 // std::cout << "Integrate backward from (" << scur << "," << sdcur  <<  ")\n";
                 std::vector<dReal> svecttemp = svect, sdvecttemp = sdvect, sddvecttemp = sddvect;
                 constraints._busingcache = false;
-                int res3 = IntegrateBackward(constraints, scur, sdcur, constraints.integrationtimestep, tmpprofile, 1e5, true, true, true);
+                int res3 = IntegrateBackward(constraints, scur, sdcur, constraints.integrationtimestep, tmpprofile, MAXINTSTEPS, true, true, true);
                 svect = svecttemp;
                 sdvect = sdvecttemp;
                 sddvect = sddvecttemp;
@@ -2359,7 +2359,7 @@ int ComputeLimitingCurves(Constraints& constraints) {
                                             constraints.integrationtimestep, tmpprofile);
 	if (integratestatus == INT_MAXSTEPS) {
 	    std::string message = str(boost::format("MAXSTEPS = %d has been reached while integrating backward from s = %.15e, sd = %.15e")
-				      %1e6%sbackward%sdbackward);
+				      %MAXINTSTEPS%sbackward%sdbackward);
 	    std::cout << message << "\n";
 	}
 	
@@ -2376,11 +2376,11 @@ int ComputeLimitingCurves(Constraints& constraints) {
 
         /// integrate forward
         integratestatus = IntegrateForward(constraints, sforward, sdforward,
-                                           constraints.integrationtimestep, tmpprofile, 1e7,
+                                           constraints.integrationtimestep, tmpprofile, MAXINTSTEPS,
                                            testaboveexistingprofiles, testmvc, zlajpah);
 	if (integratestatus == INT_MAXSTEPS) {
 	    std::string message = str(boost::format("MAXSTEPS = %d has been reached while integrating forward from s = %.15e, sd = %.15e")
-				      %1e6%sforward%sdforward);
+				      %MAXINTSTEPS%sforward%sdforward);
 	    std::cout << message << "\n";
 	}
 
@@ -2500,7 +2500,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
             constraints.resprofileslist.push_back(StraightProfile(0, sstartnew, 0, bound));
         }
         /// integrate from s = 0
-        ret = IntegrateForward(constraints, sstartnew, sdstartnew, constraints.integrationtimestep, resprofile, 1e5, testaboveexistingprofiles, testmvc, zlajpah);
+        ret = IntegrateForward(constraints, sstartnew, sdstartnew, constraints.integrationtimestep, resprofile, MAXINTSTEPS, testaboveexistingprofiles, testmvc, zlajpah);
         
         if (ret == INT_BOTTOM) {
             message = str(boost::format("FW reached 0 from IntegrateForward. sstartnew=%.15e, sdstartnew=%.15e")%sstartnew%sdstartnew);
@@ -2549,7 +2549,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
             continue;
         }
         /// integrate back from s = send
-        ret = IntegrateBackward(constraints, sendnew, sdendnew, constraints.integrationtimestep, resprofile, 1e5, testaboveexistingprofiles, testmvc);
+        ret = IntegrateBackward(constraints, sendnew, sdendnew, constraints.integrationtimestep, resprofile, MAXINTSTEPS, testaboveexistingprofiles, testmvc);
         
         if (ret == INT_BOTTOM) {
             message = str(boost::format("BW reached 0, s = %.15e, sd = %.15e")%sendnew%sdendnew);
@@ -2594,7 +2594,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
         while (zit!=constraints.zlajpahlist.end()) {
             dReal zs = zit->first;
             dReal zsd = zit->second;
-            ret = IntegrateForward(constraints, zs, zsd, constraints.integrationtimestep, resprofile, 1e5, testaboveexistingprofiles, testmvc, zlajpah);
+            ret = IntegrateForward(constraints, zs, zsd, constraints.integrationtimestep, resprofile, MAXINTSTEPS, testaboveexistingprofiles, testmvc, zlajpah);
             if (resprofile.nsteps > 1) {
                 constraints.resprofileslist.push_back(resprofile);
             }
@@ -2743,7 +2743,7 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
     bool testaboveexistingprofiles = true, testmvc = true, zlajpah = true;
 
     /// compute sdendmax by integrating forward from (0,sdbegmax)
-    int resintfw = IntegrateForward(constraints, 0, sdbegmax, constraints.integrationtimestep, tmpprofile, 1e5, testaboveexistingprofiles, testmvc, zlajpah);
+    int resintfw = IntegrateForward(constraints, 0, sdbegmax, constraints.integrationtimestep, tmpprofile, MAXINTSTEPS, testaboveexistingprofiles, testmvc, zlajpah);
     constraints.resprofileslist.push_back(tmpprofile);
     if (resintfw == INT_BOTTOM) {
         std::cout << "[TOPP::VIP] Forward integration hit sd = 0 \n";
@@ -2772,7 +2772,7 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
             /// three chances by decreasing the value of the integration step
             while (count < 3) {
                 count++;
-                resintbw = IntegrateBackward(constraints, constraints.trajectory.duration, sdendmax, dtint, tmpprofile, 1e5);
+                resintbw = IntegrateBackward(constraints, constraints.trajectory.duration, sdendmax, dtint, tmpprofile, MAXINTSTEPS);
                 if (resintbw != INT_BOTTOM && resintbw != INT_MVC) {
                     break;
                 }
@@ -2784,7 +2784,7 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
     }
 
     /// integrate from (send, 0). If succeeds, then sdendmin=0 and exits
-    int resintbw = IntegrateBackward(constraints, constraints.trajectory.duration, 0, constraints.integrationtimestep, tmpprofile, 1e5);
+    int resintbw = IntegrateBackward(constraints, constraints.trajectory.duration, 0, constraints.integrationtimestep, tmpprofile, MAXINTSTEPS);
     if ((resintbw == INT_END && tmpprofile.Evald(0) >= sdbegmin) || resintbw == INT_PROFILE) {
         constraints.resprofileslist.push_back(tmpprofile);
         sdendmin = 0;
@@ -2796,7 +2796,7 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
     Profile bestprofile;
     while (sdupper-sdlower > constraints.bisectionprecision) {
         dReal sdtest = (sdupper + sdlower)/2;
-        int resintbw2 = IntegrateBackward(constraints, constraints.trajectory.duration, sdtest, constraints.integrationtimestep, tmpprofile, 1e5);
+        int resintbw2 = IntegrateBackward(constraints, constraints.trajectory.duration, sdtest, constraints.integrationtimestep, tmpprofile, MAXINTSTEPS);
         if ((resintbw2 == INT_END && tmpprofile.Evald(0) >= sdbegmin) || resintbw2 == INT_PROFILE) {
             sdupper = sdtest;
             bestprofile = tmpprofile;
@@ -2863,7 +2863,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
     bool testaboveexistingprofiles = true, testmvc = true, zlajpah = true;
 
     /// compute sdbegmax by integrating backward from (send, sdendmax)
-    int resintbw = IntegrateBackward(constraints, constraints.trajectory.duration, sdendmax, constraints.integrationtimestep, tmpprofile, 1e5, testaboveexistingprofiles, testmvc, zlajpah);
+    int resintbw = IntegrateBackward(constraints, constraints.trajectory.duration, sdendmax, constraints.integrationtimestep, tmpprofile, MAXINTSTEPS, testaboveexistingprofiles, testmvc, zlajpah);
     constraints.resprofileslist.push_back(tmpprofile);
     if (resintbw == INT_BOTTOM) {
         std::cout << "[TOPP::VIPBackward] Backward integration hits sd = 0 \n";
@@ -2894,7 +2894,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
 	    /// However, since integrating forward from a high sdbegmax can be risky, we give three chances by decreasing the value of the integration step.
             while (count < 3) {
                 count++;
-                resintfw = IntegrateForward(constraints, 0, sdbegmax, dint, tmpprofile, 1e5);
+                resintfw = IntegrateForward(constraints, 0, sdbegmax, dint, tmpprofile, MAXINTSTEPS);
                 if (resintfw != INT_BOTTOM && resintfw != INT_MVC) {
                     break;
                 }
@@ -2906,7 +2906,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
     }
 
     /// integrate from (0, 0). If succeeds, then sdbegmin = 0 and exit.
-    int resintfw = IntegrateForward(constraints, 0, 0, constraints.integrationtimestep, tmpprofile, 1e5);
+    int resintfw = IntegrateForward(constraints, 0, 0, constraints.integrationtimestep, tmpprofile, MAXINTSTEPS);
     if ((resintfw == INT_END && tmpprofile.Evald(tmpprofile.duration) >= sdendmin) || resintfw == INT_PROFILE) {
         constraints.resprofileslist.push_back(tmpprofile);
         sdbegmin = 0;
@@ -2918,7 +2918,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
     Profile bestprofile;
     while (sdupper - sdlower > constraints.bisectionprecision) {
         dReal sdtest = (sdupper + sdlower)/2;
-        int resintfw2 = IntegrateForward(constraints, 0, sdtest, constraints.integrationtimestep, tmpprofile, 1e5);
+        int resintfw2 = IntegrateForward(constraints, 0, sdtest, constraints.integrationtimestep, tmpprofile, MAXINTSTEPS);
         if ((resintfw2 == INT_END && tmpprofile.Evald(tmpprofile.duration) >= sdendmin) || resintfw2 == INT_PROFILE) {
             sdupper = sdtest;
             bestprofile = tmpprofile;
@@ -2940,7 +2940,7 @@ dReal EmergencyStop(Constraints& constraints, dReal sdbeg, Trajectory& restrajec
         dt = constraints.discrtimestep;
     }
 
-    int ndiscrsteps = int((constraints.trajectory.duration + 1e-10)/constraints.discrtimestep);
+    int ndiscrsteps = int((constraints.trajectory.duration + TINY)/constraints.discrtimestep);
     if (ndiscrsteps < 1) {
         return false;
     }
@@ -3321,7 +3321,7 @@ ProfileSample FindEarliestProfileIntersection(dReal sstart, dReal sdstart, dReal
                 dReal snext = itprofile->svect.at(index);
                 dReal sdnext = itprofile->sdvect.at(index);
                 dReal sddnext = itprofile->sddvect.at(index);
-                tintersect=1e30; // time from sstart
+                tintersect = 1e30; // time from sstart
                 if ( fabs(sddstart) <= TINY ) {
                     if ( fabs(sddnext) <= TINY ) {
                         if ( fabs(sdstart-sdnext) > TINY ) {

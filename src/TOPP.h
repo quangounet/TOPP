@@ -86,6 +86,8 @@ namespace TOPP {
 #define INF 1.0e15
 #define MAXSD 200
 #define BOBROWEXCLUDENOTDEFINED -1
+
+#define MAXINTSTEPS 1e10
     
 ////////////////////////////////////////////////////////////////////
 /////////////////////////// Exception //////////////////////////////
@@ -441,13 +443,13 @@ enum CLCReturnType {
 };
  
 int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, 
-		     int maxsteps = 1e7, bool testaboveexistingprofiles = true, bool testmvc = true, bool zlajpah = false);
+		     int maxsteps = MAXINTSTEPS, bool testaboveexistingprofiles = true, bool testmvc = true, bool zlajpah = false);
 /// Integrates forward from (sstart, sdstart)
 /// \param[in] dt the integration timestep
 /// \param[in] maxsteps the maximum steps to integrate for
 
 int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, 
-		      int maxsteps = 1e7, bool testaboveexistingprofiles  =true, bool testmvc = true, bool zlajpah = false);
+		      int maxsteps = MAXINTSTEPS, bool testaboveexistingprofiles  = true, bool testmvc = true, bool zlajpah = false);
 /// Integrate backward from (sstart,sdstart)
 /// \param[in] dt the integration timestep
 /// \param[in] maxsteps the maximum steps to integrate for
