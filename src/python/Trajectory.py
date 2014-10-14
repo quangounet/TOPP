@@ -3,6 +3,8 @@ import bisect
 import pylab
 import StringIO
 
+import matplotlib.pyplot as plt
+
 
 from pylab import arange, array, double, plot, zeros
 
@@ -135,33 +137,43 @@ class PiecewisePolynomialTrajectory():
         tvect = arange(0, self.duration + dt, dt)
         qvect = array([self.Eval(t) for t in tvect])
         plot(tvect, qvect, f, linewidth = 2)
+        handle = ["joint {0}".format(i) for i in range(1, self.dimension + 1)]
+        plt.legend(handle)
 
     def Plotd(self, dt, f = ''):
         tvect = arange(0, self.duration + dt, dt)
         qdvect = array([self.Evald(t) for t in tvect])
         plot(tvect, qdvect, f, linewidth = 2)
+        handle = ["joint {0}".format(i) for i in range(1, self.dimension + 1)]
+        plt.legend(handle)
 
     def Plotdd(self, dt, f = ''):
         tvect = arange(0, self.duration + dt, dt)
         qddvect = array([self.Evaldd(t) for t in tvect])
         plot(tvect, qddvect, f, linewidth = 2)
+        handle = ["joint {0}".format(i) for i in range(1, self.dimension + 1)]
+        plt.legend(handle)
 
     def PlotDeg(self, dt, f = ''):
         tvect = arange(0, self.duration + dt, dt)
         qvect = rad2deg(array([self.Eval(t) for t in tvect]))
         plot(tvect, qvect, f, linewidth = 2)
+        handle = ["joint {0}".format(i) for i in range(1, self.dimension + 1)]
+        plt.legend(handle)
 
     def PlotdDeg(self, dt, f = ''):
         tvect = arange(0, self.duration + dt, dt)
         qdvect = rad2deg(array([self.Evald(t) for t in tvect]))
         plot(tvect, qdvect, f, linewidth = 2)
+        handle = ["joint {0}".format(i) for i in range(1, self.dimension + 1)]
+        plt.legend(handle)
 
     def PlotddDeg(self, dt, f = ''):
         tvect = arange(0, self.duration + dt, dt)
         qddvect = rad2deg(array([self.Evaldd(t) for t in tvect]))
         plot(tvect, qddvect, f, linewidth = 2)
-        
-    
+        handle = ["joint {0}".format(i) for i in range(1, self.dimension + 1)]
+        plt.legend(handle)  
 
     def __str__(self):
         return '\n'.join([str(chunk) for chunk in self.chunkslist])
