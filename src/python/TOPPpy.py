@@ -125,19 +125,20 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=None):
         clf()
     hold('on')
     mvcbobrow = profileslist.pop(0)
-    plot(mvcbobrow[2], mvcbobrow[3], 'm', linewidth = 4)
+    plot(mvcbobrow[2], mvcbobrow[3], 'c', linewidth = 4)
     ###
     mvcbobrowlower = profileslist.pop(0)
     sd_mvcbobrowlower = [max(0, mvcbobrowlower[3][i]) for i in range(len(mvcbobrowlower[3]))]
     plot(mvcbobrowlower[2], sd_mvcbobrowlower, '#f96f00', linewidth = 4) ## orange
     ###
     mvcdirect = profileslist.pop(0)
-    plot(mvcdirect[2], mvcdirect[3], 'm--', linewidth = 4)
+    plot(mvcdirect[2], mvcdirect[3], 'c--', linewidth = 4)
     colorcycle = ['r', 'g', 'b', 'y', 'k']
     ax = gca()
     ax.set_color_cycle(colorcycle)
     for p in profileslist:
         plot(p[2], p[3], 'k',linewidth = 2)
+        
     if len(profileslist) > 0:
         M = 2 * max([max(p[3]) for p in profileslist])
     else:
