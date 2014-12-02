@@ -26,7 +26,7 @@
 #include <boost/python/def.hpp>
 
 #ifdef WITH_OPENRAVE
-//#include "ComputePolygon.h"
+#include "ComputePolygon.h"
 #include "TorqueLimitsRave.h"
 #include "TorqueLimitsRave3.h"
 //#include "ZMPTorqueLimits.h"
@@ -95,12 +95,26 @@ public:
     {
 #ifdef WITH_OPENRAVE
         _probot = openravepy::GetRobot(orobot);
+        std::list<OpenRAVE::TrajectoryBasePtr> listtrajectories;
         OpenRAVE::TrajectoryBasePtr ptrajectory = openravepy::GetTrajectory(otrajectory);
+        if( !!ptrajectory ) {
+            listtrajectories.push_back(ptrajectory);
+        }
+        else {
+            // might be a list of trajectories
+            size_t num = len(otrajectory);
+            for(size_t i = 0; i < num; ++i) {
+                OpenRAVE::TrajectoryBasePtr ptrajectory = openravepy::GetTrajectory(otrajectory[i]);
+                BOOST_ASSERT(!!ptrajectory);
+                listtrajectories.push_back(ptrajectory);
+            }
+        }
+        BOOST_ASSERT(listtrajectories.size()>0);
         if (problemtype.compare("TorqueLimitsRave2")==0) {
-            pconstraints.reset(new TorqueLimitsRave2(_probot,ptrajectory,discrtimestep));
+            pconstraints.reset(new TorqueLimitsRave2(_probot,listtrajectories.front(),discrtimestep));
         }
         else if (problemtype.compare("TorqueLimitsRave3")==0) {
-            pconstraints.reset(new TorqueLimitsRave3(_probot,ptrajectory,discrtimestep));
+            pconstraints.reset(new TorqueLimitsRave3(_probot,listtrajectories.front(),discrtimestep));
         }
         else {
             throw TOPP_EXCEPTION_FORMAT("cannot create %s problem type", problemtype, 0);
@@ -164,6 +178,7 @@ public:
         pconstraints->integrationtimestep = integrationtimestep;
         pconstraints->passswitchpointnsteps = passswitchpointnsteps;
         pconstraints->extrareps = extrareps;
+        pconstraints->stepthresh = 0.01;
 
         int res = ComputeProfiles(*pconstraints,sdbeg,sdend);
         resduration = pconstraints->resduration;
@@ -171,7 +186,8 @@ public:
     }
 
 
-    int ReparameterizeTrajectory(){
+    int ReparameterizeTrajectory(TOPP::dReal reparamtimestep=0)
+    {
         // Set tuning parameters
         pconstraints->reparamtimestep = reparamtimestep;
 
@@ -228,13 +244,22 @@ public:
 
 
 #ifdef WITH_OPENRAVE
+    object ExtractOpenRAVETrajectoryFromProfiles(object opyenv)
+    {
+        OpenRAVE::TrajectoryBasePtr ptraj = OpenRAVE::RaveCreateTrajectory(_probot->GetEnv());
+        bool bsuccess = TOPP::ExtractOpenRAVETrajectoryFromProfiles(*pconstraints, 0, _probot->GetActiveConfigurationSpecification(), ptraj);
+        if( !bsuccess ) {
+            return object();
+        }
+        return openravepy::toPyTrajectory(ptraj, opyenv);
+    }
+
     object GetOpenRAVEResultTrajectory(object opyenv)
     {
         OpenRAVE::TrajectoryBasePtr ptraj = OpenRAVE::RaveCreateTrajectory(_probot->GetEnv());
         ConvertToOpenRAVETrajectory(restrajectory, ptraj, _probot->GetActiveConfigurationSpecification());
         return openravepy::toPyTrajectory(ptraj, opyenv);
     }
-
 #endif
 
     TOPP::dReal RunEmergencyStop(TOPP::dReal sdbeg){
@@ -250,10 +275,12 @@ public:
 
     void WriteResultTrajectory(){
         // std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
-        std::stringstream ss; ss << std::setprecision(11);
+        //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         // printf("WriteResultTrajectory: %d %f %d blah\n",
         //        restrajectory.dimension, restrajectory.duration,
         //        restrajectory.degree);
+        std::stringstream ss;
+        ss << std::setprecision(17);
         restrajectory.Write(ss);
         restrajectorystring = ss.str();
     }
@@ -261,7 +288,10 @@ public:
     void WriteProfilesList(){
         std::list<Profile>::iterator itprofile = pconstraints->resprofileslist.begin();
         //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
-        std::stringstream ss; ss << std::setprecision(11);
+        //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        std::stringstream ss;
+        ss << std::setprecision(17);
+
         TOPP::dReal dt = 1e-4;
         pconstraints->WriteMVCBobrow(ss,dt);
         ss << "\n";
@@ -275,9 +305,20 @@ public:
         resprofilesliststring = ss.str();
     }
 
+    std::string SerializeInputTrajectory() {
+        //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        std::stringstream ss;
+        ss << std::setprecision(17);
+
+        pconstraints->trajectory.Write(ss);
+        return ss.str();
+    }
+
     void WriteSwitchPointsList(){
         //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
-        std::stringstream ss; ss << std::setprecision(11);
+        //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        std::stringstream ss;
+        ss << std::setprecision(17);
         std::list<SwitchPoint>::iterator itsw = pconstraints->switchpointslist.begin();
         while(itsw != pconstraints->switchpointslist.end()) {
             ss << itsw->s << " " << itsw->sd << " " << itsw->switchpointtype << "\n";
@@ -290,7 +331,10 @@ public:
 
     // Write Constraints (currently works only for QuadraticConstraints)
     void WriteConstraints(){
-        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        std::stringstream ss;
+        ss << std::setprecision(17);
+
         pconstraints->WriteConstraints(ss);
         outconstraintstring = ss.str();
     }
@@ -298,13 +342,16 @@ public:
     // Extra string, such as the coordinates of the ZMP (depending on the application)
     void WriteExtra(){
         //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
-        std::stringstream ss; ss << std::setprecision(11);
+        std::stringstream ss;
+        ss << std::setprecision(17);
         pconstraints->WriteExtra(ss);
         resextrastring = ss.str();
     }
 
 };
 
+
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ReparameterizeTrajectory_overloads, ReparameterizeTrajectory, 0, 1)
 
 BOOST_PYTHON_MODULE(TOPPbindings) {
     using namespace boost::python;
@@ -331,7 +378,7 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def("GetAlpha",&TOPPInstance::GetAlpha)
     .def("GetBeta",&TOPPInstance::GetBeta)
     .def("RunComputeProfiles",&TOPPInstance::RunComputeProfiles)
-    .def("ReparameterizeTrajectory",&TOPPInstance::ReparameterizeTrajectory)
+    .def("ReparameterizeTrajectory",&TOPPInstance::ReparameterizeTrajectory, ReparameterizeTrajectory_overloads(args("reparamtimestep")))
     .def("RunVIP",&TOPPInstance::RunVIP)
     .def("RunVIPBackward",&TOPPInstance::RunVIPBackward)
     .def("RunEmergencyStop",&TOPPInstance::RunEmergencyStop)
@@ -341,8 +388,10 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def("WriteConstraints",&TOPPInstance::WriteConstraints)
     .def("WriteSwitchPointsList",&TOPPInstance::WriteSwitchPointsList)
     .def("RunComputePolygon",&TOPPInstance::RunComputePolygon)
+    .def("SerializeInputTrajectory", &TOPPInstance::SerializeInputTrajectory)
 #ifdef WITH_OPENRAVE
-    .def("GetOpenRAVEResultTrajectory", &TOPPInstance::GetOpenRAVEResultTrajectory, args("pyenv"))
+    .def("ExtractOpenRAVETrajectoryFromProfiles", &TOPPInstance::ExtractOpenRAVETrajectoryFromProfiles, args("pyenv"), "extract openrave trajectory directly from profiles without reparameterizing")
+    .def("GetOpenRAVEResultTrajectory", &TOPPInstance::GetOpenRAVEResultTrajectory, args("pyenv"), "resulting re-parameterized trajectory")
 #endif
     ;
 }

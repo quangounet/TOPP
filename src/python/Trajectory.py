@@ -193,7 +193,14 @@ def InsertIntoTrajectory(traj,traj2,s0,s1):
     for chunk in traj2.chunkslist:
         newchunkslist.insert(i0,chunk)
     newchunkslist.insert(i0,chunk0)
-    return(PiecewisePolynomialTrajectory(newchunkslist))
+    return PiecewisePolynomialTrajectory(newchunkslist)
+
+
+def Concatenate(traj1,traj2):
+    c1 = traj1.chunkslist
+    c2 = traj2.chunkslist
+    c1.extend(c2)
+    return PiecewisePolynomialTrajectory(c1)
 
 
 def SubTraj(traj,s0,s1=-1):

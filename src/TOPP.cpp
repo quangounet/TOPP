@@ -290,8 +290,8 @@ void Constraints::FindDiscontinuousSwitchPoints() {
     dReal sd, sdn, sdnn;
     sd = SdLimitBobrow(discrsvect[i]);
     sdn = SdLimitBobrow(discrsvect[i+1]);
-    // also look for the start of the chucks for the trajectory
-    std::list<dReal>::const_iterator itchuckstart = trajectory.chunkcumulateddurationslist.begin();
+    // also look for the start of the chunks for the trajectory
+    std::list<dReal>::const_iterator itchunkstart = trajectory.chunkcumulateddurationslist.begin();
     int nLastAddedSwitchIndex = -1;
     for(int i=0; i<ndiscrsteps-2; i++) {
         sdnn = SdLimitBobrow(discrsvect[i+2]);
@@ -307,12 +307,12 @@ void Constraints::FindDiscontinuousSwitchPoints() {
         //     // if the trajectory degree is <= 3, then the accelerations will not be differentiable at the trajectory chunk edges.
         //     // therefore add those discontinuity points.
         //     // perhaps there's a better way to compute this, but the above threshold doesn't catch it.
-        //     if( itchuckstart != trajectory.chunkcumulateddurationslist.end() && *itchuckstart <= discrsvect[i+2]+TINY ) {
+        //     if( itchunkstart != trajectory.chunkcumulateddurationslist.end() && *itchunkstart <= discrsvect[i+2]+TINY ) {
         //         if( nLastAddedSwitchIndex < i+1 ) {
         //             AddSwitchPoint2(discrsvect[i+1],mvcbobrow[i+1],SP_DISCONTINUOUS);
         //             nLastAddedSwitchIndex = i+1;
         //         }
-        //         ++itchuckstart;
+        //         ++itchunkstart;
         //     }
         // }
         sd = sdn;
@@ -1042,7 +1042,7 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
                 if(sdbackward > 0.01 && sdforward > 0.01) {
                     //dReal score = (slopediff1+slopediff2)/std::abs(std::log(sstep));
                     dReal score = slopediff1+slopediff2;
-                    if(score<bestscore) {
+                    if(score<bestscore && score<10) {
                         bestsstep = sstep;
                         bestslope = slope;
                         bestscore = score;
@@ -1881,8 +1881,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
 
         Profile tmpprofile;
         dReal smallincrement = constraints.integrationtimestep*2;
-        dReal bound; //,tres;
-
+        dReal bound;
 
         /////////////////  Integrate from start /////////////////////
         // Fix start
@@ -1930,22 +1929,22 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         // Integrate from s = 0
         ret = IntegrateForward(constraints,sstartnew,sdstartnew,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
         // if(ret==INT_BOTTOM) {
-            // sometimes sdstartnew can be too low and sd goes negative. therefore, try some random sd
+        // sometimes sdstartnew can be too low and sd goes negative. therefore, try some random sd
 //             for(int itry = 1; itry <= 5; ++itry) {
 //                 ret = IntegrateForward(constraints,sstartnew,sdstartnew+0.2*itry,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
 // //                if(resprofile.nsteps>1) {
 // //                    constraints.resprofileslist.push_back(resprofile);
 // //                }
-	    // if(ret!=INT_BOTTOM) {
-	    // 	break;
-	    // }
-            // }
-	if(ret==INT_BOTTOM) {
-	    message = str(boost::format("FW reached 0 from IntegrateForward. sstartnew=%.15e, sdstartnew=%.15e")%sstartnew%sdstartnew);
-	    std::cout << message << std::endl;
-	    integrateprofilesstatus = false;
-	    continue;
-	}
+        // if(ret!=INT_BOTTOM) {
+        //  break;
+        // }
+        // }
+        if(ret==INT_BOTTOM) {
+            message = str(boost::format("FW reached 0 from IntegrateForward. sstartnew=%.15e, sdstartnew=%.15e")%sstartnew%sdstartnew);
+            std::cout << message << std::endl;
+            integrateprofilesstatus = false;
+            continue;
+        }
         // }
         if(resprofile.nsteps>1) {
             constraints.resprofileslist.push_back(resprofile);
@@ -1992,12 +1991,12 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
 //                     break;
 //                 }
 //             }
-	if( ret == INT_BOTTOM ) {
-	    message = str(boost::format("BW reached 0, s=%.15e, sd=%.15e")%sendnew%sdendnew);
-	    std::cout << message << std::endl;
-	    integrateprofilesstatus = false;
-	    continue;
-	}
+        if( ret == INT_BOTTOM ) {
+            message = str(boost::format("BW reached 0, s=%.15e, sd=%.15e")%sendnew%sdendnew);
+            std::cout << message << std::endl;
+            integrateprofilesstatus = false;
+            continue;
+        }
         // }
         if(resprofile.nsteps>1) {
             constraints.resprofileslist.push_back(resprofile);
@@ -2048,12 +2047,12 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
 
 
         /////////////////////  Final checks /////////////////////////
-
         // Check whether CLC is continuous and recover if not
         dReal sdiscontinuous = Recover(constraints,constraints.integrationtimestep);
         if(sdiscontinuous>-0.5) {
             message = str(boost::format("Could not recover from CLC discontinuous s=%.15e")%sdiscontinuous);
         }
+
 
         // Estimate resulting trajectory duration
         constraints.resduration = 0;
@@ -2147,6 +2146,13 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
         std::cout << "[TOPP::VIP] resclc == CLC_SWITCH or CLC_BOTTOM \n";
         return TOPP_CLC_ERROR;
     }
+
+    dReal sdiscontinuous = Recover(constraints,constraints.integrationtimestep);
+    if(sdiscontinuous>-0.5) {
+        std::cout <<  "Could not recover from CLC discontinuous\n";
+        return TOPP_CLC_ERROR;
+    }
+
 
     // Determine the lowest profile at t=0
     dReal bound;
@@ -2757,7 +2763,7 @@ ProfileSample FindEarliestProfileIntersection(dReal sstart, dReal sdstart, dReal
                 if( fabs(sddstart) <= TINY ) {
                     if( fabs(sddnext) <= TINY ) {
                         if( fabs(sdstart-sdnext) > TINY ) {
-                            RAVELOG_ERROR_FORMAT("sddstart and sddnext are both close to 0 at s=%.15e, sd diff=%.15e, don't know that to do", sstart%fabs(sdstart-sdnext));
+                            //RAVELOG_ERROR_FORMAT("sddstart and sddnext are both close to 0 at s=%.15e, sd diff=%.15e, don't know that to do", sstart%fabs(sdstart-sdnext));
                             continue;
                         }
                         else {

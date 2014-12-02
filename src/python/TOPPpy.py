@@ -154,7 +154,7 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=None):
             plot(sw[0], sw[1], 'yo', markersize=8)
     smax, sdmax = mvcbobrow[0], M
     axis([0, smax, 0, sdmax])
-    #title('Maximum Velocity Curves and profiles', fontsize=20)
+    title('Maximum Velocity Curves and profiles', fontsize=20)
     xlabel('$s$', fontsize=22)
     ylabel('$\dot s$', fontsize=22)
     return smax, sdmax  # return this for PlotPhase (yurk!)

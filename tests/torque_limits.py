@@ -100,22 +100,20 @@ x.WriteProfilesList()
 x.WriteSwitchPointsList()
 profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
 switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
-TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
+
 if(ret == 1):
     x.WriteResultTrajectory()
     traj1 = Trajectory.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
+
+    # Execute trajectory
+    TOPPopenravepy.Execute(robot,traj1)
+
     dtplot = 0.01
+    TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
     TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax)
     TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)
-    print "Trajectory duration before TOPP: ", traj0.duration
-    print "Trajectory duration after TOPP: ", traj1.duration
-else:
-    print "Trajectory is not time-parameterizable"
 
 print x.RunComputePolygon('toto')
 
-# Execute trajectory
-# if(ret == 1):
-#     TOPPopenravepy.Execute(robot,traj1)
 
 raw_input()

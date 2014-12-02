@@ -48,7 +48,7 @@ for j in range(ntraj):
         pc = Utilities.vect2str(c)
         s+= ' ' + pa + ' ' + pb + '\n1.0 ' + pb + ' ' + pc
     s+= ' ' + p1a + ' ' + p1b
-    filename = 'traj-%d-%d'%(ndof,j)
+    filename = '/tmp/traj-%d-%d'%(ndof,j)
     handle = open(filename,'w')
     handle.write(s)
     handle.close()
@@ -65,7 +65,7 @@ st = ' -%f'%amax0
 s += str(ndof) + st*ndof + '\n';
 st = ' %f'%amax0
 s += str(ndof) + st*ndof;
-handle = open("limit",'w')
+handle = open("/tmp/limit",'w')
 handle.write(s)
 handle.close()
 
@@ -81,7 +81,7 @@ nfailures = 0
 for j in range(ntraj):
     print j
     # Load trajectory
-    trajfile = 'traj-%d-%d'%(ndof,j)
+    trajfile = '/tmp/traj-%d-%d'%(ndof,j)
     h = open(trajfile,'r')
     s = h.read()
     h.close()      
@@ -107,9 +107,9 @@ for j in range(ntraj):
         nfailures += 1
         print ">>>>>>>>>>>>>>>>>>> TOPP could not retime: ", [ndof, j, v, a, discrtimestep]
     # MINTOS
-    command = "./timeopt %s %s %d 1 > res"%(trajfile,"limit",gridres)
+    command = "./timeopt %s %s %d 1 > /tmp/res"%(trajfile,"/tmp/limit",gridres)
     os.system(command)
-    res = open("res","r").read()
+    res = open("/tmp/res","r").read()
     lines = [l.strip(" \n") for l in res.split('\n')]
     resline = ""
     for l in lines:
