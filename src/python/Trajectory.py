@@ -6,14 +6,27 @@ import StringIO
 
 from pylab import arange, array, double, plot, zeros
 
+## @package Trajectory
+#
+#  Classes for representing trajectory
 
+## Polynomial trajectory representation
+#
+# dh
 class Polynomial(object):
+    ## Creates polynomial trajectory from string
+    #  
+    #  @param polynomial_string the string gotten from TOPP
+    #  @retval Polynomial class representing the trajectory
     @staticmethod
     def FromString(polynomial_string):
         s = polynomial_string.strip(" \n")
         coeff_list = [double(x) for x in s.split(' ')]
         return Polynomial(coeff_list)
-
+    
+    ## Creates Polynomial trajectory representation
+    #
+    #  @param coeff_list list of coeffitients, first is the x**0 corresponding coef.
     def __init__(self, coeff_list):
         # NB: we adopt the weak-term-first convention for inputs
         self.coeff_list = coeff_list
@@ -25,7 +38,8 @@ class Polynomial(object):
     def pad_coeff_string(self, new_degree):
         while len(self.coeff_list) <= new_degree:
             self.coeff_list.append(0.)
-
+    
+    
     def Eval(self, s):
         return self.q(s)
 
@@ -41,8 +55,13 @@ class Polynomial(object):
     def __str__(self):
         return ' '.join(map(str, self.coeff_list))
 
-
+## "parallel" connection of trajectories
+# converts list of trajectories to parallel moving multi-dim trajectory
+#
 class Chunk():
+    ##
+    #
+    #  @duration 
     def __init__(self, duration, poly_list):
         self.polynomialsvector = poly_list
         self.dimension = len(poly_list)
@@ -83,8 +102,13 @@ class Chunk():
         chunks_str = '\n'.join(map(str, self.polynomialsvector))
         return '%f\n%d\n%s' % (self.duration, self.dimension, chunks_str)
 
-
+## Class for connecting trajectories in series
+#
+# sin
 class PiecewisePolynomialTrajectory():
+    ## Create a trajectory concatenation in series
+    # 
+    #  @param chunklist the list of Trajectory.Chunk classes
     def __init__(self, chunkslist):
         self.chunkslist = chunkslist
         self.dimension = self.chunkslist[0].dimension
