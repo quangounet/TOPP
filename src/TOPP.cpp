@@ -1042,7 +1042,7 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint &switchpoint
                 if(sdbackward > 0.01 && sdforward > 0.01) {
                     //dReal score = (slopediff1+slopediff2)/std::abs(std::log(sstep));
                     dReal score = slopediff1+slopediff2;
-                    if(score<bestscore) {
+                    if(score<bestscore && score<10) {
                         bestsstep = sstep;
                         bestslope = slope;
                         bestscore = score;
@@ -2146,6 +2146,13 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
         std::cout << "[TOPP::VIP] resclc == CLC_SWITCH or CLC_BOTTOM \n";
         return TOPP_CLC_ERROR;
     }
+
+    dReal sdiscontinuous = Recover(constraints,constraints.integrationtimestep);
+    if(sdiscontinuous>-0.5) {
+        std::cout <<  "Could not recover from CLC discontinuous\n";
+        return TOPP_CLC_ERROR;
+    }
+
 
     // Determine the lowest profile at t=0
     dReal bound;

@@ -56,17 +56,13 @@ M = array([[ 0.99981043, -0.01138393,  0.01579602,  0.23296329],
        [ 0.        ,  0.        ,  0.        ,  1.        ]])
 env.GetViewer().SetCamera(M)
 
-T1 = eye(4)
-T2 = array(T1)
-T2[0,3] = 0.6
-T1dyn = array([[1.,0,0,0],
+T1 = array([[1.,0,0,0],
             [0,0,-1,0],
             [0,1,0,0],
             [0,0,0,1]])
-T2dyn = array(T1dyn)
-T2dyn[0,3] = 0.6
-robot1.SetTransform(T1)
-robot2.SetTransform(T2)
+T2 = array(T1)
+T2[0,3] = 0.6
+
 constrainedlink = 9
 obj = robot1.GetLinks()[constrainedlink]
 
@@ -78,8 +74,6 @@ robot.robot1 = robot1
 robot.robot2 = robot2
 robot.T1 = T1
 robot.T2 = T2
-robot.T1dyn = T1dyn
-robot.T2dyn = T2dyn
 robot.freedofs = [0,1,2]
 robot.dependentdofs = [3,4,5]
 robot.constrainedlink = 9
@@ -102,14 +96,14 @@ tunings.discrtimestep = 5e-3
 
 # Start configuration
 # Robot 1
-q_start1 = array([ 1.60299799, -0.98929389, -0.58842164])
+q_start1 = array([ 1.5, -0.91191789, -0.52655972])
 robot1.SetTransform(T1)
 robot1.SetDOFValues(q_start1)
-desiredpose = Bimanual.Getxytheta(obj.GetTransform())
+desiredpose = Bimanual.Getxztheta(obj.GetTransform())
 # Robot 2
-desiredpose2 = desiredpose + [0,0,-pi]
+desiredpose2 = desiredpose + [0,0,pi]
 robot1.SetTransform(T2)
-q_start2, error = Bimanual.IK3(robot1,desiredpose2,q_start=array([pi,0,0])-q_start1)
+q_start2, error = Bimanual.IK3(robot1,desiredpose2,q_start=array([pi/2,pi/2,0]))
 robot1.SetTransform(T1)
 robot1.SetDOFValues(q_start1)
 robot2.SetDOFValues(q_start2[0:2])
@@ -122,12 +116,12 @@ robot2.SetTransform(T2)
 
 # Goal configuration
 # Robot 1
-q_goal1 = q_start1 + array([0.5,-0.5,-0.1])
+q_goal1 = q_start1 + array([0.5,-0.5,-0.2])
 robot1.SetTransform(T1)
 robot1.SetDOFValues(q_goal1)
-desiredpose = Bimanual.Getxytheta(obj.GetTransform())
+desiredpose = Bimanual.Getxztheta(obj.GetTransform())
 # Robot 2
-desiredpose2 = desiredpose + [0,0,-pi]
+desiredpose2 = desiredpose + [0,0,pi]
 robot1.SetTransform(T2)
 q_goal2, error = Bimanual.IK3(robot1,desiredpose2,q_start=array([pi,0,0])-q_goal1)
 robot1.SetTransform(T1)
@@ -181,8 +175,8 @@ if(ret == 1):
     trajtotal2 = Trajectory.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
 
     dt=0.01
-    robot1.SetTransform(T1dyn)
-    robot2.SetTransform(T2dyn)
+    robot1.SetTransform(T1)
+    robot2.SetTransform(T2)
     traj = trajtotal
     for t in arange(0,traj.duration,dt):
         q = traj.Eval(t)

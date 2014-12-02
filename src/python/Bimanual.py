@@ -17,16 +17,24 @@ import ClosedChain
 ######################## Kinematics #########################
 #############################################################
 
+def Getxztheta(T):
+    x = T[0,3]
+    z = T[2,3]
+    theta = pi -arctan2(T[2,0],T[0,0])
+    return array([x,z,theta])
+
 def Getxytheta(T):
     x = T[0,3]
     y = T[1,3]
     theta = arctan2(T[1,0],T[0,0])
     return array([x,y,theta])
 
+
 def ObjFunc(q,robot,desiredpose,weights):
+    l = 9
     with robot:
         robot.SetDOFValues(q)
-        x,y,theta = Getxytheta(robot.GetLinks()[9].GetTransform())
+        x,y,theta = Getxztheta(robot.GetLinks()[l].GetTransform())
     cost = 0
     cost += weights[0] * (x - desiredpose[0])**2
     cost += weights[1] * (y - desiredpose[1])**2
@@ -35,12 +43,13 @@ def ObjFunc(q,robot,desiredpose,weights):
 
 def IK3(robot,desiredpose,q_start=[0.5,0.5,0.5],step=1e-2,threshold=1e-3,k=0.1):
     J = zeros((3,3))
-    obj = robot.GetLinks()[9]
+    l = 9
+    obj = robot.GetLinks()[l]
     q = q_start
     #with robot:
     while True:
         robot.SetDOFValues(q)
-        pose = Getxytheta(obj.GetTransform())
+        pose = Getxztheta(obj.GetTransform())
         #print pose, desiredpose
         dpose = desiredpose - pose
         normdpose = linalg.norm(dpose)
@@ -48,8 +57,8 @@ def IK3(robot,desiredpose,q_start=[0.5,0.5,0.5],step=1e-2,threshold=1e-3,k=0.1):
         if normdpose <= threshold:
             break
         p = obj.GetTransform()[0:3,3]
-        J[0:2,:] = robot.ComputeJacobianTranslation(9,p)[0:2,:]
-        J[2,:] = robot.ComputeJacobianAxisAngle(9)[2,:]
+        J[0:2,:] = robot.ComputeJacobianTranslation(l,p)[[0,2],:]
+        J[2,:] = robot.ComputeJacobianAxisAngle(l)[1,:]
         Jstar = dot(linalg.inv(dot(J.T,J) + k*eye(3)),J.T)
         dposeunit = dpose / normdpose
         dposestep = dposeunit * min(step,normdpose)
@@ -58,6 +67,20 @@ def IK3(robot,desiredpose,q_start=[0.5,0.5,0.5],step=1e-2,threshold=1e-3,k=0.1):
         q += dq
         #raw_input()
     return q, linalg.norm(dpose)
+
+
+def ComputeDOFVelocities(robot,q,objectvel):
+    robot1 = robot.robot1
+    l = robot.constrainedlink
+    J = zeros((3,3))
+    with robot1:
+        robot1.SetTransform(robot.T1)
+        robot1.SetDOFValues(q)
+        J[0:2,:] = robot1.ComputeJacobianTranslation(l,robot1.GetLinks()[l].GetGlobalCOM())[[0,2],:]
+        J[2,:] = robot1.ComputeJacobianAxisAngle(l)[1,:]        
+    return dot(pinv(J),objectvel)
+        
+
 
 
 # Calculate the dependent delta that compensates for a displacement free delta
@@ -69,23 +92,23 @@ def Compensate(robot,T1,T2,dofvalues1,dofvalues2,freedofs1,freedofs2,dependentdo
         robot.SetTransform(T1)
         robot.SetDOFValues(dofvalues1)
         p = robot.GetLinks()[constrainedlink].GetTransform()[0:3,3]
-        if(len(freedofs1)>0):
-            Jfree[0:2,range(len(freedofs1))] = robot.ComputeJacobianTranslation(constrainedlink,p)[0:2,freedofs1]
-            Jfree[2,range(len(freedofs1))] = robot.ComputeJacobianAxisAngle(constrainedlink)[2,freedofs1]
+        if(len(freedofs1)>0):            
+            Jfree[0:2,range(len(freedofs1))] = robot.ComputeJacobianTranslation(constrainedlink,p)[[0,2],:][:,freedofs1]
+            Jfree[2,range(len(freedofs1))] = robot.ComputeJacobianAxisAngle(constrainedlink)[1,freedofs1]
         if(len(dependentdofs1)>0):
-            Jdependent[0:2,range(len(dependentdofs1))] = robot.ComputeJacobianTranslation(constrainedlink,p)[0:2,dependentdofs1]
-            Jdependent[2,range(len(dependentdofs1))] = robot.ComputeJacobianAxisAngle(constrainedlink)[2,dependentdofs1]
+            Jdependent[0:2,range(len(dependentdofs1))] = robot.ComputeJacobianTranslation(constrainedlink,p)[[0,2],:][:,dependentdofs1]
+            Jdependent[2,range(len(dependentdofs1))] = robot.ComputeJacobianAxisAngle(constrainedlink)[1,dependentdofs1]
     # robot in configuration 2
     with robot:
         robot.SetTransform(T2)
         robot.SetDOFValues(dofvalues2)
         p = robot.GetLinks()[constrainedlink].GetTransform()[0:3,3]
         if(len(freedofs2)>0):
-            Jfree[0:2,len(freedofs1)+array(range(len(freedofs2)))] = robot.ComputeJacobianTranslation(constrainedlink,p)[0:2,freedofs2]
-            Jfree[2,len(freedofs1)+array(range(len(freedofs2)))] = robot.ComputeJacobianAxisAngle(constrainedlink)[2,freedofs2] 
+            Jfree[0:2,len(freedofs1)+array(range(len(freedofs2)))] = robot.ComputeJacobianTranslation(constrainedlink,p)[[0,2],:][:,freedofs2]
+            Jfree[2,len(freedofs1)+array(range(len(freedofs2)))] = robot.ComputeJacobianAxisAngle(constrainedlink)[1,freedofs2] 
         if(len(dependentdofs2)>0):
-            Jdependent[0:2,len(dependentdofs1)+array(range(len(dependentdofs2)))] = robot.ComputeJacobianTranslation(constrainedlink,p)[0:2,dependentdofs2]
-            Jdependent[2,len(dependentdofs1)+array(range(len(dependentdofs2)))] = robot.ComputeJacobianAxisAngle(constrainedlink)[2,dependentdofs2] 
+            Jdependent[0:2,len(dependentdofs1)+array(range(len(dependentdofs2)))] = robot.ComputeJacobianTranslation(constrainedlink,p)[[0,2],:][:,dependentdofs2] 
+            Jdependent[2,len(dependentdofs1)+array(range(len(dependentdofs2)))] = robot.ComputeJacobianAxisAngle(constrainedlink)[1,dependentdofs2] 
     # compute the compensation
     if(abs(det(Jdependent))<tol_jacobian):
         raise Exception("Jdependent non invertible")
@@ -118,7 +141,7 @@ def CompensateTrajectory(robot,T1,T2,freedofs1,freedofs2,dependentdofs1,dependen
         try:
             dependentd = Compensate(robot,T1,T2,dofvalues1,dofvalues2,freedofs1,freedofs2,dependentdofs1,dependentdofs2,constrainedlink,freed,tol_jacobian)
         except Exception as inst:
-            print inst
+            print "Could not interpolate : Compensate failed"
             return None
         dependentvalues += dependentd*dt
         dependentv.append(array(dependentvalues))
@@ -151,26 +174,17 @@ def Interpolate(robot,tunings,qstartfull,qgoal,freestartvelocities,freegoalveloc
     robot1 = robot.robot1
     T1 = robot.T1
     T2 = robot.T2
-    T1dyn = robot.T1dyn
-    T2dyn = robot.T2dyn
     Gdofs = robot.Gdofs
     Sdofs = robot.Sdofs
     freedofs = robot.freedofs
     dependentdofs = robot.dependentdofs
     actuated = robot.actuated
     constrainedlink = robot.constrainedlink
-    taumin = robot.taumin
-    taumax = robot.taumax
     tol_jacobian = tunings.tol_jacobian
-
-    if T1dyn is None:
-        T1dyn = T1
-        T2dyn = T2
 
     duration = tunings.duration
     nchunks = tunings.nchunks
     chunksubdiv = tunings.chunksubdiv
-
     freetraj = ClosedChain.InterpolateFree(qstartfull[freedofs],qgoal,freestartvelocities,freegoalvelocities,duration)
     dependent0 = qstartfull[dependentdofs]
     freedofs1 = filter(lambda x:x<3,freedofs)
@@ -179,10 +193,13 @@ def Interpolate(robot,tunings,qstartfull,qgoal,freestartvelocities,freegoalveloc
     dependentdofs1 = filter(lambda x:x<3,dependentdofs)
     dependentdofs2 = filter(lambda x:x>=3,dependentdofs)
     dependentdofs2 = [x-3 for x in dependentdofs2]
+
     dependenttraj = CompensateTrajectory(robot1,T1,T2,freedofs1,freedofs2,dependentdofs1,dependentdofs2,constrainedlink,freetraj,dependent0,nchunks,chunksubdiv,tol_jacobian)
-    trajtotal = ClosedChain.MergeTrajectories(qstartfull,freetraj,dependenttraj,freedofs,dependentdofs)
-    #TOPPpy.PlotKinematics(trajtotal,trajtotal)
-    return trajtotal
+    if dependenttraj is None:
+        return None
+    else:
+        trajtotal = ClosedChain.MergeTrajectories(qstartfull,freetraj,dependenttraj,freedofs,dependentdofs)
+        return trajtotal
     
 
 
@@ -219,14 +236,14 @@ def ComputeSensitivityMatrices(robot1,T1,T2,q,Gdofs,Sdofs,actuated,constrainedli
         robot1.SetTransform(T1)
         robot1.SetDOFValues(q[0:3])
         p = robot1.GetLinks()[constrainedlink].GetTransform()[0:3,3]
-        JA[0:2,:] = robot1.ComputeJacobianTranslation(constrainedlink,p)[0:2,:]
-        JA[2,:] = robot1.ComputeJacobianAxisAngle(constrainedlink)[2,:]
+        JA[0:2,:] = robot1.ComputeJacobianTranslation(constrainedlink,p)[[0,2],:]
+        JA[2,:] = robot1.ComputeJacobianAxisAngle(constrainedlink)[1,:]
         # Right arm
         robot1.SetTransform(T2)
         robot1.SetDOFValues(q[3:6])
         p = robot1.GetLinks()[constrainedlink].GetTransform()[0:3,3]
-        JB[0:2,:] = robot1.ComputeJacobianTranslation(constrainedlink,p)[0:2,:]
-        JB[2,:] = robot1.ComputeJacobianAxisAngle(constrainedlink)[2,:]
+        JB[0:2,:] = robot1.ComputeJacobianTranslation(constrainedlink,p)[[0,2],:]
+        JB[2,:] = robot1.ComputeJacobianAxisAngle(constrainedlink)[1,:]
         # Compute sensitivity matrices
         JCm[0:3,0:3] = JA
         JCm[0:3,3:6] = -JB
@@ -259,16 +276,16 @@ def ComputeSensitivityMatrices(robot1,T1,T2,q,Gdofs,Sdofs,actuated,constrainedli
     return W, S
 
 # Compute the generalized torques tauG
-def ComputeGeneralizedTorques(robot1,robot2,T1,T2,T1dyn,T2dyn,q,qd,qdd,Gdofs,Sdofs,actuated,constrainedlink):
+def ComputeGeneralizedTorques(robot1,robot2,T1,T2,q,qd,qdd,Gdofs,Sdofs,actuated,constrainedlink):
     tauO = zeros(5)
     # Inverse dynamics on the open chains
     with robot1: # left arm, has 3 joints
-        robot1.SetTransform(T1dyn)
+        robot1.SetTransform(T1)
         robot1.SetDOFValues(q[0:3])
         robot1.SetDOFVelocities(qd[0:3])
         tauO[0:3] = robot1.ComputeInverseDynamics(qdd[0:3])
     with robot2: # right arm, has 2 joints
-        robot2.SetTransform(T2dyn)
+        robot2.SetTransform(T2)
         robot2.SetDOFValues(q[3:5])
         robot2.SetDOFVelocities(qd[3:5])
         tauO[3:5] = robot2.ComputeInverseDynamics(qdd[3:5])
@@ -308,24 +325,19 @@ def ComputeTorquesTraj(robot,traj,dt=0.01):
     robot2 = robot.robot2
     T1 = robot.T1
     T2 = robot.T2
-    T1dyn = robot.T1dyn
-    T2dyn = robot.T2dyn
     Gdofs = robot.Gdofs
     Sdofs = robot.Sdofs
     actuated = robot.actuated
     constrainedlink = robot.constrainedlink
     taumin = robot.taumin
     taumax = robot.taumax
-    if T1dyn is None:
-        T1dyn = T1
-        T2dyn = T2
     ineqmatrices = ComputeInequalityConstraintMatrices(taumin,taumax)
     torquesvect = []
     for t in arange(0,traj.duration,dt):
         q = traj.Eval(t)
         qd = traj.Evald(t)
         qdd = traj.Evaldd(t)
-        tauG,WT,ST = ComputeGeneralizedTorques(robot1,robot2,T1,T2,T1dyn,T2dyn,q,qd,qdd,Gdofs,Sdofs,actuated,constrainedlink)
+        tauG,WT,ST = ComputeGeneralizedTorques(robot1,robot2,T1,T2,q,qd,qdd,Gdofs,Sdofs,actuated,constrainedlink)
         status, tauA = OptimizeTorques(ST,tauG,ineqmatrices)
         if status:
             torquesvect.append(tauA)
@@ -375,8 +387,6 @@ def ComputeConstraints(robot, tunings, trajtotal):
     robot2 = robot.robot2
     T1 = robot.T1
     T2 = robot.T2
-    T1dyn = robot.T1dyn
-    T2dyn = robot.T2dyn
     Gdofs = robot.Gdofs
     Sdofs = robot.Sdofs
     actuated = robot.actuated
@@ -384,10 +394,6 @@ def ComputeConstraints(robot, tunings, trajtotal):
     taumin = robot.taumin
     taumax = robot.taumax
     discrtimestep = tunings.discrtimestep
-
-    if T1dyn is None:
-        T1dyn = T1
-        T2dyn = T2
 
     ndiscrsteps = int((trajtotal.duration + 1e-10) / discrtimestep) + 1
     constraintstring = ""
@@ -418,7 +424,7 @@ def ComputeConstraints(robot, tunings, trajtotal):
 
         # Inverse dynamics on the open chains
         with robot1:        
-            robot1.SetTransform(T1dyn)
+            robot1.SetTransform(T1)
             robot1.SetDOFValues(q1)
             robot1.SetDOFVelocities(qd1)
             tm, tc, tg = robot1.ComputeInverseDynamics(qdd1, None, returncomponents=True)
@@ -427,7 +433,7 @@ def ComputeConstraints(robot, tunings, trajtotal):
             b[0:3] = tm + tc
             c[0:3] = tg
         with robot2:
-            robot2.SetTransform(T2dyn)
+            robot2.SetTransform(T2)
             robot2.SetDOFValues(q2)
             robot2.SetDOFVelocities(qd2)
             tm, tc, tg = robot2.ComputeInverseDynamics(qdd2, None, returncomponents=True)
