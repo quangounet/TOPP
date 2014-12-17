@@ -475,7 +475,88 @@ def ComputeConstraints(robot, tunings, trajtotal):
             vertices_list = P.export_vertices()
             constraintstring += "\n"
             for ivertex in range(len(vertices_list)):
-                constraintstring += str(vertices_list[ivertex].x) + " " + str(sqrt(abs(vertices_list[ivertex].y))) #Important to take the square root here to convert from sd^2 to sd
+                constraintstring += str(vertices_list[ivertex].x) + " " + str(abs(vertices_list[ivertex].y)) #Note that it's sd^2 which is returned
+                if ivertex < len(vertices_list)-1:
+                    constraintstring += " "
+
+    if got_error:
+        return None
+    return constraintstring
+
+
+# Compute the constraint string for PolygonConstraints
+def ComputeConstraintsTorqueOnly(robot, traj, taumin, taumax, discrtimestep):
+    """Sample the dynamics constraints."""
+    ndiscrsteps = int((traj.duration + 1e-10) / discrtimestep) + 1
+    ndof = sum(taumax>0.01)
+    constraintstring = ""    
+    got_error = False
+    for i in range(ndiscrsteps):
+        t = i * discrtimestep
+        q = traj.Eval(t)
+        qd = traj.Evald(t)
+        qd2 = zeros(robot.GetDOF())
+        qd2[robot.GetActiveDOFIndices()] = qd
+        qdd = traj.Evaldd(t)
+        qdd2 = zeros(robot.GetDOF())
+        qdd2[robot.GetActiveDOFIndices()] = qdd
+        with robot:
+            robot.SetActiveDOFValues(q)
+            robot.SetActiveDOFVelocities(qd)
+            tm, tc, tg = robot.ComputeInverseDynamics(qdd2, None,
+                                                      returncomponents=True)
+            to = robot.ComputeInverseDynamics(qd2) - tc - tg
+            avect = []
+            bvect = []
+            cvect = []
+            for i in range(len(taumax)):
+                if abs(taumax[i]) > 1e-10:
+                    avect.append(to[i])
+                    bvect.append(tm[i] + tc[i])
+                    cvect.append(tg[i])
+
+        a = array(avect)
+        b = array(bvect)
+        c = array(cvect)
+
+        # A and b matrices
+        A = zeros((ndof,ndof+2))
+        A[:,:ndof] = eye(ndof)
+        A[:,ndof] = -a
+        A[:,ndof+1] = -b
+        lp_A = cvxopt.matrix(A)
+        lp_b = cvxopt.matrix(c)
+
+        # G and h matrices
+        G = zeros((2*ndof+1,ndof+2))
+        h = zeros(2*ndof+1)
+        G[:ndof,:ndof] = eye(ndof)
+        G[ndof:2*ndof,:ndof] = -eye(ndof)
+        h[:ndof] = filter(lambda x: abs(x) > 1e-10 ,taumax)
+        h[ndof:2*ndof] = filter(lambda x: abs(x) > 1e-10, -taumin)
+        G[2*ndof,ndof+1] = -1
+        lp_G = cvxopt.matrix(G)
+        lp_h = cvxopt.matrix(h)
+
+        lp_q = cvxopt.matrix(zeros(ndof+2))
+
+        # Compute the Polygon
+        lp = lp_q, lp_G, lp_h, lp_A, lp_b 
+        res, P = ClosedChain.ComputePolygon(lp)
+        if not res:
+            got_error = True
+            print "Compute Polygone: Infeasible at t =", t
+        else:
+            P.sort_vertices()
+            # figure(6)
+            # clf()
+            # P.Plot()
+            # raw_input()
+            #return P, lp
+            vertices_list = P.export_vertices()
+            constraintstring += "\n"
+            for ivertex in range(len(vertices_list)):
+                constraintstring += str(vertices_list[ivertex].x) + " " + str(abs(vertices_list[ivertex].y)) #Note that it's sd^2 which is returned
                 if ivertex < len(vertices_list)-1:
                     constraintstring += " "
 

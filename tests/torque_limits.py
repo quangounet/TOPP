@@ -113,7 +113,5 @@ if(ret == 1):
     TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax)
     TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)
 
-print x.RunComputePolygon('toto')
-
 
 raw_input()
