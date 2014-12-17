@@ -155,7 +155,7 @@ robot.taumin = taumin
 robot.taumax = taumax
 t1 = time.time()
 
-x = TOPPbindings.TOPPInstance(None,"PolygonConstraints",constraintstring,trajectorystring);
+x = TOPPbindings.TOPPInstance(None,"PolygonConstraints",constraintstring,trajectorystring)
 x.integrationtimestep = 1e-3
 ret = x.RunComputeProfiles(1,1)
 t2 = time.time()

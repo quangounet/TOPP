@@ -62,9 +62,9 @@ std::pair<dReal,dReal> PolygonConstraints::SdLimitBobrowInitDiscrete(int i){
     dReal sdmax = 0;
     dReal a = 0;
     for(int j=0; j<(int) polygon.size(); j++) {
-        if(polygon[j].second > sdmax) {
+        if(sqrt(polygon[j].second) > sdmax) {
             a = polygon[j].first;
-            sdmax = polygon[j].second;
+            sdmax = sqrt(polygon[j].second);
         }
     }
     return std::pair<dReal,dReal>(a,sdmax);
@@ -86,8 +86,7 @@ dReal PolygonConstraints::SdLimitBobrowInit(dReal s){
     return 0;
 }
 
-
-
+// Need to take the square root before returning since the polygon is in the sd^2 space
 std::pair<dReal,dReal> PolygonConstraints::SddLimitsDiscrete(int i, dReal sd){
     dReal alpha, beta;
     std::vector<std::pair<dReal,dReal> > polygon = polygonvector[i];
@@ -102,17 +101,18 @@ std::pair<dReal,dReal> PolygonConstraints::SddLimitsDiscrete(int i, dReal sd){
         return std::pair<dReal,dReal>(alpha,beta);
     }
     int stage1 = 0;
+    dReal sdsq = sd*sd;
     for(int j=0; j<(int) polygon.size(); j++) {
-        if(polygon[j].second > sd) {
+        if(polygon[j].second > sdsq) {
             stage1 = j;
-            dReal coef = (sd-polygon[j-1].second)/(polygon[j].second-polygon[j-1].second);
+            dReal coef = (sdsq-polygon[j-1].second)/(polygon[j].second-polygon[j-1].second);
             alpha = (1-coef)*polygon[j-1].first + coef*polygon[j].first;
             break;
         }
     }
     for(int j=stage1; j<(int) polygon.size(); j++) {
-        if(polygon[j].second < sd) {
-            dReal coef = (sd-polygon[j].second)/(polygon[j-1].second-polygon[j].second);
+        if(polygon[j].second < sdsq) {
+            dReal coef = (sdsq-polygon[j].second)/(polygon[j-1].second-polygon[j].second);
             beta = (1-coef)*polygon[j].first + coef*polygon[j-1].first;
             break;
         }
