@@ -1866,12 +1866,12 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
             dReal send = constraints.trajectory.duration;
             std::vector<dReal> qd(constraints.trajectory.dimension);
             constraints.trajectory.Evald(send,qd);
+            //std::cout << send << " " << qd[0] << " " << qd[1] << " " << qd[2]  << " VN\n";
             if(VectorNorm(qd) <= 5e-2) {
                 dReal ds = 1e-2;
                 dReal s = send - ds;
                 dReal ntrials = 1000.;
                 dReal mvcsd = std::min(constraints.SdLimitCombined(s),10.);
-                //std::cout << mvcsd << " mvc\n";
                 dReal incr = mvcsd / (ntrials+0.001);
                 for(dReal trialsd = incr; trialsd < mvcsd; trialsd += incr) {
                     dReal alphas = constraints.SddLimitAlpha(s,trialsd);
