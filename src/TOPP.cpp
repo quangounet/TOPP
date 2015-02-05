@@ -1822,7 +1822,10 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
 
         /////////////////  Integrate from start /////////////////////
         ret = IntegrateForward(constraints,0,sdbeg,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
-        if(ret == INT_BOTTOM || resprofile.nsteps < 10) {
+        if(ret != INT_BOTTOM && resprofile.nsteps>2) {
+            constraints.resprofileslist.push_back(resprofile);
+        }
+        if(ret == INT_BOTTOM || resprofile.nsteps < 5) {
             // Integration failed. However, if qd(0) = 0,  there was probably a singularity, and one can try different values for sdot
             std::vector<dReal> qd(constraints.trajectory.dimension);
             constraints.trajectory.Evald(0,qd);
@@ -1845,11 +1848,6 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
                 }
             }
         }
-        else{
-            if(resprofile.nsteps>1) {
-                constraints.resprofileslist.push_back(resprofile);
-            }
-        }
         // Now if it still fails, shouganai
         if(ret==INT_BOTTOM) {
             message = "Start profile hit 0";
@@ -1861,7 +1859,10 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
 
         /////////////////  Integrate from end /////////////////////
         ret = IntegrateBackward(constraints,constraints.trajectory.duration,sdend,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
-        if(ret == INT_BOTTOM || resprofile.nsteps < 10) {
+        if(ret != INT_BOTTOM && resprofile.nsteps>2) {
+            constraints.resprofileslist.push_back(resprofile);
+        }
+        if(ret == INT_BOTTOM || resprofile.nsteps < 5) {
             // Integration failed. However, if qd(send) = 0, there was probably a singularity, and one can try different values for sdot
             dReal send = constraints.trajectory.duration;
             std::vector<dReal> qd(constraints.trajectory.dimension);
@@ -1887,11 +1888,6 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
                     }
                 }
 
-            }
-        }
-        else{
-            if(resprofile.nsteps>1) {
-                constraints.resprofileslist.push_back(resprofile);
             }
         }
         if(ret==INT_BOTTOM) {
