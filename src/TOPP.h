@@ -308,19 +308,6 @@ public:
         throw TOPPException("Virtual method not implemented");
     }
 
-    // Fix the integration at s=0 when there is a singularity there
-    // If there's nothing to do then sstartnew = 0
-    // Else sstartnew > 0 and sdstartnew will be the value that allows going through the singularity
-    virtual void FixStart(dReal& sstartnew,dReal& sdstartnew, dReal timestep){
-        sstartnew = 0;
-    }
-    
-    // Fix the integration at s=send when there is a singularity there
-    // If there's nothing to do then sendnew = send
-    // Else sendnew < send and sdendnew will be the value that allows going through the singularity
-    virtual void FixEnd(dReal& sendnew,dReal& sdendnew){
-        sendnew = trajectory.duration;
-    }
 
     // Find all the singular switch points
     // Add them to switchpointslist
@@ -366,8 +353,6 @@ public:
     std::vector<std::vector<dReal> > avect, bvect, cvect;  // Dynamics coefficients. avect[i], bvect[i], cvect[i] are vectors of length 2*ndof where the first ndof are the upper limit, the next ndof are for the lower limit. These incorporate any upper/lower limits.
 
     void InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c);   // Linearly interpolate the dynamics coefficients a,b,c
-    virtual void FixStart(dReal& sstartnew,dReal& sdstartnew, dReal timestep);
-    void FixEnd(dReal& sendnew,dReal& sdendnew);
 
 };
 
