@@ -2044,11 +2044,11 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
         return TOPP_CLC_ERROR;
     }
 
-    dReal sdiscontinuous = Recover(constraints,constraints.integrationtimestep);
-    if(sdiscontinuous>-0.5) {
-        std::cout <<  "Could not recover from CLC discontinuous\n";
-        return TOPP_CLC_ERROR;
-    }
+    // dReal sdiscontinuous = Recover(constraints,constraints.integrationtimestep);
+    // if(sdiscontinuous>-0.5) {
+    //     std::cout <<  "Could not recover from CLC discontinuous\n";
+    //     return TOPP_CLC_ERROR;
+    // }
 
 
     // Determine the lowest profile at t=0
