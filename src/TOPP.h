@@ -352,20 +352,6 @@ class Constraints {
         std::cout << "Virtual method not implemented\n";
         throw TOPPException("Virtual method not implemented");
     }
-    
-    virtual void FixStart(dReal& sstartnew, dReal& sdstartnew, dReal timestep) {
-	// Fixes the integration at s = 0 when there is a singularity there
-	// If there's nothing to do, then sstartnew = 0
-	// Else sstartnew > 0 and sdstartnew will be the value that allows going through the singularity
-        sstartnew = 0;
-    }
-
-    virtual void FixEnd(dReal& sendnew,dReal& sdendnew) {
-	// Fix the integration at s = send when there is a singularity there
-	// If there's nothing to do, then sendnew = send
-	// Else sendnew < send and sdendnew will be the value that allows going through the singularity
-        sendnew = trajectory.duration;
-    }
 
     virtual void AddSwitchPoint(int i, int switchpointtype, dReal sd = -1);
     virtual void AddSwitchPoint2(dReal s, dReal sd, int switchpointtype);
@@ -418,7 +404,11 @@ class QuadraticConstraints : public Constraints {
     virtual void FixStart(dReal& sstartnew, dReal& sdstartnew, dReal timestep);
     void FixEnd(dReal& sendnew, dReal& sdendnew);
 
-    std::vector<std::vector<dReal> > GetABCConstraints(dReal s);
+    //////////////// Specific members and methods //////////////////////
+    int nconstraints;  // Number of constraints
+    std::vector<std::vector<dReal> > avect, bvect, cvect;  // Dynamics coefficients. avect[i], bvect[i], cvect[i] are vectors of length 2*ndof where the first ndof are the upper limit, the next ndof are for the lower limit. These incorporate any upper/lower limits.
+
+    void InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c);   // Linearly interpolate the dynamics coefficients a,b,c
 
 };
 

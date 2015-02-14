@@ -82,7 +82,5 @@ x.WriteResultTrajectory()
 traj1 = Trajectory.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
 dtplot = 0.01
 TOPPpy.PlotKinematics(traj0,traj1,dtplot,vmax,amax)
-print "Trajectory duration before TOPP: ", traj0.duration
-print "Trajectory duration after TOPP: ", traj1.duration
 
 raw_input()

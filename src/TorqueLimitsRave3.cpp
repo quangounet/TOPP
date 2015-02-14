@@ -136,7 +136,7 @@ TorqueLimitsRave3::TorqueLimitsRave3(RobotBasePtr probot, const std::list<OpenRA
         TOPP::Trajectory temptraj;
         ConvertToTOPPTrajectory(*ittraj, probot->GetActiveConfigurationSpecification(), trajectory);
         // insert into trajectory...?
-        
+
     }
     int ndof = trajectory.dimension;
     probot->GetActiveDOFVelocityLimits(vmax);

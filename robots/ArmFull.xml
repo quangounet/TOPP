@@ -1,0 +1,197 @@
+<Robot name="ArmFull">
+  <KinBody>    
+    <Mass type="mimicgeom">
+      <density>100000</density>
+    </Mass>
+
+    <!-- Base -->
+    <Body name="Base" type="dynamic">
+      <Translation>0.0  0.0  0.0</Translation>
+      <Geom type="cylinder">
+        <rotationaxis>1 0 0 90</rotationaxis>
+        <radius>0.03</radius>
+        <height>0.02</height>
+        <diffuseColor>0.05 0.05 0.05</diffuseColor>
+      </Geom>
+    </Body>
+
+    <!-- Arm 0 -->
+    <Body name="Arm0" type="dynamic">
+      <offsetfrom>Base</offsetfrom>
+      <Translation>0 0 0.005</Translation>
+      <Geom type="box">
+        <Translation>0.08 0 0</Translation>
+        <Extents>0.08 0.01 0.005</Extents>
+        <diffuseColor>0.5 0 0</diffuseColor>
+      </Geom>
+    </Body>
+    <Joint circular="true" name="Arm0" type="hinge">
+      <Body>Base</Body>
+      <Body>Arm0</Body>
+      <offsetfrom>Arm0</offsetfrom>
+      <weight>4</weight>
+      <limitsdeg>-180 180</limitsdeg>
+      <axis>0 0 1</axis>
+      <maxvel>3</maxvel>
+      <resolution>1</resolution>
+    </Joint>
+
+    <!-- Arm 1 -->
+    <Body name="Arm1" type="dynamic">
+      <offsetfrom>Arm0</offsetfrom>
+      <Translation>0.14 0 0.01</Translation>
+      <Geom type="box">
+        <Translation>0.08 0.0 0</Translation>
+        <Extents>0.08 0.0075 0.005</Extents>
+        <diffuseColor>0.5 0 0</diffuseColor>
+      </Geom>
+    </Body>
+    <Joint circular="true" name="Arm1" type="hinge">
+      <Body>Arm0</Body>
+      <Body>Arm1</Body>
+      <offsetfrom>Arm1</offsetfrom>
+      <weight>3</weight>
+      <limitsdeg>-180 180</limitsdeg>
+      <axis>0 0 1</axis>
+      <maxvel>4</maxvel>
+      <resolution>1</resolution>
+    </Joint>
+
+    <!-- Arm 2 -->
+    <Body name="Arm2" type="dynamic">
+      <offsetfrom>Arm1</offsetfrom>
+      <Translation>0.14 0 0.01</Translation>
+      <Geom type="box">
+        <Translation>0.04 0 0</Translation>
+        <Extents>0.04 0.005 0.005</Extents>
+        <diffuseColor>0.5 0 0</diffuseColor>
+      </Geom>
+    </Body>
+    <Joint circular="true" name="Arm2" type="hinge">
+      <Body>Arm1</Body>
+      <Body>Arm2</Body>
+      <offsetfrom>Arm2</offsetfrom>
+      <weight>3</weight>
+      <limitsdeg>-180 180</limitsdeg>
+      <axis>0 0 1</axis>
+      <maxvel>2</maxvel>
+      <resolution>2</resolution>
+    </Joint>
+
+    <!-- Gripper -->
+    <Body name="RClaw" type="dynamic">
+      <offsetfrom>Arm2</offsetfrom>
+      <Translation>0.08 0 -0.005</Translation>
+      <Geom type="box">
+        <extents>0.005 0.02 0.01</extents>
+        <translation>0 -0.01 0</translation>
+        <diffuseColor>0.5 0 0</diffuseColor>
+      </Geom>
+      <Geom type="box">
+        <extents>0.03 0.005 0.01</extents>
+        <translation>0.03 -0.03 0</translation>
+        <diffuseColor>0.5 0 0</diffuseColor>
+      </Geom>
+    </Body>
+   <Joint name="dummy" type="hinge" enable="False">
+     <body>Arm2</body>
+     <body>RClaw</body>
+     <limits>0 0</limits>
+   </Joint>
+    <Body name="LClaw" type="dynamic">
+      <Translation>0.08 0 -0.005</Translation>
+      <offsetfrom>Arm2</offsetfrom>
+      <Geom type="box">
+        <extents>0.005 0.02 0.01</extents>
+        <diffuseColor>0.5 0 0</diffuseColor>
+        <translation>0 0.01 0</translation>
+      </Geom>
+      <Geom type="box">
+        <extents>0.03 0.005 0.01</extents>
+        <translation>0.03 0.03 0</translation>
+        <diffuseColor>0.5 0 0</diffuseColor>
+      </Geom>
+    </Body>
+   <Joint name="dummy2" type="hinge" enable="False">
+     <body>Arm2</body>
+     <body>LClaw</body>
+     <limits>0 0</limits>
+   </Joint>
+
+
+    <!-- Gripper A -->
+    <Body name="Arm2a" type="dynamic">
+      <offsetfrom>Arm2</offsetfrom>
+      <Translation>0.4 0 0</Translation>
+      <rotationaxis>0 0 1 180</rotationaxis>
+      <Geom type="box">
+        <Translation>0.04 0 0</Translation>
+        <Extents>0.04 0.005 0.005</Extents>
+        <diffuseColor>0 0 0.5</diffuseColor>
+      </Geom>
+    </Body>
+   <Joint name="dummy3" type="hinge" enable="False">
+     <body>Arm2</body>
+     <body>Arm2A</body>
+     <limits>0 0</limits>
+   </Joint>
+    <Body name="RClawa" type="dynamic">
+      <offsetfrom>Arm2a</offsetfrom>
+      <Translation>0.08 0 -0.005</Translation>
+      <Geom type="box">
+        <extents>0.005 0.02 0.01</extents>
+        <translation>0 -0.01 0</translation>
+        <diffuseColor>0 0 0.5</diffuseColor>
+      </Geom>
+      <Geom type="box">
+        <extents>0.03 0.005 0.01</extents>
+        <translation>0.03 -0.03 0</translation>
+        <diffuseColor>0 0 0.5</diffuseColor>
+      </Geom>
+    </Body>
+   <Joint name="dummy4" type="hinge" enable="False">
+     <body>Arm2</body>
+     <body>RClawa</body>
+     <limits>0 0</limits>
+   </Joint>
+    <Body name="LClawa" type="dynamic">
+      <Translation>0.08 0 -0.005</Translation>
+      <offsetfrom>Arm2a</offsetfrom>
+      <Geom type="box">
+        <extents>0.005 0.02 0.01</extents>
+        <translation>0 0.01 0</translation>
+        <diffuseColor>0 0 0.5</diffuseColor>
+      </Geom>
+      <Geom type="box">
+        <extents>0.03 0.005 0.01</extents>
+        <translation>0.03 0.03 0</translation>
+        <diffuseColor>0 0 0.5</diffuseColor>
+      </Geom>
+    </Body>
+   <Joint name="dummy5" type="hinge" enable="False">
+     <body>Arm2</body>
+     <body>LClawa</body>
+     <limits>0 0</limits>
+   </Joint>
+
+    <!-- Object -->
+   <Body name="Object" type="dynamic">
+      <offsetfrom>Arm2</offsetfrom>
+      <Translation>0.2  0.0  0.0</Translation>
+      <rotationaxis>0 0 1 90</rotationaxis>
+      <Geom type="cylinder">
+        <radius>0.025</radius>
+        <height>0.15</height>
+        <diffuseColor>0.4 0.4 0.4</diffuseColor>
+      </Geom>
+    </Body>
+   <Joint name="dummy6" type="hinge" enable="False">
+     <body>Arm2</body>
+     <body>Object</body>
+     <limits>0 0</limits>
+   </Joint>
+
+
+  </KinBody>
+
+</Robot>

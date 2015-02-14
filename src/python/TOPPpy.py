@@ -117,7 +117,7 @@ def ComputeKinematicConstraints(traj, amax, discrtimestep):
 
 ######################## Plots ############################
 
-def PlotProfiles(profileslist0, switchpointslist=[], figstart=None):
+def PlotProfiles(profileslist0, switchpointslist=[], figstart=None, colorscheme = 1):
     from pylab import figure, clf, hold, plot, gca, axis, title, xlabel, ylabel
     profileslist = list(profileslist0)
     if figstart is not None:
@@ -125,14 +125,13 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=None):
         clf()
     hold('on')
     mvcbobrow = profileslist.pop(0)
-    plot(mvcbobrow[2], mvcbobrow[3], 'm', linewidth = 4)
-    ###
-    mvcbobrowlower = profileslist.pop(0)
-    sd_mvcbobrowlower = [max(0, mvcbobrowlower[3][i]) for i in range(len(mvcbobrowlower[3]))]
-    plot(mvcbobrowlower[2], sd_mvcbobrowlower, '#f96f00', linewidth = 4) ## orange
-    ###
     mvcdirect = profileslist.pop(0)
-    plot(mvcdirect[2], mvcdirect[3], 'm--', linewidth = 4)
+    if colorscheme == 1:
+        plot(mvcbobrow[2], mvcbobrow[3], 'c', linewidth=4)
+        plot(mvcdirect[2], mvcdirect[3], 'c--', linewidth=4)
+    else:
+        plot(mvcbobrow[2], mvcbobrow[3], 'm', linewidth=4)        
+        plot(mvcdirect[2], mvcdirect[3], 'm--', linewidth=4)
     colorcycle = ['r', 'g', 'b', 'y', 'k']
     ax = gca()
     ax.set_color_cycle(colorcycle)
@@ -163,9 +162,10 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=None):
             plot(sw[0], sw[1], 'yo', markersize = 8)
     smax, sdmax = mvcbobrow[0], M
     axis([0, smax, 0, sdmax])
-    #title('Maximum Velocity Curves and profiles', fontsize=20)
-    xlabel('$s$', fontsize = 22)
-    ylabel('$\dot s$', fontsize = 22)
+    if colorscheme == 1:
+        title('Maximum Velocity Curves and profiles', fontsize=20)
+        xlabel('$s$', fontsize=22)
+        ylabel('$\dot s$', fontsize=22)
     return smax, sdmax  # return this for PlotPhase (yurk!)
 
 

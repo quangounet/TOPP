@@ -262,17 +262,23 @@ public:
 
     void WriteResultTrajectory() {
         // std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
-        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         // printf("WriteResultTrajectory: %d %f %d blah\n",
         //        restrajectory.dimension, restrajectory.duration,
         //        restrajectory.degree);
+        std::stringstream ss;
+        ss << std::setprecision(17);
         restrajectory.Write(ss);
         restrajectorystring = ss.str();
     }
 
     void WriteProfilesList() {
         std::list<Profile>::iterator itprofile = pconstraints->resprofileslist.begin();
-        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        std::stringstream ss;
+        ss << std::setprecision(17);
+
         TOPP::dReal dt = 1e-4;
         pconstraints->WriteMVCBobrow(ss, dt);
         ss << "\n";
@@ -287,14 +293,19 @@ public:
     }
 
     std::string SerializeInputTrajectory() {
-        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        std::stringstream ss;
+        ss << std::setprecision(17);
+
         pconstraints->trajectory.Write(ss);
         return ss.str();
     }
 
-    void WriteSwitchPointsList() {
-        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
-	/// switch points on mvcbobrow
+    void WriteSwitchPointsList(){
+        //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        std::stringstream ss;
+        ss << std::setprecision(17);
         std::list<SwitchPoint>::iterator itsw = pconstraints->switchpointslist.begin();
         while (itsw != pconstraints->switchpointslist.end()) {
             ss << itsw->s << " " << itsw->sd << " " << itsw->switchpointtype << "\n";
@@ -312,15 +323,21 @@ public:
     }
 
     // Write Constraints (currently works only for QuadraticConstraints)
-    void WriteConstraints() {
-        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+    void WriteConstraints(){
+        //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        std::stringstream ss;
+        ss << std::setprecision(17);
+
         pconstraints->WriteConstraints(ss);
         outconstraintstring = ss.str();
     }
 
     // Extra string, such as the coordinates of the ZMP (depending on the application)
-    void WriteExtra() {
-        std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+
+    void WriteExtra(){
+        //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+        std::stringstream ss;
+        ss << std::setprecision(17);
         pconstraints->WriteExtra(ss);
         resextrastring = ss.str();
     }
