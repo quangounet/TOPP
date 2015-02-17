@@ -1490,7 +1490,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
 		    int res1 = FlowVsMVC(constraints,snext,sdnext,2,dt);
 		    if (res1 == -1) {
 			// exit sliding (and continue with normal integration)
-			break
+			break;
 		    }
 
 		    // it seems like the following if-elses are not neccessary
