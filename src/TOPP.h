@@ -87,6 +87,8 @@ typedef double dReal;
 #define MAXSD 200
 #define BOBROWEXCLUDENOTDEFINED -1
 
+#define MAX_INT_STEPS  1e6
+
 /// \brief Exception that all OpenRAVE internal methods throw; the error codes are held in \ref OpenRAVEErrorCode.
 class TOPPException : public std::exception
 {

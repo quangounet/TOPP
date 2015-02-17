@@ -1323,7 +1323,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                 //std::cout << "Integrate backward from (" <<scur << "," << sdcur  <<  ")\n";
                 std::vector<dReal> svecttemp = svect, sdvecttemp = sdvect, sddvecttemp = sddvect;
                 constraints._busingcache = false;
-                int res3 = IntegrateBackward(constraints,scur,sdcur,constraints.integrationtimestep,tmpprofile,1e5,true,true,true);
+                int res3 = IntegrateBackward(constraints,scur,sdcur,constraints.integrationtimestep,tmpprofile,MAX_INT_STEPS,true,true,true);
                 svect = svecttemp;
                 sdvect = sdvecttemp;
                 sddvect = sddvecttemp;
@@ -1816,7 +1816,7 @@ int ComputeLimitingCurves(Constraints& constraints){
 
         // Integrate forward
         integratestatus = IntegrateForward(constraints, sforward, sdforward,
-                                           constraints.integrationtimestep, tmpprofile, 1e5,
+                                           constraints.integrationtimestep, tmpprofile, MAX_INT_STEPS,
                                            testaboveexistingprofiles, testmvc, zlajpah);
         if(tmpprofile.nsteps>2) {
             constraints.resprofileslist.push_back(tmpprofile);
@@ -1887,7 +1887,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         Profile tmpprofile;
 
         /////////////////  Integrate from start /////////////////////
-        ret = IntegrateForward(constraints,0,sdbeg,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
+        ret = IntegrateForward(constraints,0,sdbeg,constraints.integrationtimestep,resprofile,MAX_INT_STEPS,testaboveexistingprofiles,testmvc,zlajpah);
         if(ret != INT_BOTTOM && resprofile.nsteps>2) {
             constraints.resprofileslist.push_back(resprofile);
         }
@@ -1905,7 +1905,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
                     dReal betas2 = constraints.SddLimitBeta(s*2,trialsd+betas*s);
                     if(betas2 > betas) {
                         constraints.resprofileslist.push_back(StraightProfile(0,s,trialsd-s*betas,trialsd));
-                        ret = IntegrateForward(constraints,s,trialsd,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
+                        ret = IntegrateForward(constraints,s,trialsd,constraints.integrationtimestep,resprofile,MAX_INT_STEPS,testaboveexistingprofiles,testmvc,zlajpah);
                         if(resprofile.nsteps>1) {
                             constraints.resprofileslist.push_back(resprofile);
                         }
@@ -1924,7 +1924,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
 
 
         /////////////////  Integrate from end /////////////////////
-        ret = IntegrateBackward(constraints,constraints.trajectory.duration,sdend,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
+        ret = IntegrateBackward(constraints,constraints.trajectory.duration,sdend,constraints.integrationtimestep,resprofile,MAX_INT_STEPS,testaboveexistingprofiles,testmvc);
         if(ret != INT_BOTTOM && resprofile.nsteps>2) {
             constraints.resprofileslist.push_back(resprofile);
         }
@@ -1946,7 +1946,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
                     //std::cout << trialsd << " " << alphas << " " << alphas2 << "\n";
                     if(alphas2 < alphas) {
                         constraints.resprofileslist.push_back(StraightProfile(s,send,trialsd,trialsd+alphas*ds));
-                        ret = IntegrateBackward(constraints,s,trialsd,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
+                        ret = IntegrateBackward(constraints,s,trialsd,constraints.integrationtimestep,resprofile,MAX_INT_STEPS,testaboveexistingprofiles,testmvc);
                         if(resprofile.nsteps>1) {
                             constraints.resprofileslist.push_back(resprofile);
                         }
@@ -1991,7 +1991,8 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         while(zit!=constraints.zlajpahlist.end()) {
             dReal zs = zit->first;
             dReal zsd = zit->second;
-            ret = IntegrateForward(constraints,zs,zsd,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
+	    std::cout << "[ComputeProfiles] Zlajpah point (" << zs << ", " << zsd << ")\n";
+            ret = IntegrateForward(constraints,zs,zsd,constraints.integrationtimestep,resprofile,MAX_INT_STEPS,testaboveexistingprofiles,testmvc,zlajpah);
             if(resprofile.nsteps>1) {
                 constraints.resprofileslist.push_back(resprofile);
             }
@@ -2142,13 +2143,13 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
     bool testaboveexistingprofiles = true, testmvc = true, zlajpah = true;
 
     // Compute sdendmax by integrating forward from (0,sdbegmax)
-    int resintfw = IntegrateForward(constraints,0,sdbegmax,constraints.integrationtimestep,tmpprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
+    int resintfw = IntegrateForward(constraints,0,sdbegmax,constraints.integrationtimestep,tmpprofile,MAX_INT_STEPS,testaboveexistingprofiles,testmvc,zlajpah);
 
-    if (resintfw == INT_BOTTOM) std::cout << "[VIP] INT_BOTTOM\n";
-    else if (resintfw == INT_END) std::cout << "[VIP] INT_END\n";
-    else if (resintfw == INT_MVC) std::cout << "[VIP] INT_MVC\n";
-    else if (resintfw == INT_PROFILE) std::cout << "[VIP] INT_PROFILE\n";
-    else if (resintfw == INT_MAXSTEPS) std::cout << "[VIP] INT_MAXSTEPS\n";
+    if (resintfw == INT_BOTTOM) std::cout << "[VIP] fw INT_BOTTOM\n";
+    else if (resintfw == INT_END) std::cout << "[VIP] fw INT_END\n";
+    else if (resintfw == INT_MVC) std::cout << "[VIP] fw INT_MVC\n";
+    else if (resintfw == INT_PROFILE) std::cout << "[VIP] fw INT_PROFILE\n";
+    else if (resintfw == INT_MAXSTEPS) std::cout << "[VIP] fw INT_MAXSTEPS\n";
     else std::cout << "[VIP] resintfw = " << resintfw << "\n";
     if (tmpprofile.Evald(tmpprofile.duration) <= constraints.mvccombined[constraints.mvccombined.size() - 1]) {
 	std::cout << "tmpprofile is not above the MVC\n";
@@ -2188,7 +2189,15 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
             // three chances by decreasing the value of the integration step
             while(count<3) {
                 count++;
-                resintbw = IntegrateBackward(constraints,constraints.trajectory.duration,sdendmax,dtint,tmpprofile,1e5);
+                resintbw = IntegrateBackward(constraints,constraints.trajectory.duration,sdendmax,dtint,tmpprofile,MAX_INT_STEPS);
+		
+		if (resintbw == INT_BOTTOM) std::cout << "[VIP] bw INT_BOTTOM\n";
+		else if (resintbw == INT_END) std::cout << "[VIP] bw INT_END\n";
+		else if (resintbw == INT_MVC) std::cout << "[VIP] bw INT_MVC\n";
+		else if (resintbw == INT_PROFILE) std::cout << "[VIP] bw INT_PROFILE\n";
+		else if (resintbw == INT_MAXSTEPS) std::cout << "[VIP] bw INT_MAXSTEPS\n";
+		else std::cout << "[VIP] resintbw = " << resintfw << "\n";
+		
                 if(resintbw != INT_BOTTOM && resintbw != INT_MVC) {
                     break;
                 }
@@ -2200,7 +2209,7 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
     }
     
     // Integrate from (send,0). If succeeds, then sdendmin=0 and exits
-    int resintbw = IntegrateBackward(constraints,constraints.trajectory.duration,0,constraints.integrationtimestep,tmpprofile,1e5);
+    int resintbw = IntegrateBackward(constraints,constraints.trajectory.duration,0,constraints.integrationtimestep,tmpprofile,MAX_INT_STEPS);
     if((resintbw == INT_END && tmpprofile.Evald(0)>=sdbegmin) || resintbw == INT_PROFILE) {
         constraints.resprofileslist.push_back(tmpprofile);
         sdendmin = 0;
@@ -2212,7 +2221,7 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
     Profile bestprofile;
     while(sdupper-sdlower > constraints.bisectionprecision) {
         dReal sdtest = (sdupper + sdlower)/2;
-        int resintbw2 = IntegrateBackward(constraints,constraints.trajectory.duration,sdtest,constraints.integrationtimestep,tmpprofile,1e5);
+        int resintbw2 = IntegrateBackward(constraints,constraints.trajectory.duration,sdtest,constraints.integrationtimestep,tmpprofile,MAX_INT_STEPS);
         if((resintbw2 == INT_END && tmpprofile.Evald(0)>=sdbegmin) || resintbw2 == INT_PROFILE) {
             sdupper = sdtest;
             bestprofile = tmpprofile;
@@ -2279,7 +2288,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
     bool testaboveexistingprofiles = true, testmvc = true, zlajpah = true;
 
     // Compute sdbegmax by integrating backward from (send, sdendmax)
-    int resintbw = IntegrateBackward(constraints, constraints.trajectory.duration, sdendmax, constraints.integrationtimestep, tmpprofile, 1e5, testaboveexistingprofiles, testmvc, zlajpah);
+    int resintbw = IntegrateBackward(constraints, constraints.trajectory.duration, sdendmax, constraints.integrationtimestep, tmpprofile, MAX_INT_STEPS, testaboveexistingprofiles, testmvc, zlajpah);
     constraints.resprofileslist.push_back(tmpprofile);
     if (resintbw == INT_BOTTOM) {
         std::cout << "[TOPP::VIPBackward] Backward integration hits sd = 0 \n";
@@ -2309,7 +2318,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
             // If integrating from sdbegmax fails with INT_BOTTOM or INT_MVC, then the trajectory is not traversable. However, since integrating forward from a high sdbegmax can be risky, we give three chances by decreasing the value of the integration step.
             while (count < 3) {
                 count++;
-                resintfw = IntegrateForward(constraints, 0, sdbegmax, dint, tmpprofile, 1e5);
+                resintfw = IntegrateForward(constraints, 0, sdbegmax, dint, tmpprofile, MAX_INT_STEPS);
                 if (resintfw != INT_BOTTOM && resintfw != INT_MVC) {
                     break;
                 }
@@ -2321,7 +2330,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
     }
 
     // Integrate from (0, 0). If succeeds, then sdbegmin = 0 and exit.
-    int resintfw = IntegrateForward(constraints, 0, 0, constraints.integrationtimestep, tmpprofile, 1e5);
+    int resintfw = IntegrateForward(constraints, 0, 0, constraints.integrationtimestep, tmpprofile, MAX_INT_STEPS);
     if ((resintfw == INT_END && tmpprofile.Evald(tmpprofile.duration) >= sdendmin) || resintfw == INT_PROFILE) {
         constraints.resprofileslist.push_back(tmpprofile);
         sdbegmin = 0;
@@ -2333,7 +2342,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
     Profile bestprofile;
     while (sdupper - sdlower > constraints.bisectionprecision) {
         dReal sdtest = (sdupper + sdlower)/2;
-        int resintfw2 = IntegrateForward(constraints, 0, sdtest, constraints.integrationtimestep, tmpprofile, 1e5);
+        int resintfw2 = IntegrateForward(constraints, 0, sdtest, constraints.integrationtimestep, tmpprofile, MAX_INT_STEPS);
         if ((resintfw2 == INT_END && tmpprofile.Evald(tmpprofile.duration) >= sdendmin) || resintfw2 == INT_PROFILE) {
             sdupper = sdtest;
             bestprofile = tmpprofile;
