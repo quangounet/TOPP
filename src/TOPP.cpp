@@ -1098,50 +1098,30 @@ dReal ComputeSlidesdd(Constraints& constraints, dReal s, dReal sd, dReal dt) {
     dReal beta = sddlimits.second;
     dtsq = dt*dt;
 
-    // //Check alpha
-    // snext = s + dt*sd + 0.5*dtsq*alpha;
-    // sdnext_int = sd + dt*alpha;
-    // sdnext_mvc = constraints.SdLimitCombined(snext);
-    // if(snext > constraints.trajectory.duration || snext<0) {
-    //     //std::cout << "Compute slide fin traj\n";
-    // 	if(sdnext_mvc < sdnext_int) {
-    // 	    return INF; // hits the MVC right before the end of the trajectory
-    // 	}
-    //     return -INF; // really reach the end of the trajectory
-    // }    
-    // if(sdnext_mvc < sdnext_int) {
-    //     //std::cout << "Cannot slide alpha \n";
-    //     return INF;
-    // }
-
-    // //Check beta
-    // snext = s + dt*sd + 0.5*dtsq*beta;
-    // sdnext_int = sd + dt*beta;
-    // if(snext > constraints.trajectory.duration || snext<0) {
-    //     //std::cout << "Compute slide fin traj\n";
-    //     return -INF;
-    // }
-    // sdnext_mvc = constraints.SdLimitCombined(snext);
-    // if(sdnext_mvc > sdnext_int) {
-    //     //std::cout << "Cannot slide beta \n";
-    //     return beta;
-    // }
-    
-    //Actually no need here to determine whether trajectory.duration is reached or not
     //Check alpha
     snext = s + dt*sd + 0.5*dtsq*alpha;
     sdnext_int = sd + dt*alpha;
+    if(snext > constraints.trajectory.duration || snext<0) {
+        //std::cout << "Compute slide fin traj\n";
+        return 0;
+    }
     sdnext_mvc = constraints.SdLimitCombined(snext);
     if(sdnext_mvc < sdnext_int) {
-	return INF;
+        //std::cout << "Cannot slide alpha \n";
+        return INF;
     }
-    
+
     //Check beta
     snext = s + dt*sd + 0.5*dtsq*beta;
     sdnext_int = sd + dt*beta;
+    if(snext > constraints.trajectory.duration || snext<0) {
+        //std::cout << "Compute slide fin traj\n";
+        return 0;
+    }
     sdnext_mvc = constraints.SdLimitCombined(snext);
     if(sdnext_mvc > sdnext_int) {
-	return INF;
+        //std::cout << "Cannot slide beta \n";
+        return beta;
     }
 
     //Determine the optimal acceleration by bisection
@@ -1424,8 +1404,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                     else if(res2 == -1) {
                         // Alpha points below the MVC
                         scur = snext;
-                        sdcur = sdnext;
-			
+                        sdcur = sdnext;			
                         break;
                     }
                     scur = snext;
@@ -1486,9 +1465,16 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                     scur = snext;
                     sdcur = sdnext;
 		    
+		    // check alpha flow
+		    int res1 = FlowVsMVC(constraints, snext, sdnext, 1, dt);
+		    if (res1 == 1) {
+			// alpha points above the MVC; trapped
+			break;
+		    }
+
 		    // check beta flow
-		    int res1 = FlowVsMVC(constraints,snext,sdnext,2,dt);
-		    if (res1 == -1) {
+		    int res2 = FlowVsMVC(constraints, snext, sdnext, 2, dt);
+		    if (res2 == -1) {
 			// exit sliding (and continue with normal integration)
 			break;
 		    }
@@ -1500,7 +1486,6 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                     // if(res1 == 0) {
                     //     cont = false;
                     //     //std::cout << "End traj\n";
-		    // 	returntype = INT_END;
                     //     break;
                     // }
                     // else if(res1 == 1) {
