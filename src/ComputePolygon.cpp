@@ -81,13 +81,16 @@ bool Vertex::expand(soplex::SoPlex& lp, Vertex* vres){
     vres->expanded = false;
     next = vres;
     expanded = false;
+    //    std::cerr << "ComputePolygon "<< x <<" "<< y<<" " <<" "<< xopt<<" " << yopt << " "<<abs<<"\n";
     return true;
 }
 
 std::string Vertex::toString()
 {
     std::ostringstream s("");
-    s << std::setprecision (11);
+    
+    s.setf( std::ios_base::scientific, std::ios_base::floatfield );
+    s << std::setprecision (18);
     s << x << " " << y;
     return s.str();
 }
@@ -125,6 +128,7 @@ void Polygon::iter_expand(soplex::SoPlex& lp){
             bool res = v->expand(lp, vnew);
             if(res) {
                 vertices.push_back(vnew);
+		//		std::cerr<<"Added vertex " <<vnew->toString()<<"\n";
                 niter++;
             }
         }
@@ -250,31 +254,31 @@ bool ComputePolygon(const std::string& lp_q, const std::string& lp_G, const std:
     bool res;
     std::pair<dReal,dReal> z1;
     std::pair<dReal,dReal> z2;
-    std::pair<dReal,dReal> z3;
-    res = OptimizeDirection(std::pair<dReal,dReal>(1,0), lp, z1);
+    res = OptimizeDirection(std::pair<dReal,dReal>(1.,0.), lp, z1);
     if(!res)
         return false;
-    res = OptimizeDirection(std::pair<dReal,dReal>(cos(2*M_PI/3),sin(2*M_PI/3)), lp, z2);
+    res = OptimizeDirection(std::pair<dReal,dReal>(-1.,0.), lp, z2);
     if(!res)
         return false;
-    res = OptimizeDirection(std::pair<dReal,dReal>(cos(4*M_PI/3),cos(4*M_PI/3)), lp, z3);
-    if(!res)
+    //std::cerr<<"sin cos "<<cos(4*M_PI/3)<<" "<<sin(4*M_PI/3)<<"\n";
+    //std::cerr<<"sin cos "<<cos(2*M_PI/3)<<" "<<sin(2*M_PI/3)<<"\n";
+
+    if(abs(z1.first-z2.first)<1.e-6 && abs(z1.second-z2.second)<1.e-6)
         return false;
 
     // Make the first three vertices
     Vertex v1(z1.first,z1.second);
     Vertex v2(z2.first,z2.second);
-    Vertex v3(z3.first,z3.second);
     v1.next = &v2;
-    v2.next = &v3;
-    v3.next = &v1;
+    v2.next = &v1;
+    //    std::cerr<< "initial vertexes\n"<<v1.toString()<<"\n"<<v2.toString()<<"\n"<<v3.toString()<<"\n";
 
     // Populate the list of vertices
     std::list<Vertex*> l;
     l.resize(0);
     l.push_back(&v1);
     l.push_back(&v2);
-    l.push_back(&v3);
+
 
     // Create the polygon and expand
     Polygon p(l);
@@ -289,6 +293,8 @@ bool ComputePolygon(const std::string& lp_q, const std::string& lp_G, const std:
     //std::cout << "Matrix reading: " << chronoduration.count() << std::endl;
     chronoduration = t2-t1;
     //std::cout << "Polygon computation: " << chronoduration.count() << std::endl;
+
+    //TODO: check if polygon is of zero area
 
     return true;
 }
