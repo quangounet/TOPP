@@ -1101,9 +1101,16 @@ dReal ComputeSlidesdd(Constraints& constraints, dReal s, dReal sd, dReal dt) {
     //Check alpha
     snext = s + dt*sd + 0.5*dtsq*alpha;
     sdnext_int = sd + dt*alpha;
+    // if (!(snext > constraints.trajectory.duration || snext < 0)) {
+    // 	sdnext_mvc = constraints.SdLimitCombined(snext);
+    // 	if(sdnext_mvc > sdnext_int) {
+    // 	    return INF;
+    // 	}
+    // }
+    
     if(snext > constraints.trajectory.duration || snext<0) {
         //std::cout << "Compute slide fin traj\n";
-        return 0;
+        return 0;	
     }
     sdnext_mvc = constraints.SdLimitCombined(snext);
     if(sdnext_mvc < sdnext_int) {
@@ -1114,6 +1121,13 @@ dReal ComputeSlidesdd(Constraints& constraints, dReal s, dReal sd, dReal dt) {
     //Check beta
     snext = s + dt*sd + 0.5*dtsq*beta;
     sdnext_int = sd + dt*beta;
+    // if (!(snext > constraints.trajectory.duration || snext < 0)) {
+    // 	sdnext_mvc = constraints.SdLimitCombined(snext);
+    // 	if(sdnext_mvc > sdnext_int) {
+    // 	    return INF;
+    // 	}
+    // }
+
     if(snext > constraints.trajectory.duration || snext<0) {
         //std::cout << "Compute slide fin traj\n";
         return 0;
@@ -1279,7 +1293,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
 
     // Integrate forward
     while(cont) {
-	// std::cout << "(scur, sdcur) = (" << scur << ", " << sdcur << ")\n";
+	// std::cout << "(scur, sdcur) = (" << scur << ", " << sdcur << ")\n";	
         if(int(svect.size()) > maxsteps) {
             returntype = INT_MAXSTEPS;
             break;
@@ -1287,11 +1301,20 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
         else if(scur >= constraints.trajectory.duration) {
             //TODO: change the time step of previous step to reach the end
 	    // CHANGED
-            svect.push_back(scur);
-            sdvect.push_back(sdcur);
-            sddvect.push_back(0);
-            returntype = INT_END;
-            break;
+	    svect.push_back(scur);
+	    sdvect.push_back(sdcur);
+	    sddvect.push_back(0);
+	    
+	    // still some cases, the profile goes above the MVC right at the final timestep
+	    if (sdcur >= constraints.SdLimitCombined(scur)-TINY2) {
+		// std::cout << constraints.SdLimitCombined(scur)-TINY2 << "**\n";
+		returntype = INT_MVC;
+	    }
+	    else {
+		// the profile really reaches the end
+		returntype = INT_END;
+	    }
+	    break;
         }
         else if(sdcur < 0) {
             //TODO: double check whether alpha>beta
@@ -1463,9 +1486,27 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                     svect.push_back(scur);
                     sdvect.push_back(sdcur);
                     sddvect.push_back(slidesdd);
-                    scur = snext;
-                    sdcur = sdnext;
 		    
+		    // adjust the last step size such that snext is constraints.trajectory.duration
+		    if (snext > constraints.trajectory.duration) {
+			dReal send = constraints.trajectory.duration;
+			dReal dtnew;
+			if (!SolveQuadraticEquation(scur - send, sdcur, 0.5*slidesdd, dtnew, 0.0, dt)) {
+			    // std::cout << "[TOPP::IntegrateForward] Solving for dtnew failed.\n";
+			    scur = snext;
+			    sdcur = sdnext;
+			}
+			else {
+			    sdnext = sdcur + dtnew * slidesdd;
+			    scur = send;
+			    sdcur = sdnext;
+			}
+		    }
+		    else {
+			scur = snext;
+			sdcur = sdnext;
+		    }
+		    		    
 		    // check alpha flow
 		    int res1 = FlowVsMVC(constraints, snext, sdnext, 1, dt);
 		    if (res1 == 1) {
@@ -1530,7 +1571,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
 		dReal send = constraints.trajectory.duration;
 		dReal dtnew;
 		if (!SolveQuadraticEquation(scur - send, sdcur, 0.5*beta, dtnew, 0.0, dt)) {
-		    std::cout << "[TOPP::IntegrateForward] Solving for dtnew failed.\n";
+		    // std::cout << "[TOPP::IntegrateForward] Solving for dtnew failed.\n";
 		    scur = snext;
 		    sdcur = sdnext;
 		}
@@ -1614,7 +1655,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
                 break;
             }
             while(true) {
-                if(scur <0) {
+                if(scur < 0) {
                     cont = false;
                     svect.push_back(scur);
                     sdvect.push_back(sdcur);
@@ -1660,6 +1701,27 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
                 svect.push_back(scur);
                 sdvect.push_back(sdcur);
                 sddvect.push_back(slidesdd);
+		
+		// adjust the last step size such that sprev is 0
+		if (sprev < 0) {
+		    dReal sbeg = 0;
+		    dReal dtnew;
+		    if (!SolveQuadraticEquation(scur - sbeg, -sdcur, 0.5*slidesdd, dtnew, 0.0, dt)) {
+		    // std::cout << "[TOPP::IntegrateBackward] Solving for dtnew failed.\n";
+			scur = sprev;
+			sdcur = sdprev;
+		    }
+		    else{
+			sdprev = sdcur - dtnew * slidesdd;
+			scur = sbeg;
+			sdcur = sdprev;
+		    }
+		}
+		else {
+		    scur = sprev;
+		    sdcur = sdprev;
+		}
+		
                 scur = sprev;
                 sdcur = sdprev;
                 int res1 = FlowVsMVCBackward(constraints,sprev,sdprev,dt);
@@ -2113,8 +2175,6 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
         return TOPP_CLC_ERROR;
     }
     
-    // std::cout << "VIP constraints.resprofileslist.size() " << constraints.resprofileslist.size() << "\n";
-
     // dReal sdiscontinuous = Recover(constraints,constraints.integrationtimestep);
     // if(sdiscontinuous>-0.5) {
     //     std::cout <<  "Could not recover from CLC discontinuous\n";
@@ -2167,28 +2227,57 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
 	std::cout << "[VIP] sdendmax " << sdendmax << "\n";
 	std::cout << "[VIP] tmpprofile.duration " << tmpprofile.duration << "\n";
     }
-    else if (resintfw == INT_MVC || resintfw == INT_PROFILE) {
-        // Look for the lowest profile at the end
-//        if(FindLowestProfile(constraints.trajectory.duration-smallincrement,tmpprofile,tres,constraints.resprofileslist) && tmpprofile.Evald(tres) <= constraints.mvccombined[constraints.mvccombined.size()-1])
-//            sdendmax = tmpprofile.Evald(tres);
-
-        ProfileSample lowestsample = FindLowestProfileFast(constraints.trajectory.duration-smallincrement, constraints.mvccombined[constraints.mvccombined.size()-1], constraints.resprofileslist);
-        if( lowestsample.itprofile != constraints.resprofileslist.end() ) {
-            sdendmax = lowestsample.sd;
-        }
-        else {
-            // No profile reaches the end, consider the MVC instead
-            sdendmax = constraints.mvccombined[constraints.mvccombined.size()-1]-smallincrement;
-            int count = 0;
-            int resintbw;
-            dReal dtint = constraints.integrationtimestep;
-            // If integrating from sdendmax fails with INT_BOTTOM or INT_MVC,
-            // then the trajectory is not traversable. However, since
-            // integrating backward from a high sdendmax can be risky, we give
-            // three chances by decreasing the value of the integration step
-            while(count<3) {
-                count++;
-                resintbw = IntegrateBackward(constraints,constraints.trajectory.duration,sdendmax,dtint,tmpprofile,MAX_INT_STEPS);
+    else if (resintfw == INT_MVC) {
+	// this case has to be separated from INT_PROFILE since somtimes resintfw == INT_MVC but
+	// there is still an integrated profile at the end
+	sdendmax = constraints.mvccombined[constraints.mvccombined.size() - 1] - smallincrement;
+	int count = 0;
+	int MAXRETRY = 3;
+	int resintbw;
+	dReal dtint = constraints.integrationtimestep;
+	// If integrating from sdendmax fails with INT_BOTTOM or INT_MVC,
+	// then the trajectory is not traversable. However, since
+	// integrating backward from a high sdendmax can be risky, we give
+	// three chances by decreasing the value of the integration step
+	while(count < MAXRETRY) {
+	    count++;
+	    resintbw = IntegrateBackward(constraints,constraints.trajectory.duration,sdendmax,dtint,tmpprofile,MAX_INT_STEPS);
+	    
+	    if (resintbw == INT_BOTTOM) std::cout << "[VIP] bw INT_BOTTOM\n";
+	    else if (resintbw == INT_END) std::cout << "[VIP] bw INT_END\n";
+	    else if (resintbw == INT_MVC) std::cout << "[VIP] bw INT_MVC\n";
+	    else if (resintbw == INT_PROFILE) std::cout << "[VIP] bw INT_PROFILE\n";
+	    else if (resintbw == INT_MAXSTEPS) std::cout << "[VIP] bw INT_MAXSTEPS\n";
+	    else std::cout << "[VIP] resintbw = " << resintfw << "\n";
+	    
+	    if(resintbw != INT_BOTTOM && resintbw != INT_MVC) {
+		break;
+	    }
+	    dtint /= 3.3;
+	}
+	if(resintbw == INT_BOTTOM || resintbw == INT_MVC || (resintbw == INT_END && tmpprofile.Evald(0) < sdbegmin))
+	    return TOPP_BWD_FAIL;
+    }
+    else if (resintfw == INT_PROFILE) {
+	ProfileSample lowestsample = FindLowestProfileFast(constraints.trajectory.duration-smallincrement, 
+							   constraints.mvccombined[constraints.mvccombined.size()-1], constraints.resprofileslist);
+	if( lowestsample.itprofile != constraints.resprofileslist.end() ) {
+	    sdendmax = lowestsample.sd;
+	}
+	else {
+	    // no profile reaches the end, consider the MVC instead
+	    sdendmax = constraints.mvccombined[constraints.mvccombined.size() - 1] - smallincrement;
+	    int count = 0;
+	    int MAXRETRY = 3;
+	    int resintbw;
+	    dReal dtint = constraints.integrationtimestep;
+	    // If integrating from sdendmax fails with INT_BOTTOM or INT_MVC,
+	    // then the trajectory is not traversable. However, since
+	    // integrating backward from a high sdendmax can be risky, we give
+	    // three chances by decreasing the value of the integration step
+	    while(count < MAXRETRY) {
+		count++;
+		resintbw = IntegrateBackward(constraints,constraints.trajectory.duration,sdendmax,dtint,tmpprofile,MAX_INT_STEPS);
 		
 		if (resintbw == INT_BOTTOM) std::cout << "[VIP] bw INT_BOTTOM\n";
 		else if (resintbw == INT_END) std::cout << "[VIP] bw INT_END\n";
@@ -2197,17 +2286,17 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
 		else if (resintbw == INT_MAXSTEPS) std::cout << "[VIP] bw INT_MAXSTEPS\n";
 		else std::cout << "[VIP] resintbw = " << resintfw << "\n";
 		
-                if(resintbw != INT_BOTTOM && resintbw != INT_MVC) {
-                    break;
-                }
-                dtint /= 3.3;
-            }
-            if(resintbw == INT_BOTTOM || resintbw == INT_MVC || (resintbw == INT_END && tmpprofile.Evald(0)<sdbegmin))
-                return TOPP_BWD_FAIL;
-        }
+		if(resintbw != INT_BOTTOM && resintbw != INT_MVC) {
+		    break;
+		}
+		dtint /= 3.3;
+	    }
+	    if(resintbw == INT_BOTTOM || resintbw == INT_MVC || (resintbw == INT_END && tmpprofile.Evald(0) < sdbegmin))
+		return TOPP_BWD_FAIL;
+	}
     }
     
-    // Integrate from (send,0). If succeeds, then sdendmin=0 and exits
+    // Integrate from (send,0). If succeeds, then sdendmin = 0 and exits
     int resintbw = IntegrateBackward(constraints,constraints.trajectory.duration,0,constraints.integrationtimestep,tmpprofile,MAX_INT_STEPS);
     if((resintbw == INT_END && tmpprofile.Evald(0)>=sdbegmin) || resintbw == INT_PROFILE) {
         constraints.resprofileslist.push_back(tmpprofile);
