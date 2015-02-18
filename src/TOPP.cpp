@@ -1279,11 +1279,12 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
 
     // Integrate forward
     while(cont) {
+	// std::cout << "(scur, sdcur) = (" << scur << ", " << sdcur << ")\n";
         if(int(svect.size()) > maxsteps) {
             returntype = INT_MAXSTEPS;
             break;
         }
-        else if(scur > constraints.trajectory.duration) {
+        else if(scur >= constraints.trajectory.duration) {
             //TODO: change the time step of previous step to reach the end
 	    // CHANGED
             svect.push_back(scur);
@@ -1522,12 +1523,13 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             sddvect.push_back(beta);
             dReal snext = scur + dt * sdcur + 0.5*dtsq*beta;
             dReal sdnext = sdcur + dt * beta;
+	    // std::cout << "(alpha, beta) = (" << constraints.SddLimitAlpha(scur,sdcur) << ", " << constraints.SddLimitBeta(scur,sdcur) << ")\n";
 	    
 	    // adjust the last step size such that snext is constraints.trajectory.duration
 	    if (snext > constraints.trajectory.duration) {
 		dReal send = constraints.trajectory.duration;
 		dReal dtnew;
-		if (!SolveQuadraticEquation(scur - send, scur, 0.5*beta, dtnew, 0.0)) {
+		if (!SolveQuadraticEquation(scur - send, sdcur, 0.5*beta, dtnew, 0.0, dt)) {
 		    std::cout << "[TOPP::IntegrateForward] Solving for dtnew failed.\n";
 		    scur = snext;
 		    sdcur = sdnext;
@@ -1579,7 +1581,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
             returntype = INT_MAXSTEPS;
             break;
         }
-        else if(scur < 0) {
+        else if(scur <= 0) {
             //TODO: change the time step of previous step to reach the end
 	    // CHANGED
             svect.push_back(scur);
@@ -1701,8 +1703,8 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
 	    if (sprev < 0) {
 		dReal sbeg = 0;
 		dReal dtnew;
-		if (!SolveQuadraticEquation(scur - sbeg, -scur, 0.5*alpha, dtnew, 0.0)) {
-		    std::cout << "[TOPP::IntegrateBackward] Solving for dtnew failed.\n";
+		if (!SolveQuadraticEquation(scur - sbeg, -sdcur, 0.5*alpha, dtnew, 0.0)) {
+		    // std::cout << "[TOPP::IntegrateBackward] Solving for dtnew failed.\n";
 		    scur = sprev;
 		    sdcur = sdprev;
 		}
@@ -1991,7 +1993,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         while(zit!=constraints.zlajpahlist.end()) {
             dReal zs = zit->first;
             dReal zsd = zit->second;
-	    std::cout << "[ComputeProfiles] Zlajpah point (" << zs << ", " << zsd << ")\n";
+	    //std::cout << "[ComputeProfiles] Zlajpah point (" << zs << ", " << zsd << ")\n";
             ret = IntegrateForward(constraints,zs,zsd,constraints.integrationtimestep,resprofile,MAX_INT_STEPS,testaboveexistingprofiles,testmvc,zlajpah);
             if(resprofile.nsteps>1) {
                 constraints.resprofileslist.push_back(resprofile);
@@ -2110,6 +2112,8 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
         std::cout << "[TOPP::VIP] resclc == CLC_SWITCH or CLC_BOTTOM \n";
         return TOPP_CLC_ERROR;
     }
+    
+    // std::cout << "VIP constraints.resprofileslist.size() " << constraints.resprofileslist.size() << "\n";
 
     // dReal sdiscontinuous = Recover(constraints,constraints.integrationtimestep);
     // if(sdiscontinuous>-0.5) {
@@ -2143,7 +2147,8 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
     bool testaboveexistingprofiles = true, testmvc = true, zlajpah = true;
 
     // Compute sdendmax by integrating forward from (0,sdbegmax)
-    int resintfw = IntegrateForward(constraints,0,sdbegmax,constraints.integrationtimestep,tmpprofile,MAX_INT_STEPS,testaboveexistingprofiles,testmvc,zlajpah);
+    int resintfw = IntegrateForward(constraints,0,sdbegmax,constraints.integrationtimestep,
+				    tmpprofile,MAX_INT_STEPS,testaboveexistingprofiles,testmvc,zlajpah);
 
     if (resintfw == INT_BOTTOM) std::cout << "[VIP] fw INT_BOTTOM\n";
     else if (resintfw == INT_END) std::cout << "[VIP] fw INT_END\n";
@@ -2151,12 +2156,6 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
     else if (resintfw == INT_PROFILE) std::cout << "[VIP] fw INT_PROFILE\n";
     else if (resintfw == INT_MAXSTEPS) std::cout << "[VIP] fw INT_MAXSTEPS\n";
     else std::cout << "[VIP] resintfw = " << resintfw << "\n";
-    if (tmpprofile.Evald(tmpprofile.duration) <= constraints.mvccombined[constraints.mvccombined.size() - 1]) {
-	std::cout << "tmpprofile is not above the MVC\n";
-    }
-    else {
-	std::cout << "tmpprofile is above the MVC\n";
-    }
 
     constraints.resprofileslist.push_back(tmpprofile);
     if(resintfw == INT_BOTTOM) {
