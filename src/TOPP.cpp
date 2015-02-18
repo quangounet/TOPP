@@ -1529,8 +1529,8 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
 	    if (snext > constraints.trajectory.duration) {
 		dReal send = constraints.trajectory.duration;
 		dReal dtnew;
-		if (!SolveQuadraticEquation(scur - send, scur, 0.5*beta, dtnew, 0.0)) {
-		    // std::cout << "[TOPP::IntegrateForward] Solving for dtnew failed.\n";
+		if (!SolveQuadraticEquation(scur - send, sdcur, 0.5*beta, dtnew, 0.0, dt)) {
+		    std::cout << "[TOPP::IntegrateForward] Solving for dtnew failed.\n";
 		    scur = snext;
 		    sdcur = sdnext;
 		}
@@ -1703,7 +1703,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
 	    if (sprev < 0) {
 		dReal sbeg = 0;
 		dReal dtnew;
-		if (!SolveQuadraticEquation(scur - sbeg, -scur, 0.5*alpha, dtnew, 0.0)) {
+		if (!SolveQuadraticEquation(scur - sbeg, -sdcur, 0.5*alpha, dtnew, 0.0)) {
 		    // std::cout << "[TOPP::IntegrateBackward] Solving for dtnew failed.\n";
 		    scur = sprev;
 		    sdcur = sdprev;
