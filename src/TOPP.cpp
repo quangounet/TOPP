@@ -710,7 +710,7 @@ std::pair<dReal,dReal> QuadraticConstraints::SddLimits(dReal s, dReal sd) {
     return result;
 }
 
-std::vector<std::vector<dReal> > QuadraticConstraints::GetABCConstraints(dReal s) {
+std::vector<std::vector< dReal > > QuadraticConstraints::GetABCConstraints(dReal s) {
     std::vector<dReal> a, b, c;
     InterpolateDynamics(s, a, b, c);
     int index_alpha = 0;

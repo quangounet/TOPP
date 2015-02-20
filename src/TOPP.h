@@ -260,7 +260,7 @@ class Constraints {
     }
 
     virtual std::vector<std::vector<dReal> > GetABCConstraints(dReal s) {
-	std::cout << "Virtual method not implemented\n";
+    	std::cout << "Virtual method not implemented\n";
         throw TOPPException("Virtual method not implemented");
     }
     
@@ -403,6 +403,8 @@ class QuadraticConstraints : public Constraints {
     
     virtual void FixStart(dReal& sstartnew, dReal& sdstartnew, dReal timestep);
     void FixEnd(dReal& sendnew, dReal& sdendnew);
+
+    std::vector<std::vector<dReal> > GetABCConstraints(dReal s);
 
 };
 
