@@ -804,6 +804,36 @@ Profile::Profile(const std::vector<dReal>& svectin, const std::vector<dReal>& sd
     duration = integrationtimestep * (nsteps-1);
 }
 
+/// profile with variable lasttimestep
+Profile::Profile(const std::vector<dReal>& svectin, const std::vector<dReal>& sdvectin, const std::vector<dReal>& sddvectin,
+		 dReal integrationtimestep, bool forward, bool variabletimestep, dReal var_integrationtimestep0) : 
+    integrationtimestep(integrationtimestep), forward(forward), 
+    variabletimestep(variabletimestep), var_integrationtimestep(integrationtimestep) {
+
+    BOOST_ASSERT(svectin.size()>0);
+    BOOST_ASSERT(svectin.size()==sdvectin.size());
+    BOOST_ASSERT(svectin.size()==sddvectin.size());
+    if (forward) {
+        svect = svectin;
+        sdvect = sdvectin;
+        sddvect = sddvectin;
+    }
+    else {
+        svect.resize(svectin.size());
+        std::copy(svectin.rbegin(), svectin.rend(), svect.begin());
+        sdvect.resize(sdvectin.size());
+        std::copy(sdvectin.rbegin(), sdvectin.rend(), sdvect.begin());
+        sddvect.resize(sddvectin.size());
+        std::copy(sddvectin.rbegin(), sddvectin.rend(), sddvect.begin());
+    }
+    nsteps = svect.size();
+    if (variabletimestep) {
+	var_integrationtimestep = var_integrationtimestep0;
+    }
+    duration = integrationtimestep*(nsteps - 2) + var_integrationtimestep;
+}
+
+
 bool Profile::FindTimestepIndex(dReal t, int &index, dReal& remainder) const {
     if (t < -TINY || t > duration+TINY)
         return false;
@@ -1354,7 +1384,8 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
     std::vector<dReal>& sddvect=constraints._sddvectcache; sddvect.resize(0);
     
     // std::vector<dReal> svect(0), sdvect(0), sddvect(0);
-    
+    bool variabletimestep = false;
+    dReal lasttimestep = dt;
 
     constraints._busingcache = true;
     resprofile.Reset();
@@ -1486,7 +1517,8 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                         svect.push_back(scur);
                         sdvect.push_back(sdcur);
                         sddvect.push_back(0);
-                        returntype = INT_END; // ZLAJPAH END
+			returntype = INT_MVC;
+                        // returntype = INT_END; // ZLAJPAH END
 			// should the return type be INT_MVC instead?
 			// because what reaches the end is not the integrated profile
                         break;
@@ -1499,7 +1531,8 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
                         svect.push_back(scur);
                         sdvect.push_back(sdcur);
                         sddvect.push_back(0);
-                        returntype = INT_END; // ZLAJPAH END
+			returntype = INT_MVC;
+                        // returntype = INT_END; // ZLAJPAH END
 			// should the return type be INT_MVC instead?
 			// because what reaches the end is not the integrated profile
                         break;
@@ -1577,6 +1610,9 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
 			    sdcur = sdnext;
 			}
 			else {
+			    variabletimestep = true;
+			    lasttimestep = dtnew;
+			    
 			    sdnext = sdcur + dtnew * slidesdd;
 			    scur = send;
 			    sdcur = sdnext;
@@ -1660,6 +1696,9 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
 		    sdcur = sdnext;
 		}
 		else {
+		    variabletimestep = true;
+		    lasttimestep = dtnew;
+
 		    sdnext = sdcur + dtnew * beta;
 		    scur = send;
 		    sdcur = sdnext;
@@ -1671,8 +1710,10 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
 	    }
         }
     }
-    resprofile = Profile(svect,sdvect,sddvect,dt, true);
-
+    
+    // resprofile = Profile(svect,sdvect,sddvect,dt, true);
+    resprofile = Profile(svect,sdvect,sddvect,dt, true, variabletimestep, lasttimestep);
+    
     // resprofile.Print();
 
     constraints._busingcache = false;
@@ -1695,6 +1736,9 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
     dReal alphabk = INF;
     resprofile.Reset();
 
+    bool variabletimestep = false;
+    dReal firsttimestep = dt;
+    
     // // Initialize the currentindex of the profiles for search purpose
     // if(testaboveexistingprofiles && constraints.resprofileslist.size()>0) {
     // 	std::list<Profile>::iterator it = constraints.resprofileslist.begin();
@@ -1800,6 +1844,9 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
 			sdcur = sdprev;
 		    }
 		    else{
+			variabletimestep = true;
+			firsttimestep = dtnew;
+
 			sdprev = sdcur - dtnew * slidesdd;
 			scur = sbeg;
 			sdcur = sdprev;
@@ -1860,6 +1907,9 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
 		    sdcur = sdprev;
 		}
 		else{
+		    variabletimestep = true;
+		    firsttimestep = dtnew;
+		    
 		    sdprev = sdcur - dtnew * alpha;
 		    scur = sbeg;
 		    sdcur = sdprev;
@@ -1875,7 +1925,9 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
         dReal sddfront = alphabk == INF ? sddvect.front() : alphabk;
         sddvect.pop_back();
         sddvect.insert(sddvect.begin(), sddfront);
-        resprofile = Profile(svect,sdvect,sddvect,dt, false);
+
+	// resprofile = Profile(svect,sdvect,sddvect,dt, false);
+	resprofile = Profile(svect, sdvect, sddvect, dt, false, variabletimestep, firsttimestep);
     }
 
     constraints._busingcache = false;
@@ -2281,10 +2333,10 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
         bound = constraints.mvccombined[0];
     }
 
-//    if(FindLowestProfile(smallincrement,tmpprofile,tres,constraints.resprofileslist))
-//        bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[0]);
-//    else // just to make sure the profile is below mvccombined
-//        bound = constraints.mvccombined[0];
+    // if(FindLowestProfile(smallincrement,tmpprofile,tres,constraints.resprofileslist))
+    //     bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[0]);
+    // else // just to make sure the profile is below mvccombined
+    //     bound = constraints.mvccombined[0];
 
     if(sdbegmin>bound) {
         std::cout << "[TOPP::VIP] sdbegmin is above the CLC or the combined MVC \n";
@@ -2452,11 +2504,11 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
     else {
         bound = constraints.mvccombined[constraints.mvccombined.size() - 1];
     }
-//    if (FindLowestProfile(constraints.trajectory.duration-smallincrement, tmpprofile, tres, constraints.resprofileslist))
-//        bound = std::min(tmpprofile.Evald(tres), constraints.mvccombined[constraints.mvccombined.size() - 1]);
-//    else // just to make sure the profile is below mvccombined
-//        bound = constraints.mvccombined[constraints.mvccombined.size() - 1];
-
+    // if (FindLowestProfile(constraints.trajectory.duration-smallincrement, tmpprofile, tres, constraints.resprofileslist))
+    // 	bound = std::min(tmpprofile.Evald(tres), constraints.mvccombined[constraints.mvccombined.size() - 1]);
+    // else // just to make sure the profile is below mvccombined
+    // 	bound = constraints.mvccombined[constraints.mvccombined.size() - 1];
+    
     if (sdendmin > bound) {
         std::cout << "[TOPP::VIPBackward] sdendmin is above the combined MVC \n";
         return TOPP_SDENDMIN_TOO_HIGH;
@@ -2481,8 +2533,8 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
     // Phi profile hits MVC or CLC
     else if (resintbw == INT_MVC || resintbw == INT_PROFILE) {
         // Look for the lowest profile at s = 0
-//        if (FindLowestProfile(smallincrement, tmpprofile, tres, constraints.resprofileslist) && tmpprofile.Evald(tres) <= constraints.mvccombined[0])
-//            sdbegmax = tmpprofile.Evald(tres);
+        // if (FindLowestProfile(smallincrement, tmpprofile, tres, constraints.resprofileslist) && tmpprofile.Evald(tres) <= constraints.mvccombined[0])
+        //     sdbegmax = tmpprofile.Evald(tres);
 
         ProfileSample lowestsample = FindLowestProfileFast(smallincrement, constraints.mvccombined[0], constraints.resprofileslist);
         if( lowestsample.itprofile != constraints.resprofileslist.end() ) {
@@ -2494,7 +2546,9 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
             int count = 0;
             int resintfw;
             dReal dint = constraints.integrationtimestep;
-            // If integrating from sdbegmax fails with INT_BOTTOM or INT_MVC, then the trajectory is not traversable. However, since integrating forward from a high sdbegmax can be risky, we give three chances by decreasing the value of the integration step.
+            // If integrating from sdbegmax fails with INT_BOTTOM or INT_MVC, then the trajectory is not traversable. 
+	    // However, since integrating forward from a high sdbegmax can be risky, 
+	    // we give three chances by decreasing the value of the integration step.
             while (count < 3) {
                 count++;
                 resintfw = IntegrateForward(constraints, 0, sdbegmax, dint, tmpprofile, MAX_INT_STEPS);
@@ -2760,16 +2814,16 @@ bool IsAboveProfilesList(dReal s, dReal sd, const std::list<Profile>&resprofiles
             return true;
         }
     }
-    return false;
-//    dReal t;
-//    for(std::list<Profile>::const_iterator it = resprofileslist.begin(); it != resprofileslist.end(); ++it) {
-//        if(it->Invert(s,t)) {
-//            if(sd > it->Evald(t) + softborder) {
-//                return true;
-//            }
-//        }
-//    }
-//    return false;
+    // return false;
+    // dReal t;
+    // for(std::list<Profile>::const_iterator it = resprofileslist.begin(); it != resprofileslist.end(); ++it) {
+    // 	if(it->Invert(s,t)) {
+    // 	    if(sd > it->Evald(t) + softborder) {
+    // 		return true;
+    // 	    }
+    // 	}
+    // }
+    // return false;
 }
 
 bool FindLowestProfile(dReal s, Profile& profile, dReal& tres, const std::list<Profile>& resprofileslist){

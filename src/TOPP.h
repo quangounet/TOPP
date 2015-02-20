@@ -158,6 +158,11 @@ public:
     Profile(const std::list<dReal>&slist, const std::list<dReal>&sdlist, const std::list<dReal>&sddlist, dReal integrationtimestep, bool forward);
     /// if !forward, then stores svect as the reverse of the inputs
     Profile(const std::vector<dReal>&svect, const std::vector<dReal>&sdvect, const std::vector<dReal>&sddvect, dReal integrationtimestep, bool forward);
+    
+    /// profile with variable lasttimestep
+    Profile(const std::vector<dReal>& svect, const std::vector<dReal>& sdvect, const std::vector<dReal>& sddvect,
+	    dReal integrationtimestep, bool forward, bool variabletimestep, dReal var_integrationtimestep);
+    
     Profile(){
     }
 
@@ -172,6 +177,9 @@ public:
     dReal duration; ///< duration of the profile (svect.size()-1)*integrationtimestep
     int nsteps; ///< svect.size()-1
     bool forward; ///< if 1 then forward integrate in time, if 0 then backward integrate
+    
+    bool variabletimestep;
+    dReal var_integrationtimestep;
 
     bool FindTimestepIndex(dReal t, int &index, dReal& remainder) const;
     // Find t such that Eval(t) = s

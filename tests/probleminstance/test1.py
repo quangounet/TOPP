@@ -35,13 +35,16 @@ retvip = x.RunVIP(0, 0)
 print "VIP returns", retvip
 print "(sdendmin, sdendmax) = ({0}, {1})".format(x.sdendmin, x.sdendmax)
 
+"""
 
-# ret = x.RunComputeProfiles(0, 0)
+ret = x.RunComputeProfiles(0, 0)
 
-# x.WriteProfilesList()
-# x.WriteSwitchPointsList()
+x.WriteProfilesList()
+x.WriteSwitchPointsList()
 
-# fignum = 1
-# profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
-# switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
-# TOPPpy.PlotProfiles(profileslist, switchpointslist, fignum)
+fignum = 1
+profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
+switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
+TOPPpy.PlotProfiles(profileslist, switchpointslist, fignum)
+
+"""
