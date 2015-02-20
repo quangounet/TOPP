@@ -404,12 +404,6 @@ class QuadraticConstraints : public Constraints {
     virtual void FixStart(dReal& sstartnew, dReal& sdstartnew, dReal timestep);
     void FixEnd(dReal& sendnew, dReal& sdendnew);
 
-    //////////////// Specific members and methods //////////////////////
-    int nconstraints;  // Number of constraints
-    std::vector<std::vector<dReal> > avect, bvect, cvect;  // Dynamics coefficients. avect[i], bvect[i], cvect[i] are vectors of length 2*ndof where the first ndof are the upper limit, the next ndof are for the lower limit. These incorporate any upper/lower limits.
-
-    void InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c);   // Linearly interpolate the dynamics coefficients a,b,c
-
 };
 
 ////////////////////////////////////////////////////////////////////
@@ -437,7 +431,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
 /// \param[in] maxsteps the maximum steps to integrate for
 
 int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, 
-		      int maxsteps = 1e7, bool testaboveexistingprofiles  =true, bool testmvc = true, bool zlajpah = false);
+		      int maxsteps = 1e7, bool testaboveexistingprofiles = true, bool testmvc = true, bool zlajpah = false);
 /// Integrate backward from (sstart,sdstart)
 /// \param[in] dt the integration timestep
 /// \param[in] maxsteps the maximum steps to integrate for
