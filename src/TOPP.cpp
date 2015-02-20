@@ -104,6 +104,9 @@ void Constraints::ComputeMVCCombined()
 
 
 dReal Constraints::Interpolate1D(dReal s, const std::vector<dReal>& v) {
+    if (!((s>=-TINY && s<=trajectory.duration+TINY))) 
+	std::cout << "s : " << s << "\n";
+    
     assert(s>=-TINY && s<=trajectory.duration+TINY);
     if(s<0) {
         s=0;
@@ -1093,65 +1096,136 @@ dReal Recover(Constraints& constraints, dReal ds){
 // Compute the sdd that allows sliding along the curve
 dReal ComputeSlidesdd(Constraints& constraints, dReal s, dReal sd, dReal dt) {
     dReal sddtest, snext, sdnext_int, sdnext_mvc, dtsq;
+
     std ::pair<dReal,dReal> sddlimits = constraints.SddLimits(s,sd);
     dReal alpha = sddlimits.first;
     dReal beta = sddlimits.second;
     dtsq = dt*dt;
 
-    //Check alpha
+    dReal send = constraints.trajectory.duration;
+    // // sdd that makes snext = send
+    // dReal sddcritical = (2.0/dtsq)*(send - s - sd*dt);
+    dReal dtnew;
+
+    // Check alpha
     snext = s + dt*sd + 0.5*dtsq*alpha;
     sdnext_int = sd + dt*alpha;
-    // if (!(snext > constraints.trajectory.duration || snext < 0)) {
-    // 	sdnext_mvc = constraints.SdLimitCombined(snext);
-    // 	if(sdnext_mvc > sdnext_int) {
-    // 	    return INF;
-    // 	}
-    // }
-    
-    if(snext > constraints.trajectory.duration || snext<0) {
-        //std::cout << "Compute slide fin traj\n";
-        return 0;	
+    if (snext > send) {
+	snext = send;
+	if (SolveQuadraticEquation(s - snext, sd, 0.5*alpha, dtnew, 0, dt)) {
+	    sdnext_int = sd + alpha*dtnew;
+	}
+	else {
+	    return 0; // as previously implemented
+	}
     }
     sdnext_mvc = constraints.SdLimitCombined(snext);
-    if(sdnext_mvc < sdnext_int) {
-        //std::cout << "Cannot slide alpha \n";
-        return INF;
+    if (sdnext_mvc < sdnext_int) {
+	// alpha points above mvccombined
+	return INF;
     }
 
-    //Check beta
+    // Check beta
     snext = s + dt*sd + 0.5*dtsq*beta;
     sdnext_int = sd + dt*beta;
-    // if (!(snext > constraints.trajectory.duration || snext < 0)) {
-    // 	sdnext_mvc = constraints.SdLimitCombined(snext);
-    // 	if(sdnext_mvc > sdnext_int) {
-    // 	    return INF;
-    // 	}
-    // }
-
-    if(snext > constraints.trajectory.duration || snext<0) {
-        //std::cout << "Compute slide fin traj\n";
-        return 0;
+    if (snext > send) {
+	snext = send;
+	if (SolveQuadraticEquation(s - snext, sd, 0.5*beta, dtnew, 0, dt)) {
+	    sdnext_int = sd + beta*dtnew;
+	}
+	else {
+	    return 0; // as previously implemented
+	}
     }
     sdnext_mvc = constraints.SdLimitCombined(snext);
-    if(sdnext_mvc > sdnext_int) {
-        //std::cout << "Cannot slide beta \n";
-        return beta;
+    if (sdnext_mvc > sdnext_int) {
+	// beta points below mvccombined; exit sliding
+	return beta;
     }
 
-    //Determine the optimal acceleration by bisection
-    while(beta-alpha>constraints.bisectionprecision) {
-        sddtest = (beta+alpha)/2;
-        snext = s + dt*sd + 0.5*dtsq*sddtest;
-        sdnext_int = sd + dt*sddtest;
-        sdnext_mvc = constraints.SdLimitCombined(snext);
-        if(sdnext_int > sdnext_mvc) {
-            beta = sddtest;
-        }
-        else{
-            alpha = sddtest;
-        }
+    // dichotomy for sliding acceleration
+    while (beta - alpha > constraints.bisectionprecision) {
+	sddtest = (beta + alpha)/2;
+	snext = s + sd*dt + 0.5*dtsq*sddtest;
+	if (snext > send) {
+	    snext = send;
+	    if (SolveQuadraticEquation(s - snext, sd, 0.5*sddtest, dtnew, 0, dt)) {
+		sdnext_int = sd + sddtest*dtnew;
+	    }
+	    else {
+		std::cout << "[ComputeSlidesdd] solving for dtnew failed.";
+		sdnext_int = sd + sddtest*dt;
+	    }
+	}
+	else {
+	    sdnext_int = sd + sddtest*dt;
+	}
+	sdnext_mvc = constraints.SdLimitCombined(snext);
+	if (sdnext_int > sdnext_mvc) {
+	    beta = sddtest;
+	}
+	else {
+	    alpha = sddtest;
+	}	
     }
     return alpha;
+
+    // //Check alpha
+    // snext = s + dt*sd + 0.5*dtsq*alpha;
+    // sdnext_int = sd + dt*alpha;
+    // // if (!(snext > constraints.trajectory.duration || snext < 0)) {
+    // // 	sdnext_mvc = constraints.SdLimitCombined(snext);
+    // // 	if(sdnext_mvc > sdnext_int) {
+    // // 	    return INF;
+    // // 	}
+    // // }
+    
+    // if(snext > constraints.trajectory.duration || snext<0) {
+    //     //std::cout << "Compute slide fin traj\n";
+    //     return 0;	
+    // }
+    // sdnext_mvc = constraints.SdLimitCombined(snext);
+    // if(sdnext_mvc < sdnext_int) {
+    //     //std::cout << "Cannot slide alpha \n";
+    //     return INF;
+    // }
+
+    // //Check beta
+    // snext = s + dt*sd + 0.5*dtsq*beta;
+    // sdnext_int = sd + dt*beta;
+    // // if (!(snext > constraints.trajectory.duration || snext < 0)) {
+    // // 	sdnext_mvc = constraints.SdLimitCombined(snext);
+    // // 	if(sdnext_mvc > sdnext_int) {
+    // // 	    return INF;
+    // // 	}
+    // // }
+
+    // if(snext > constraints.trajectory.duration || snext<0) {
+    //     //std::cout << "Compute slide fin traj\n";
+    //     return 0;
+    // }
+    // sdnext_mvc = constraints.SdLimitCombined(snext);
+    // if(sdnext_mvc > sdnext_int) {
+    //     //std::cout << "Cannot slide beta \n";
+    //     return beta;
+    // }
+
+    // //Determine the optimal acceleration by bisection
+    // while(beta-alpha>constraints.bisectionprecision) {
+    //     sddtest = (beta+alpha)/2;
+    //     snext = s + dt*sd + 0.5*dtsq*sddtest;
+	
+	
+    //     sdnext_int = sd + dt*sddtest;
+    //     sdnext_mvc = constraints.SdLimitCombined(snext);
+    //     if(sdnext_int > sdnext_mvc) {
+    //         beta = sddtest;
+    //     }
+    //     else{
+    //         alpha = sddtest;
+    //     }
+    // }
+    // return alpha;
 }
 
 
@@ -1193,7 +1267,7 @@ dReal ComputeSlidesddBackward(Constraints& constraints, dReal s, dReal sd, dReal
     while(beta-alpha>constraints.bisectionprecision) {
         sddtest = (beta+alpha)/2;
         sprev = s - dt*sd + 0.5*dtsq*sddtest;
-        sdprev_int = sd - dt*sddtest;
+	sdprev_int = sd - dt*sddtest;
         sdprev_mvc = constraints.SdLimitCombined(sprev);
         if(sdprev_int < sdprev_mvc) {
             beta = sddtest;
@@ -1272,24 +1346,29 @@ int FlowVsMVCBackward(Constraints& constraints, dReal s, dReal sd, dReal dt){
 int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt,  Profile& resprofile, int maxsteps, bool testaboveexistingprofiles, bool testmvc, bool zlajpah){
     dReal dtsq = dt*dt;
     dReal scur = sstart, sdcur = sdstart, snext, sdnext;
+
     // used the cached values for memory performance
     BOOST_ASSERT(!constraints._busingcache);
     std::vector<dReal>& svect=constraints._svectcache; svect.resize(0);
     std::vector<dReal>& sdvect=constraints._sdvectcache; sdvect.resize(0);
     std::vector<dReal>& sddvect=constraints._sddvectcache; sddvect.resize(0);
+    
+    // std::vector<dReal> svect(0), sdvect(0), sddvect(0);
+    
+
     constraints._busingcache = true;
     resprofile.Reset();
 
     bool cont = true;
     int returntype = -1; // should be changed
 
-//    // Initialize the currentindex of the profiles for search purpose
-//    if(testaboveexistingprofiles && constraints.resprofileslist.size()>0) {
-//        std::list<Profile>::iterator it = constraints.resprofileslist.begin();
-//        while(it != constraints.resprofileslist.end()) {
-//            it++;
-//        }
-//    }
+    // // Initialize the currentindex of the profiles for search purpose
+    // if(testaboveexistingprofiles && constraints.resprofileslist.size()>0) {
+    // 	std::list<Profile>::iterator it = constraints.resprofileslist.begin();
+    // 	while(it != constraints.resprofileslist.end()) {
+    // 	    it++;
+    // 	}
+    // }
 
     // Integrate forward
     while(cont) {
@@ -1489,6 +1568,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
 		    
 		    // adjust the last step size such that snext is constraints.trajectory.duration
 		    if (snext > constraints.trajectory.duration) {
+		    // if (false) {
 			dReal send = constraints.trajectory.duration;
 			dReal dtnew;
 			if (!SolveQuadraticEquation(scur - send, sdcur, 0.5*slidesdd, dtnew, 0.0, dt)) {
@@ -1562,12 +1642,16 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             sdvect.push_back(sdcur);
             dReal beta = constraints.SddLimitBeta(scur,sdcur);
             sddvect.push_back(beta);
+	    
+	    if (scur == 0) std::cout << beta << " " << dt << "**\n";
+
             dReal snext = scur + dt * sdcur + 0.5*dtsq*beta;
             dReal sdnext = sdcur + dt * beta;
 	    // std::cout << "(alpha, beta) = (" << constraints.SddLimitAlpha(scur,sdcur) << ", " << constraints.SddLimitBeta(scur,sdcur) << ")\n";
 	    
 	    // adjust the last step size such that snext is constraints.trajectory.duration
 	    if (snext > constraints.trajectory.duration) {
+	    // if (false) {
 		dReal send = constraints.trajectory.duration;
 		dReal dtnew;
 		if (!SolveQuadraticEquation(scur - send, sdcur, 0.5*beta, dtnew, 0.0, dt)) {
@@ -1588,6 +1672,9 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
         }
     }
     resprofile = Profile(svect,sdvect,sddvect,dt, true);
+
+    // resprofile.Print();
+
     constraints._busingcache = false;
     return returntype;
 }
@@ -1596,7 +1683,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
 int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile,  int maxsteps, bool testaboveexistingprofiles, bool testmvc,bool zlajpah){
     dReal dtsq = dt*dt;
     dReal scur = sstart, sdcur = sdstart;
-    //std::list<dReal> slist, sdlist, sddlist;
+
     BOOST_ASSERT(!constraints._busingcache);
     std::vector<dReal>& svect=constraints._svectcache; svect.resize(0);
     std::vector<dReal>& sdvect=constraints._sdvectcache; sdvect.resize(0);
@@ -1608,13 +1695,13 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
     dReal alphabk = INF;
     resprofile.Reset();
 
-//    // Initialize the currentindex of the profiles for search purpose
-//    if(testaboveexistingprofiles && constraints.resprofileslist.size()>0) {
-//        std::list<Profile>::iterator it = constraints.resprofileslist.begin();
-//        while(it != constraints.resprofileslist.end()) {
-//            it++;
-//        }
-//    }
+    // // Initialize the currentindex of the profiles for search purpose
+    // if(testaboveexistingprofiles && constraints.resprofileslist.size()>0) {
+    // 	std::list<Profile>::iterator it = constraints.resprofileslist.begin();
+    // 	while(it != constraints.resprofileslist.end()) {
+    // 	    it++;
+    // 	}
+    // }
 
     // Integrate backward
     while(cont) {
@@ -1704,6 +1791,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
 		
 		// adjust the last step size such that sprev is 0
 		if (sprev < 0) {
+		// if (false) {
 		    dReal sbeg = 0;
 		    dReal dtnew;
 		    if (!SolveQuadraticEquation(scur - sbeg, -sdcur, 0.5*slidesdd, dtnew, 0.0, dt)) {
@@ -1763,6 +1851,7 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
 
 	    // adjust the last step size such that sprev is 0
 	    if (sprev < 0) {
+	    // if (false) {
 		dReal sbeg = 0;
 		dReal dtnew;
 		if (!SolveQuadraticEquation(scur - sbeg, -sdcur, 0.5*alpha, dtnew, 0.0)) {
@@ -2217,12 +2306,14 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
     else if (resintfw == INT_MAXSTEPS) std::cout << "[VIP] fw INT_MAXSTEPS\n";
     else std::cout << "[VIP] resintfw = " << resintfw << "\n";
 
+    std::cout << tmpprofile.Evald(tmpprofile.duration) << ", " << constraints.mvccombined[constraints.mvccombined.size() - 1] << "\n";
+
     constraints.resprofileslist.push_back(tmpprofile);
     if(resintfw == INT_BOTTOM) {
         std::cout << "[TOPP::VIP] Forward integration hit sd = 0 \n";
         return TOPP_FWD_HIT_ZERO;
     }
-    else if (resintfw == INT_END && tmpprofile.Evald(tmpprofile.duration) <= constraints.mvccombined[constraints.mvccombined.size() - 1]) {
+    else if (resintfw == INT_END && tmpprofile.Evald(tmpprofile.duration) <= constraints.mvccombined[constraints.mvccombined.size() - 1] + TINY2) {
         sdendmax = tmpprofile.Evald(tmpprofile.duration);
 	std::cout << "[VIP] sdendmax " << sdendmax << "\n";
 	std::cout << "[VIP] tmpprofile.duration " << tmpprofile.duration << "\n";
