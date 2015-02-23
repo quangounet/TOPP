@@ -29,15 +29,15 @@ bool Constraints::Preprocess() {
     resprofileslist.resize(0);
 
     bool hasislands = false;
-    
+
     /// change discrimtestep such that it becomes a divisor of trajectory duration
     int ndiscrsteps = int((trajectory.duration + TINY)/discrtimestep);
     if (ndiscrsteps < 1) {
-	/// original discrtimestep is larger than trajectory duration
+        /// original discrtimestep is larger than trajectory duration
         return false;
     }
     discrtimestep = trajectory.duration/ndiscrsteps;
-    
+
     /// compute discrvect
     Discretize();
 
@@ -51,12 +51,12 @@ bool Constraints::Preprocess() {
     t2 = std::chrono::system_clock::now();
     FindSwitchPoints();
     t3 = std::chrono::system_clock::now();
-    
+
     /// assign passswitchpointnsteps if has not been determined
     if (passswitchpointnsteps == 0) {
         passswitchpointnsteps = 5;
     }
-    
+
     /// set integrationtimestep if has not been determined
     dReal meanmvc = 0;
     if (integrationtimestep == 0) {
@@ -68,7 +68,7 @@ bool Constraints::Preprocess() {
         integrationtimestep = discrtimestep/meanmvc;
         // std::cout << "\n--------------\nIntegration timestep: " << integrationtimestep << "\n";
     }
-    return true;    
+    return true;
 }
 
 void Constraints::Discretize() {
@@ -93,8 +93,8 @@ void Constraints::ComputeMVCBobrow2() {
     mvcbobrow.resize(ndiscrsteps);
     mvcbobrowlower.resize(ndiscrsteps);
     for (int i = 0; i < ndiscrsteps; i++) {
-	mvcbobrow[i] = SdLimitBobrowInitUpper(discrsvect[i]);
-	mvcbobrowlower[i] = SdLimitBobrowInitLower(discrsvect[i]);
+        mvcbobrow[i] = SdLimitBobrowInitUpper(discrsvect[i]);
+        mvcbobrowlower[i] = SdLimitBobrowInitLower(discrsvect[i]);
     }
 }
 
@@ -123,7 +123,6 @@ dReal Constraints::SdLimitBobrow(dReal s) {
     return Interpolate1D(s, mvcbobrow);
 }
 
-
 dReal Constraints::SdLimitBobrowUpper(dReal s) {
     return Interpolate1D(s, mvcbobrow);
 }
@@ -131,7 +130,6 @@ dReal Constraints::SdLimitBobrowUpper(dReal s) {
 dReal Constraints::SdLimitBobrowLower(dReal s) {
     return Interpolate1D(s, mvcbobrowlower);
 }
-
 
 dReal Constraints::SdLimitCombined(dReal s) {
     return Interpolate1D(s, mvccombined);
@@ -148,7 +146,7 @@ dReal Constraints::Interpolate1D(dReal s, const std::vector<dReal>& v) {
     }
     int n = int(s/discrtimestep);
     dReal coef = (s - n*discrtimestep)/discrtimestep;
-    return (1 - coef)*v[n] + coef*v[n+1];
+    return (1 - coef)*v[n] + coef*v[n + 1];
 }
 
 void Constraints::WriteMVCBobrow(std::stringstream& ss, dReal dt) {
@@ -163,10 +161,8 @@ void Constraints::WriteMVCBobrow(std::stringstream& ss, dReal dt) {
         ss << SdLimitBobrow(t) << " ";
     }
     ss << SdLimitBobrow(duration);
-    
+
     /// write mvcbobrowlower
-    
-    
     ss << "\n";
     ss << duration << " " << dt << "\n";
     for (dReal t = 0; t < duration; t += dt) {
@@ -177,47 +173,47 @@ void Constraints::WriteMVCBobrow(std::stringstream& ss, dReal dt) {
         ss << SdLimitBobrowLower(t) << " ";
     }
     ss << SdLimitBobrowLower(duration);
-    
+
     // /// TODO : change it to be more efficient
     // bool hasmvclower = false;
     // const char* separator = "";
     // dReal sd;
     // for (dReal t = 0; t < duration; t += dt) {
-    // 	if (SdLimitBobrowLower(t) >= 0) {
-    // 	    hasmvclower = true;
-    // 	    break;
-    // 	}
+    //  if (SdLimitBobrowLower(t) >= 0) {
+    //      hasmvclower = true;
+    //      break;
+    //  }
     // }
     // if (hasmvclower) {
     // // if (hasislands) {
-    // 	std::cout << "HEYYYYY\n"; 
-    // 	ss << "\n";
-    // 	ss << duration << " " << dt << "\n";
-    // 	for (dReal t = 0; t < duration; t += dt) {
-    // 	    if (SdLimitBobrowLower(t) >= 0) {
-    // 		ss << separator << t;
-    // 		separator = " ";
-    // 	    }
-    // 	}
-    // 	if (SdLimitBobrowLower(duration) >= 0) {
-    // 	    ss << separator << duration << "\n";
-    // 	}
-    // 	else {
-    // 	    ss << "\n";
-    // 	}
-	
-    // 	separator = ""; /// reset the separator
-    // 	for (dReal t = 0; t < duration; t += dt) {
-    // 	    sd = SdLimitBobrowLower(t);
-    // 	    if (sd >= 0) {
-    // 		ss << separator << sd;
-    // 		separator = " ";
-    // 	}
-    // 	}
-    // 	sd = SdLimitBobrowLower(duration);
-    // 	if (sd >= 0) {
-    // 	    ss << separator << sd;
-    // 	}
+    //  std::cout << "HEYYYYY\n";
+    //  ss << "\n";
+    //  ss << duration << " " << dt << "\n";
+    //  for (dReal t = 0; t < duration; t += dt) {
+    //      if (SdLimitBobrowLower(t) >= 0) {
+    //      ss << separator << t;
+    //      separator = " ";
+    //      }
+    //  }
+    //  if (SdLimitBobrowLower(duration) >= 0) {
+    //      ss << separator << duration << "\n";
+    //  }
+    //  else {
+    //      ss << "\n";
+    //  }
+
+    //  separator = ""; /// reset the separator
+    //  for (dReal t = 0; t < duration; t += dt) {
+    //      sd = SdLimitBobrowLower(t);
+    //      if (sd >= 0) {
+    //      ss << separator << sd;
+    //      separator = " ";
+    //  }
+    //  }
+    //  sd = SdLimitBobrowLower(duration);
+    //  if (sd >= 0) {
+    //      ss << separator << sd;
+    //  }
     // }
 }
 
@@ -229,7 +225,7 @@ void Constraints::WriteMVCDirect(std::stringstream& ss, dReal dt) {
         ss << t << " ";
     }
     ss << duration << "\n";
-    
+
     for (dReal t = 0; t < duration; t += dt) {
         dReal res = INF;
         trajectory.Evald(t, qd);
@@ -243,9 +239,9 @@ void Constraints::WriteMVCDirect(std::stringstream& ss, dReal dt) {
     dReal res = INF;
     trajectory.Evald(duration, qd);
     for (int i = 0; i < trajectory.dimension; i++) {
-	if (std::abs(qd[i]) > TINY && std::abs(vmax[i]) > 0) {
-	    res = std::min(res, vmax[i]/std::abs(qd[i]));
-	}
+        if (std::abs(qd[i]) > TINY && std::abs(vmax[i]) > 0) {
+            res = std::min(res, vmax[i]/std::abs(qd[i]));
+        }
     }
     ss << res;
 }
@@ -298,10 +294,11 @@ void Constraints::AddSwitchPoint2(dReal s, dReal sd, int switchpointtype) {
         return;
     }
     SwitchPoint sw(s, sd, switchpointtype);
-    std::list<SwitchPoint>::iterator it = std::lower_bound(switchpointslist.begin(), switchpointslist.end(), sw, CompareSwitchPoint);
+    std::list<SwitchPoint>::iterator it = std::lower_bound(switchpointslist.begin(), 
+							   switchpointslist.end(), sw, CompareSwitchPoint);
     if ( it != switchpointslist.end() ) {
         if ( s >= it->s + TINY ) {
-            std::cout << "switch point already exists, type=" << it->switchpointtype;
+            std::cout << "switch point already exists, type = " << it->switchpointtype;
             return;
         }
     }
@@ -317,10 +314,11 @@ void Constraints::AddSwitchPointLower(dReal s, dReal sd, int switchpointtype) {
         return;
     }
     SwitchPoint sw(s, sd, switchpointtype);
-    std::list<SwitchPoint>::iterator it = std::lower_bound(switchpointslistlower.begin(), switchpointslistlower.end(), sw, CompareSwitchPoint);
+    std::list<SwitchPoint>::iterator it = std::lower_bound(switchpointslistlower.begin(), 
+							   switchpointslistlower.end(), sw, CompareSwitchPoint);
     if (it != switchpointslistlower.end()) {
         if ( s >= it->s + TINY ) {
-            std::cout << "switch point already exists, type=" << it->switchpointtype;
+            std::cout << "switch point already exists, type = " << it->switchpointtype;
             return;
         }
     }
@@ -330,14 +328,14 @@ void Constraints::AddSwitchPointLower(dReal s, dReal sd, int switchpointtype) {
     }
     switchpointslistlower.insert(it, sw);
 }
-    
+
 void Constraints::FindTangentSwitchPoints() {
     if (ndiscrsteps < 3)
         return;
     dReal s, sd, snext, sdnext, alpha;
     dReal diff, diffprev, tangent, prevtangent;
     std::pair<dReal,dReal> sddlimits;
-    
+
     dReal thresh_discontinuous_sp = 2; ///< threshold for selecting discont-sp
     dReal thresh_tangent_sp = 1;       ///< threshold for selecting tangent-sp
 
@@ -347,7 +345,7 @@ void Constraints::FindTangentSwitchPoints() {
     snext = discrsvect[i + 1];
     sd = SdLimitBobrow(s);
     sdnext = SdLimitBobrow(snext);
-    
+
     tangent = (sdnext - sd)/discrtimestep; ///< tangent of the MVC in s-sd plane
     prevtangent = (sd - SdLimitBobrow(discrsvect[i - 1]))/discrtimestep;
     sddlimits = SddLimits(s, sd);
@@ -377,26 +375,22 @@ void Constraints::FindTangentSwitchPoints() {
 void Constraints::FindDiscontinuousSwitchPoints() {
     if (ndiscrsteps < 3)
         return;
-    
+
     dReal thresh_discontinuous_sp = 100;
 
     int i = 0;
     dReal sd, sdn, sdnn;
-    // sd = SdLimitBobrow(discrsvect[i]);
-    // sdn = SdLimitBobrow(discrsvect[i + 1]);
-    sd = mvcbobrow[i];
-    sdn = mvcbobrow[i + 1];
 
-    // /// also look for the start of the chunks for the trajectory
+    sd = SdLimitBobrow(discrsvect[i]);
+    sdn = SdLimitBobrow(discrsvect[i+1]);
+    // also look for the start of the chunks for the trajectory
     // std::list<dReal>::const_iterator itchunkstart = trajectory.chunkcumulateddurationslist.begin();
     // int nLastAddedSwitchIndex = -1;
-   
-    for (int i = 0; i < ndiscrsteps - 2; i++) {
-        // sdnn = SdLimitBobrow(discrsvect[i + 2]);
-	sdnn = mvcbobrow[i + 2];
-        if (std::abs(sdnn - sdn) > thresh_discontinuous_sp*std::abs(sdn - sd)) {
-            if (sdn < sdnn) {
-                AddSwitchPoint2(discrsvect[i + 1], mvcbobrow[i + 1], SP_DISCONTINUOUS);
+    for(int i=0; i<ndiscrsteps-2; i++) {
+        sdnn = SdLimitBobrow(discrsvect[i+2]);
+        if(std::abs(sdnn-sdn)>100*std::abs(sdn-sd)) {
+            if(sdn<sdnn) {
+                AddSwitchPoint2(discrsvect[i+1],mvcbobrow[i+1],SP_DISCONTINUOUS);
             }
             else{
                 AddSwitchPoint2(discrsvect[i + 2], mvcbobrow[i + 2], SP_DISCONTINUOUS);
@@ -626,7 +620,8 @@ void QuadraticConstraints::InterpolateDynamics(dReal s, std::vector<dReal>& a, s
     a.resize(nconstraints);
     b.resize(nconstraints);
     c.resize(nconstraints);
-    BOOST_ASSERT(s >= -TINY && s <= trajectory.duration + TINY);
+    //BOOST_ASSERT(s >= -TINY && s <= trajectory.duration + TINY);
+    assert(s >= -TINY && s <= trajectory.duration + TINY);
     if (s < 0)
         s = 0;
     if (s >= trajectory.duration-TINY) {
@@ -656,68 +651,6 @@ void QuadraticConstraints::InterpolateDynamics(dReal s, std::vector<dReal>& a, s
     }
 }
 
-void QuadraticConstraints::FixStart(dReal& sstart,dReal& sdstart, dReal timestep) {
-    std::vector<dReal> a, b, c, a2, b2, c2;
-    sstart = 0;
-    dReal delta = TINY2, ap, bp, cp, slope;
-    InterpolateDynamics(0, a, b, c);
-    dReal sdcurrent2 = INF; /// squared
-    int indexcurrent = 0;
-    for (int j = 0; j < int(a.size()); j++) {
-        if (std::abs(a[j]) < TINY2) {
-            dReal f = -c[j]/b[j];
-            if (f > 0) {
-                if (f < sdcurrent2) {
-                    sdcurrent2 = f;
-                    indexcurrent = j;
-                }
-            }
-        }
-    }
-    if (sdcurrent2 < 1e6) {
-        dReal sdcurrent = sqrt(sdcurrent2);
-        InterpolateDynamics(delta, a2, b2, c2);
-        sstart = timestep;
-        ap = (a2[indexcurrent] - a[indexcurrent])/delta;
-        bp = (b2[indexcurrent] - b[indexcurrent])/delta;
-        cp = (c2[indexcurrent] - c[indexcurrent])/delta;
-        slope = (-bp*sdcurrent*sdcurrent - cp)/((2*b[indexcurrent] + ap)*sdcurrent);
-        sdstart = sdcurrent + slope*sstart;
-        resprofileslist.push_back(StraightProfile(0, sstart, sdcurrent, sdstart));
-    }
-}
-
-void QuadraticConstraints::FixEnd(dReal& sendnew,dReal& sdendnew) {
-    std::vector<dReal> a, b, c, a2, b2, c2;
-    dReal delta = TINY2, ap, bp, cp, slope;
-    dReal send = trajectory.duration;
-    sendnew = send;
-    InterpolateDynamics(send, a, b, c);
-    InterpolateDynamics(send - delta, a2, b2, c2);
-    dReal sdcurrent = INF;
-    int indexcurrent = 0;
-    for (int j = 0; j < int(a.size()); j++) {
-        if (std::abs(a[j]) < TINY2) {
-            if (-c[j]*b[j] > 0) {
-                if (sqrt(-c[j]/b[j]) < sdcurrent) {
-                    sdcurrent = sqrt(-c[j]/b[j]);
-                    indexcurrent = j;
-                }
-            }
-        }
-    }
-    if (sdcurrent < 1e3) {
-        dReal stub = integrationtimestep;
-        sendnew = send - stub;
-        ap = (a[indexcurrent] - a2[indexcurrent])/delta;
-        bp = (b[indexcurrent] - b2[indexcurrent])/delta;
-        cp = (c[indexcurrent] - c2[indexcurrent])/delta;
-        slope = (-bp*sdcurrent*sdcurrent - cp)/((2*b[indexcurrent] + ap)*sdcurrent);
-        sdendnew = sdcurrent - slope*stub;
-        resprofileslist.push_back(StraightProfile(sendnew, send, sdendnew, sdcurrent));
-    }
-}
-
 void QuadraticConstraints::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vector<dReal>& slopesvector) {
     dReal delta = TINY2, s2, ap, bp, cp, slope;
     std::vector<dReal> a, b, c, a2, b2, c2;
@@ -729,11 +662,17 @@ void QuadraticConstraints::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std
     InterpolateDynamics(s2, a2, b2, c2);
     dReal idelta = 1/delta;
     slopesvector.resize(a.size());
+
     for (size_t i = 0; i < a.size(); i++) {
         ap = (a2[i] - a[i])*idelta;
         bp = (b2[i] - b[i])*idelta;
         cp = (c2[i] - c[i])*idelta;
-        slope = (-bp*sd*sd - cp)/((2*b[i] + ap)*sd);
+        if (std::abs((2*b[i] + ap)*sd) > TINY) {
+            slope = (-bp*sd*sd - cp)/((2*b[i] + ap)*sd);
+        }
+        else {
+            slope = 0;
+        }
         slopesvector[i] = slope;
     }
 }
@@ -741,9 +680,8 @@ void QuadraticConstraints::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std
 std::pair<dReal,dReal> QuadraticConstraints::SddLimits(dReal s, dReal sd) {
     dReal dtsq = integrationtimestep;
     dtsq = dtsq*dtsq;
-    dReal safetybound = discrtimestep/dtsq;
-    dReal alpha = -safetybound;
-    dReal beta = safetybound;
+    dReal alpha = -INF;
+    dReal beta = INF;
     dReal sdsq = sd*sd;
     std::vector<dReal> a, b, c;
 
@@ -761,7 +699,7 @@ std::pair<dReal,dReal> QuadraticConstraints::SddLimits(dReal s, dReal sd) {
         }
         if (a[i] > 0) {
             beta_i = (-sdsq*b[i] - c[i])/a[i];
-            beta = std::min(beta,beta_i);
+            beta = std::min(beta, beta_i);
         }
         else {
             alpha_i = (-sdsq*b[i] - c[i])/a[i];
@@ -772,7 +710,7 @@ std::pair<dReal,dReal> QuadraticConstraints::SddLimits(dReal s, dReal sd) {
     return result;
 }
 
-std::vector<std::vector<dReal> > QuadraticConstraints::GetABCConstraints(dReal s) {
+std::vector<std::vector< dReal > > QuadraticConstraints::GetABCConstraints(dReal s) {
     std::vector<dReal> a, b, c;
     InterpolateDynamics(s, a, b, c);
     int index_alpha = 0;
@@ -780,7 +718,7 @@ std::vector<std::vector<dReal> > QuadraticConstraints::GetABCConstraints(dReal s
     dReal alpha_i, beta_i;
 
     dReal sd = Interpolate1D(s, mvcbobrow);
-    
+
     dReal dtsq = integrationtimestep;
     dtsq = dtsq*dtsq;
     dReal safetybound = discrtimestep/dtsq;
@@ -799,17 +737,17 @@ std::vector<std::vector<dReal> > QuadraticConstraints::GetABCConstraints(dReal s
         }
         if (a[i] > 0) {
             beta_i = (-sdsq*b[i] - c[i])/a[i];
-	    if (beta_i < beta) {
-		beta = beta_i;
-		index_beta = i;
-	    }
+            if (beta_i < beta) {
+                beta = beta_i;
+                index_beta = i;
+            }
         }
         else {
             alpha_i = (-sdsq*b[i] - c[i])/a[i];
-	    if (alpha_i > alpha) {
-		alpha = alpha_i;
-	        index_alpha = i;
-	    }
+            if (alpha_i > alpha) {
+                alpha = alpha_i;
+                index_alpha = i;
+            }
         }
     }
     std::vector<dReal> resa, resb, resc;
@@ -839,8 +777,8 @@ dReal QuadraticConstraints::SdLimitBobrowInit(dReal s) {
         InterpolateDynamics(s, a, b, c);
     }
 
-    // This has problems when an island (Shin & McKay 1985, TAC) exist.
-    std::pair<dReal, dReal> sddlimits = SddLimits(s,0);
+    /// This has problems when an island (Shin & McKay 1985, TAC) exist.
+    std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
     if (sddlimits.first >= sddlimits.second) {
         return 0;
     }
@@ -849,7 +787,8 @@ dReal QuadraticConstraints::SdLimitBobrowInit(dReal s) {
     for (int k = 0; k < nconstraints; k++) {
         for (int m = k+1; m < nconstraints; m++) {
             dReal num, denum, r;
-            // If we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
+            // If we have a pair of alpha and beta bounds, 
+	    // then determine the sdot for which the two bounds are equal
             if (a[k]*a[m] < 0) {
                 num = a[k]*c[m] - a[m]*c[k];
                 denum = -a[k]*b[m] + a[m]*b[k];
@@ -863,126 +802,6 @@ dReal QuadraticConstraints::SdLimitBobrowInit(dReal s) {
         }
     }
     return sdmin;
-}
-
-dReal QuadraticConstraints::SdLimitBobrowInitUpper(dReal s) {
-    /// \brief Returns sd which is the highest edge between feasible-infeasible area
-    /// We have \alpha(s, sd - TINY) < \beta(s, sd - TINY) (infeasible area above)
-    std::vector<dReal> a, b, c;
-    InterpolateDynamics(s, a, b, c);
-    if (VectorNorm(a) < TINY) { ///? why check for VectorNorm(a)?
-        if (s < 1e-2) {
-            s += 1e-3;
-        }
-        else {
-            s -= 1e-3;
-        }
-        InterpolateDynamics(s, a, b, c);
-    }
-
-    bool possibleisland = false;
-    std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
-    if (sddlimits.first >= sddlimits.second) possibleisland = true;
-    
-    std::vector<dReal> sdmin(0);
-    sdmin.push_back(INF);
-    for (int k = 0; k < nconstraints; k++) {
-        for (int m = k + 1; m < nconstraints; m++) {
-            dReal num, denum, r;
-            /// if we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
-            if (a[k]*a[m] < 0) {
-                num = a[k]*c[m] - a[m]*c[k];
-                denum = -a[k]*b[m] + a[m]*b[k];
-                if (std::abs(denum) > TINY) {
-                    r = num/denum;
-                    if (r >= 0) {
-			r = sqrt(r);
-			std::vector<dReal>::iterator it = std::lower_bound(sdmin.begin(), sdmin.end(), r);
-                        sdmin.insert(it, r);
-                    }
-                }
-            }
-        }
-    }
-    
-    if (possibleisland) {		
-	std::vector<dReal>::iterator it;
-	for (it = sdmin.begin(); it != sdmin.end(); it++) {
-	    sddlimits = SddLimits(s, *it);
-	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
-		/// this is the sd at the edge of the lower island
-		// std::cout << "hasisland at " << s << "\n";
-		hasislands = true;
-		it++;
-		return *it; /// return the upper edge
-	    }
-	}
-	/// the normal mvc hits zero
-	return 0;
-    }
-    else {
-	/// no island
-	return sdmin[0];
-    }
-}
-
-dReal QuadraticConstraints::SdLimitBobrowInitLower(dReal s) {
-    /// \brief Returns sd which is the lowest edge between feasible-infeasible area
-    /// If there is any island, we have \alpha(s, sd - TINY) > \beta(s, sd - TINY) (infeasible area below)
-    std::vector<dReal> a, b, c;
-    InterpolateDynamics(s, a, b, c);
-    if (VectorNorm(a) < TINY) { ///? why check for VectorNorm(a)?
-        if (s < 1e-2) {
-            s += 1e-3;
-        }
-        else {
-            s -= 1e-3;
-        }
-        InterpolateDynamics(s, a, b, c);
-    }
-
-    bool possibleisland = false;
-
-    std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
-    if (sddlimits.first >= sddlimits.second) possibleisland = true;
-    
-    if (possibleisland) {    
-	std::vector<dReal> sdmin(0);
-	sdmin.push_back(INF);
-	for (int k = 0; k < nconstraints; k++) {
-	    for (int m = k + 1; m < nconstraints; m++) {
-		dReal num, denum, r;
-		// If we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
-		if (a[k]*a[m] < 0) {
-		    num = a[k]*c[m] - a[m]*c[k];
-		    denum = -a[k]*b[m] + a[m]*b[k];
-		    if (std::abs(denum) > TINY) {
-			r = num/denum;
-			if (r >= 0) {
-			    r = sqrt(r);
-			    std::vector<dReal>::iterator it = std::lower_bound(sdmin.begin(), sdmin.end(), r);
-			    sdmin.insert(it, r);
-			}
-		    }
-		}
-	    }
-	}		
-	std::vector<dReal>::iterator it;
-	for (it = sdmin.begin(); it != sdmin.end(); it++) {
-	    sddlimits = SddLimits(s, *it);
-	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
-		/// this is the sd at the edge of the lower island
-		// std::cout << "hasisland at " << s << "\n";
-		hasislands = true;
-		return *it;
-	    }
-	}
-	return INF;
-    }
-    else {
-	/// no island
-	return -1;
-    }
 }
 
 dReal QuadraticConstraints::SdLimitBobrowExclude(dReal s, int iexclude) {
@@ -1027,7 +846,7 @@ dReal QuadraticConstraints::SdLimitBobrowExclude(dReal s, int iexclude) {
     return sdmin;
 }
 
- dReal QuadraticConstraints::SdLimitBobrowExcludeUpper(dReal s, int iexclude) {
+dReal QuadraticConstraints::SdLimitBobrowExcludeUpper(dReal s, int iexclude) {
     /// \brief Returns sd which is the highest edge between feasible-infeasible area
     /// We have \alpha(s, sd - TINY) < \beta(s, sd - TINY) (infeasible area above)
     std::vector<dReal> a, b, c;
@@ -1045,53 +864,54 @@ dReal QuadraticConstraints::SdLimitBobrowExclude(dReal s, int iexclude) {
     bool possibleisland = false;
     std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
     if (sddlimits.first >= sddlimits.second) possibleisland = true;
-    
+
     std::vector<dReal> sdmin(0);
     sdmin.push_back(INF);
     for (int k = 0; k < nconstraints; k++) {
         for (int m = k + 1; m < nconstraints; m++) {
-	    if (k == iexclude || m == iexclude) {
-		continue;
-	    }
+            if (k == iexclude || m == iexclude) {
+                continue;
+            }
             dReal num, denum, r;
-            // If we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
+            // If we have a pair of alpha and beta bounds, 
+	    // then determine the sdot for which the two bounds are equal
             if (a[k]*a[m] < 0) {
                 num = a[k]*c[m] - a[m]*c[k];
                 denum = -a[k]*b[m] + a[m]*b[k];
                 if (std::abs(denum) > TINY) {
                     r = num/denum;
                     if (r >= 0) {
-			r = sqrt(r);
-			std::vector<dReal>::iterator it = std::lower_bound(sdmin.begin(), sdmin.end(), r);
+                        r = sqrt(r);
+                        std::vector<dReal>::iterator it = std::lower_bound(sdmin.begin(), sdmin.end(), r);
                         sdmin.insert(it, r);
                     }
                 }
             }
         }
     }
-    
-    if (possibleisland) {		
-	std::vector<dReal>::iterator it;
-	for (it = sdmin.begin(); it != sdmin.end(); it++) {
-	    sddlimits = SddLimits(s, *it);
-	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
-		/// this is the sd at the edge of the lower island
-		// std::cout << "hasisland at " << s << "\n";
-		hasislands = true;
-		it++;
-		return *it; /// return the upper edge
-	    }
-	}
-	/// the normal mvc hits zero
-	return 0;
+
+    if (possibleisland) {
+        std::vector<dReal>::iterator it;
+        for (it = sdmin.begin(); it != sdmin.end(); it++) {
+            sddlimits = SddLimits(s, *it);
+            if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
+                /// this is the sd at the edge of the lower island
+                // std::cout << "hasisland at " << s << "\n";
+                hasislands = true;
+                it++;
+                return *it; /// return the upper edge
+            }
+        }
+        /// the normal mvc hits zero
+        return 0;
     }
     else {
-	/// no island
-	return sdmin[0];
+        /// no island
+        return sdmin[0];
     }
 }
 
- dReal QuadraticConstraints::SdLimitBobrowExcludeLower(dReal s, int iexclude) {
+dReal QuadraticConstraints::SdLimitBobrowExcludeLower(dReal s, int iexclude) {
     /// \brief Returns sd which is the lowest edge between feasible-infeasible area
     /// If there is any island, we have \alpha(s, sd - TINY) > \beta(s, sd - TINY) (infeasible area below)
     std::vector<dReal> a, b, c;
@@ -1110,46 +930,46 @@ dReal QuadraticConstraints::SdLimitBobrowExclude(dReal s, int iexclude) {
 
     std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
     if (sddlimits.first >= sddlimits.second) possibleisland = true;
-    
-    if (possibleisland) {    
-	std::vector<dReal> sdmin(0);
-	sdmin.push_back(INF);
-	for (int k = 0; k < nconstraints; k++) {
-	    for (int m = k + 1; m < nconstraints; m++) {
-		if (k == iexclude || m == iexclude) {
-		    continue;
-		}
-		dReal num, denum, r;
-		// If we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
-		if (a[k]*a[m] < 0) {
-		    num = a[k]*c[m] - a[m]*c[k];
-		    denum = -a[k]*b[m] + a[m]*b[k];
-		    if (std::abs(denum) > TINY) {
-			r = num/denum;
-			if (r >= 0) {
-			    r = sqrt(r);
-			    std::vector<dReal>::iterator it = std::lower_bound(sdmin.begin(), sdmin.end(), r);
-			    sdmin.insert(it, r);
-			}
-		    }
-		}
-	    }
-	}		
-	std::vector<dReal>::iterator it;
-	for (it = sdmin.begin(); it != sdmin.end(); it++) {
-	    sddlimits = SddLimits(s, *it);
-	    if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
-		/// this is the sd at the edge of the lower island
-		// std::cout << "hasisland at " << s << "\n";
-		hasislands = true;
-		return *it;
-	    }
-	}
-	return INF;
+
+    if (possibleisland) {
+        std::vector<dReal> sdmin(0);
+        sdmin.push_back(INF);
+        for (int k = 0; k < nconstraints; k++) {
+            for (int m = k + 1; m < nconstraints; m++) {
+                if (k == iexclude || m == iexclude) {
+                    continue;
+                }
+                dReal num, denum, r;
+                // If we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
+                if (a[k]*a[m] < 0) {
+                    num = a[k]*c[m] - a[m]*c[k];
+                    denum = -a[k]*b[m] + a[m]*b[k];
+                    if (std::abs(denum) > TINY) {
+                        r = num/denum;
+                        if (r >= 0) {
+                            r = sqrt(r);
+                            std::vector<dReal>::iterator it = std::lower_bound(sdmin.begin(), sdmin.end(), r);
+                            sdmin.insert(it, r);
+                        }
+                    }
+                }
+            }
+        }
+        std::vector<dReal>::iterator it;
+        for (it = sdmin.begin(); it != sdmin.end(); it++) {
+            sddlimits = SddLimits(s, *it);
+            if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
+                /// this is the sd at the edge of the lower island
+                // std::cout << "hasisland at " << s << "\n";
+                hasislands = true;
+                return *it;
+            }
+        }
+        return INF;
     }
     else {
-	/// no island
-	return -1;
+        /// no island
+        return -1;
     }
 }
 
@@ -1162,10 +982,10 @@ void QuadraticConstraints::FindSingularSwitchPoints() {
 
     InterpolateDynamics(discrsvect[i], aprev, bprev, cprev);
 
-    for (int i = 1; i < ndiscrsteps - 1; i++) {
-        InterpolateDynamics(discrsvect[i], a, b, c);
-        dReal minsd = 1e30;
-        dReal mins = 1e30;
+    for(int i=1; i<ndiscrsteps-1; i++) {
+        InterpolateDynamics(discrsvect[i],a,b,c);
+        dReal minsd = INF;
+        dReal mins = INF;
         bool found = false;
         for (int j = 0; j < int(a.size()); j++) {
             if (a[j]*aprev[j] <= 0) {
@@ -1195,14 +1015,14 @@ void QuadraticConstraints::FindSingularSwitchPoints() {
             }
         }
         if (found) {
-	    if (std::abs(SdLimitBobrowLower(mins) - minsd) > std::abs(SdLimitBobrowUpper(mins) - minsd)) {
-		/// this switch point is on mvcbobrow
-		AddSwitchPoint2(mins, minsd, SP_SINGULAR);
-	    }
-	    else {
-		/// this switch point is on mvcbobrowlower
-		AddSwitchPointLower(mins, minsd, SP_SINGULAR);
-	    }
+            if (std::abs(SdLimitBobrowLower(mins) - minsd) > std::abs(SdLimitBobrowUpper(mins) - minsd)) {
+                /// this switch point is on mvcbobrow
+                AddSwitchPoint2(mins, minsd, SP_SINGULAR);
+            }
+            else {
+                /// this switch point is on mvcbobrowlower
+                AddSwitchPointLower(mins, minsd, SP_SINGULAR);
+            }
         }
         aprev.swap(a);
         bprev.swap(b);
@@ -1212,14 +1032,14 @@ void QuadraticConstraints::FindSingularSwitchPoints() {
 
 void QuadraticConstraints::FindTangentSwitchPoints() {
     /// overloaded method
-    
+
     if (ndiscrsteps < 3)
         return;
-    
+
     dReal s, sd, snext, sdnext, alpha;
     dReal diff, diffprev, tangent, prevtangent;
     std::pair<dReal,dReal> sddlimits;
-    
+
     dReal thresh_discontinuous_sp = 2; ///< threshold for selecting discont-sp
     dReal thresh_tangent_sp = 1;       ///< threshold for selecting tangent-sp
 
@@ -1229,7 +1049,7 @@ void QuadraticConstraints::FindTangentSwitchPoints() {
     snext = discrsvect[i + 1];
     sd = SdLimitBobrow(s);
     sdnext = SdLimitBobrow(snext);
-    
+
     tangent = (sdnext - sd)/discrtimestep; ///< tangent of the MVC in s-sd plane
     prevtangent = (sd - SdLimitBobrow(discrsvect[i - 1]))/discrtimestep;
     sddlimits = SddLimits(s, sd);
@@ -1257,57 +1077,57 @@ void QuadraticConstraints::FindTangentSwitchPoints() {
 
     /// find tangent switch points on the lower mvc (mvcbobrowlower)
     if (hasislands) {
-	std::vector<dReal>::iterator it = std::lower_bound(mvcbobrowlower.begin(), mvcbobrowlower.end(), -TINY);
-	it++;
-	size_t index = it - mvcbobrowlower.begin(); ///< index to the second element on the island
-	
-	s = discrsvect[index];
-	snext = discrsvect[index + 1];
-	sd = mvcbobrowlower[index];
-	sdnext = mvcbobrowlower[index + 1];
+        std::vector<dReal>::iterator it = std::lower_bound(mvcbobrowlower.begin(), mvcbobrowlower.end(), -TINY);
+        it++;
+        size_t index = it - mvcbobrowlower.begin(); ///< index to the second element on the island
 
-	tangent = (sdnext - sd)/discrtimestep; ///< tangent of the MVC in s-sd plane
-	prevtangent = (sd - mvcbobrowlower[i - 1])/discrtimestep;
-	sddlimits = SddLimits(s, sd);
-	alpha = sddlimits.first;
-	diffprev = alpha/sd - tangent;         ///< difference of slopes of the MVC and the trajectory
-	
-	for (int i = index; i < discrsvect.size() - 1; i++) {
-	    if (sdnext < -TINY) {
-		/// reach the end of this island
-		continue;
-	    }
-	    if (sd < -TINY) {
-		/// still do not reach the next island
-		continue;
-	    }
-	    
-	    s = discrsvect[i];
-	    snext = discrsvect[i + 1];
-	    sd = mvcbobrowlower[i];
-	    sdnext = mvcbobrowlower[i + 1];
-	    sddlimits = SddLimits(s, sd);
-	    alpha = sddlimits.first;
-	    if (std::abs(prevtangent - tangent) > thresh_discontinuous_sp && prevtangent > 0 && tangent < 0) {
-		AddSwitchPointLower(s, sd, SP_DISCONTINUOUS);
-	    }
-	    prevtangent = tangent;
-	    tangent = (sdnext - sd)/discrtimestep;
-	    diff = alpha/sd - tangent;
-	    if (diffprev*diff < 0 && std::abs(diff) < thresh_tangent_sp) {
-		AddSwitchPointLower(s, sd, SP_TANGENT);
-	    }
-	    diffprev = diff;
-	}
+        s = discrsvect[index];
+        snext = discrsvect[index + 1];
+        sd = mvcbobrowlower[index];
+        sdnext = mvcbobrowlower[index + 1];
+
+        tangent = (sdnext - sd)/discrtimestep; ///< tangent of the MVC in s-sd plane
+        prevtangent = (sd - mvcbobrowlower[i - 1])/discrtimestep;
+        sddlimits = SddLimits(s, sd);
+        alpha = sddlimits.first;
+        diffprev = alpha/sd - tangent;         ///< difference of slopes of the MVC and the trajectory
+
+        for (int i = index; i < int(discrsvect.size()) - 1; i++) {
+            if (sdnext < -TINY) {
+                /// reach the end of this island
+                continue;
+            }
+            if (sd < -TINY) {
+                /// still do not reach the next island
+                continue;
+            }
+
+            s = discrsvect[i];
+            snext = discrsvect[i + 1];
+            sd = mvcbobrowlower[i];
+            sdnext = mvcbobrowlower[i + 1];
+            sddlimits = SddLimits(s, sd);
+            alpha = sddlimits.first;
+            if (std::abs(prevtangent - tangent) > thresh_discontinuous_sp && prevtangent > 0 && tangent < 0) {
+                AddSwitchPointLower(s, sd, SP_DISCONTINUOUS);
+            }
+            prevtangent = tangent;
+            tangent = (sdnext - sd)/discrtimestep;
+            diff = alpha/sd - tangent;
+            if (diffprev*diff < 0 && std::abs(diff) < thresh_tangent_sp) {
+                AddSwitchPointLower(s, sd, SP_TANGENT);
+            }
+            diffprev = diff;
+        }
     }
 }
 
 void QuadraticConstraints::FindDiscontinuousSwitchPoints() {
     /// overload method
-    
+
     if (ndiscrsteps < 3)
         return;
-    
+
     dReal thresh_discontinuous_sp = 100;
 
     /// find discontinuous switch points on the normal mvc (mvcbobrow)
@@ -1331,35 +1151,35 @@ void QuadraticConstraints::FindDiscontinuousSwitchPoints() {
 
     /// find discontinuous switch points on the lower mvc (mvcbobrowlower)
     if (hasislands) {
-	std::vector<dReal>::iterator it = std::lower_bound(mvcbobrowlower.begin(), mvcbobrowlower.end(), -TINY);
-	///< it->mvcbobrowlower is the first element in mvcbobrowlower that is higher than -TINY
-	size_t index = it - mvcbobrowlower.begin(); ///< index to the first element on the island
-	
-	sd = mvcbobrowlower[index];
-	sdn = mvcbobrowlower[index + 1];
-	for (int i = index; i < discrsvect.size() - 2; i++) {
-	    if (mvcbobrowlower[i + 1] < 0) {
-		/// reach the end of this island
-		continue;
-	    }
-	    if (mvcbobrowlower[i] < 0) {
-		/// still do not reach the next island
-		continue;
-	    }
-	    sdnn = mvcbobrowlower[i + 2];
-	    if (sdnn < 0) continue;
-	    
-	    if (std::abs(sdnn - sdn) > thresh_discontinuous_sp*std::abs(sdn - sd)) {
-		if (sdn < sdnn) {
-		    AddSwitchPointLower(discrsvect[i + 2], mvcbobrowlower[i + 2], SP_DISCONTINUOUS);
-		}
-		else{
-		    AddSwitchPointLower(discrsvect[i + 1], mvcbobrowlower[i + 1], SP_DISCONTINUOUS);
-		}
-	    }
-	    sd = sdn;
-	    sdn = sdnn;
-	}
+        std::vector<dReal>::iterator it = std::lower_bound(mvcbobrowlower.begin(), mvcbobrowlower.end(), -TINY);
+        ///< it->mvcbobrowlower is the first element in mvcbobrowlower that is higher than -TINY
+        size_t index = it - mvcbobrowlower.begin(); ///< index to the first element on the island
+
+        sd = mvcbobrowlower[index];
+        sdn = mvcbobrowlower[index + 1];
+        for (int i = index; i < int(discrsvect.size()) - 2; i++) {
+            if (mvcbobrowlower[i + 1] < 0) {
+                /// reach the end of this island
+                continue;
+            }
+            if (mvcbobrowlower[i] < 0) {
+                /// still do not reach the next island
+                continue;
+            }
+            sdnn = mvcbobrowlower[i + 2];
+            if (sdnn < 0) continue;
+
+            if (std::abs(sdnn - sdn) > thresh_discontinuous_sp*std::abs(sdn - sd)) {
+                if (sdn < sdnn) {
+                    AddSwitchPointLower(discrsvect[i + 2], mvcbobrowlower[i + 2], SP_DISCONTINUOUS);
+                }
+                else{
+                    AddSwitchPointLower(discrsvect[i + 1], mvcbobrowlower[i + 1], SP_DISCONTINUOUS);
+                }
+            }
+            sd = sdn;
+            sdn = sdnn;
+        }
     }
 }
 
@@ -1368,8 +1188,8 @@ void QuadraticConstraints::FindDiscontinuousSwitchPoints() {
 /////////////////////////// Profile ////////////////////////////////
 ////////////////////////////////////////////////////////////////////
 
-Profile::Profile(const std::list<dReal>& slist, const std::list<dReal>& sdlist, const std::list<dReal>& sddlist, 
-		 dReal integrationtimestep, bool forward) : integrationtimestep(integrationtimestep), forward(forward) {
+Profile::Profile(const std::list<dReal>& slist, const std::list<dReal>& sdlist, const std::list<dReal>& sddlist,
+                 dReal integrationtimestep, bool forward) : integrationtimestep(integrationtimestep), forward(forward) {
     if (forward) {
         svect.insert(svect.end(), slist.begin(), slist.end());
         sdvect.insert(sdvect.end(), sdlist.begin(), sdlist.end());
@@ -1388,8 +1208,8 @@ Profile::Profile(const std::list<dReal>& slist, const std::list<dReal>& sdlist, 
     duration = integrationtimestep * (nsteps - 1);
 }
 
-Profile::Profile(const std::vector<dReal>& svectin, const std::vector<dReal>& sdvectin, const std::vector<dReal>& sddvectin, 
-		 dReal integrationtimestep, bool forward) : integrationtimestep(integrationtimestep), forward(forward) {
+Profile::Profile(const std::vector<dReal>& svectin, const std::vector<dReal>& sdvectin, const std::vector<dReal>& sddvectin,
+                 dReal integrationtimestep, bool forward) : integrationtimestep(integrationtimestep), forward(forward) {
     BOOST_ASSERT(svectin.size() > 0);
     BOOST_ASSERT(svectin.size() == sdvectin.size());
     BOOST_ASSERT(svectin.size() == sddvectin.size());
@@ -1482,7 +1302,6 @@ void Profile::Print() const {
         std::cout<< Eval(t) << " ; " << Evald(t) << " ; " << Evaldd(t) <<  "\n";
     }
 }
-
 
 void Profile::Write(std::stringstream& ss, dReal dt) const {
     ss << duration << " " << dt << "\n";
@@ -1588,7 +1407,7 @@ bool AddressSwitchPoint(Constraints& constraints, const SwitchPoint& switchpoint
                 if (sdbackward > 0.01 && sdforward > 0.01) {
                     //dReal score = (slopediff1+slopediff2)/std::abs(std::log(sstep));
                     dReal score = slopediff1+slopediff2;
-                    if (score < bestscore) {
+                    if(score<bestscore && score<10) {
                         bestsstep = sstep;
                         bestslope = slope;
                         bestscore = score;
@@ -1661,14 +1480,14 @@ bool RecoverGap(Constraints& constraints, dReal s, dReal dt) {
 
 dReal Recover(Constraints& constraints, dReal ds) {
     dReal s = 0, gapstart = 0, gapend = constraints.trajectory.duration;
-    while (s <= constraints.trajectory.duration) {
-        ProfileSample lowestsample = FindLowestProfileFast(s, 1e30, constraints.resprofileslist);
-        if (lowestsample.itprofile == constraints.resprofileslist.end()) {
+    while(s<=constraints.trajectory.duration) {
+        ProfileSample lowestsample = FindLowestProfileFast(s, INF, constraints.resprofileslist);
+        if( lowestsample.itprofile == constraints.resprofileslist.end() ) {
             gapstart = s;
             s += ds;
-            while (s <= constraints.trajectory.duration) {
-                ProfileSample lowestsample = FindLowestProfileFast(s, 1e30, constraints.resprofileslist);
-                if (lowestsample.itprofile == constraints.resprofileslist.end()) {
+            while(s<=constraints.trajectory.duration) {
+                ProfileSample lowestsample = FindLowestProfileFast(s, INF, constraints.resprofileslist);
+                if( lowestsample.itprofile == constraints.resprofileslist.end() ) {
                     s += ds;
                 }
                 else{
@@ -1853,11 +1672,11 @@ int FlowVsMVCBackward(Constraints& constraints, dReal s, dReal sd, dReal dt) {
 ////////////////////////// Integration /////////////////////////////
 ////////////////////////////////////////////////////////////////////
 
-int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt,  Profile& resprofile, 
-		     int maxsteps, bool testaboveexistingprofiles, bool testmvc, bool zlajpah) {
+int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt,  Profile& resprofile,
+                     int maxsteps, bool testaboveexistingprofiles, bool testmvc, bool zlajpah) {
     dReal dtsq = dt*dt;
     dReal scur = sstart, sdcur = sdstart, snext, sdnext;
-    
+
     /// use the cached values for memory performance
     BOOST_ASSERT(!constraints._busingcache);
     std::vector<dReal>& svect = constraints._svectcache; svect.resize(0);
@@ -1868,7 +1687,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
 
     bool cont = true;
     int returntype = -1; // should be changed
-    
+
     // // Initialize the currentindex of the profiles for search purpose
     // if (testaboveexistingprofiles && constraints.resprofileslist.size()>0) {
     //     std::list<Profile>::iterator it = constraints.resprofileslist.begin();
@@ -1942,8 +1761,8 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             /// Now we have sdcombined < sdcur <= sdbobrow
             /// We know for sure that beta points above the MVCCombined because we must have reached the MVCCombined following beta
             /// There are 2 cases:
-            ///     a) alpha points above MVCCombined (trap case); then step along MVCCombined until alpha points below MVCCombined and 
-	    ///        integrate backward from that point. Cf. Zlajpah ICRA 1996.
+            ///     a) alpha points above MVCCombined (trap case); then step along MVCCombined until alpha points below MVCCombined and
+            ///        integrate backward from that point. Cf. Zlajpah ICRA 1996.
             ///     b) alpha points below MVCCombined (slide case); then slide along MVCCombined, which is admissible, until either
             ///         b1) alpha points above MVCCombined (trapped)
             ///         b2) beta points below MVCCombined (exit slide)
@@ -2087,15 +1906,15 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
             returntype = INT_MVC;
             break;
         }
-	else if (testmvc && sdcur < constraints.SdLimitBobrowLower(scur) - TINY2) {
-	    /// profile hits the mvcbobrowlower
-	    svect.push_back(scur);
-	    sdvect.push_back(sdcur);
-	    sddvect.push_back(0);
-	    returntype = INT_BOTTOM;
-	    std::cout << "Forward integration hits mvcbobrowlower\n";
-	    break;
-	}
+        else if (testmvc && sdcur < constraints.SdLimitBobrowLower(scur) - TINY2) {
+            /// profile hits the mvcbobrowlower
+            svect.push_back(scur);
+            sdvect.push_back(sdcur);
+            sddvect.push_back(0);
+            returntype = INT_BOTTOM;
+            std::cout << "Forward integration hits mvcbobrowlower\n";
+            break;
+        }
         else{
             svect.push_back(scur);
             sdvect.push_back(sdcur);
@@ -2242,15 +2061,15 @@ int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dRe
             returntype = INT_MVC;
             break;
         }
-	else if (testmvc && sdcur < constraints.SdLimitBobrowLower(scur) - TINY2) {
-	    /// profile hits the mvcbobrowlower
-	    svect.push_back(scur);
+        else if (testmvc && sdcur < constraints.SdLimitBobrowLower(scur) - TINY2) {
+            /// profile hits the mvcbobrowlower
+            svect.push_back(scur);
             sdvect.push_back(sdcur);
             sddvect.push_back(0);
             returntype = INT_BOTTOM;
-	    std::cout << "Backward integration hits mvcbobrowlower\n";
+            std::cout << "Backward integration hits mvcbobrowlower\n";
             break;
-	}
+        }
         else{
             svect.push_back(scur);
             sdvect.push_back(sdcur);
@@ -2307,8 +2126,8 @@ int ComputeLimitingCurves(Constraints& constraints) {
     constraints.ntangenttreated = 0;
     constraints.nsingulartreated = 0;
     int switchpointindex = 0; ///< for debugging purposes;
-    for (std::list<SwitchPoint>::const_iterator itswitchpoint = constraints.switchpointslist.begin(); 
-	itswitchpoint != constraints.switchpointslist.end(); ++itswitchpoint, ++switchpointindex) {
+    for (std::list<SwitchPoint>::const_iterator itswitchpoint = constraints.switchpointslist.begin();
+         itswitchpoint != constraints.switchpointslist.end(); ++itswitchpoint, ++switchpointindex) {
         // while (switchpointslist0.size() > 0) {
         // SwitchPoint switchpoint = switchpointslist0.front();
         // switchpointslist0.pop_front();
@@ -2319,13 +2138,13 @@ int ComputeLimitingCurves(Constraints& constraints) {
             continue;
         if (sdswitch > constraints.SdLimitCombined(sswitch) + TINY2)
             continue;
-	
-	// std::cout << "addressing a switch point at s =" << sswitch << "\n";
-	
+
+        // std::cout << "addressing a switch point at s =" << sswitch << "\n";
+
         /// address Switch Point
         if (!AddressSwitchPoint(constraints, switchpoint, sbackward,
                                 sdbackward, sforward, sdforward))
-	    // std::cout << "    addressing failed\n";///
+            // std::cout << "    addressing failed\n";///
             continue;
 
         bool shiller = false;
@@ -2363,11 +2182,12 @@ int ComputeLimitingCurves(Constraints& constraints) {
 	    std::cout << message << "\n";
 	}
 	
+
         if (tmpprofile.nsteps > 2) {
             constraints.resprofileslist.push_back(tmpprofile);
         }
-	
-	// std::cout << "backward integration status :" << integratestatus << "\n";
+
+        // std::cout << "backward integration status :" << integratestatus << "\n";
 
         if (integratestatus == INT_BOTTOM) {
             std::cerr << str(boost::format("IntegrateBackward INT_BOTTOM, s = %.15e, sd = %.15e\n")%sbackward%sdbackward);
@@ -2378,6 +2198,7 @@ int ComputeLimitingCurves(Constraints& constraints) {
         integratestatus = IntegrateForward(constraints, sforward, sdforward,
                                            constraints.integrationtimestep, tmpprofile, MAXINTSTEPS,
                                            testaboveexistingprofiles, testmvc, zlajpah);
+
 	if (integratestatus == INT_MAXSTEPS) {
 	    std::string message = str(boost::format("MAXSTEPS = %d has been reached while integrating forward from s = %.15e, sd = %.15e")
 				      %MAXINTSTEPS%sforward%sdforward);
@@ -2389,7 +2210,7 @@ int ComputeLimitingCurves(Constraints& constraints) {
             // std::cout << "Forward : " << tmpprofile.nsteps << " " << tmpprofile.duration << "\n";
         }
 
-	// std::cout << "foreward integration status :" << integratestatus << "\n";
+        // std::cout << "foreward integration status :" << integratestatus << "\n";
 
         if (integratestatus == INT_BOTTOM) {
             std::cerr << str(boost::format("IntegrateForward INT_BOTTOM, s = %.15e, sd = %.15e\n")%sforward%sdforward);
@@ -2443,7 +2264,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
 
         /////////////////  Compute the CLC /////////////////////
         ret = ComputeLimitingCurves(constraints);
-	std::cout << "COMPUTE CLC result: " << ret << "\n"; 
+        std::cout << "COMPUTE CLC result: " << ret << "\n";
         if (ret != CLC_OK) {
             message = "CLC failed";
             std::cout << message << std::endl;
@@ -2453,121 +2274,101 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
 
 
         Profile tmpprofile;
-        dReal smallincrement = constraints.integrationtimestep*2;
-        dReal bound;
 
         /////////////////  Integrate from start /////////////////////
-        /// fix start
-        dReal sstartnew = 0, sdstartnew = sdbeg;
-        dReal starttimestep = constraints.integrationtimestep;
-        /// when fixing the beginning ramp, have to iterate reducing the time step since sometimes it can get out of the bound
-        for (int ibegiter = 0; ibegiter <= 10; ++ibegiter, starttimestep *= 0.5) {
-            sstartnew = 0;
-            sdstartnew = sdbeg;
-            constraints.FixStart(sstartnew,sdstartnew, starttimestep);
-            if (sstartnew <= TINY2 || sdstartnew > constraints.SdLimitCombined(0) - TINY2 || sdstartnew < 0) {
-                sdstartnew = sdbeg;
-            }
-            /// check whether sdbeg > CLC or MVC
-            ProfileSample lowestsample = FindLowestProfileFast(smallincrement, 1e30, constraints.resprofileslist);
-            if ( lowestsample.itprofile != constraints.resprofileslist.end() ) {
-                bound = std::min(lowestsample.sd, constraints.mvccombined[0]);
-            }
-            else {
-                bound = constraints.mvccombined[0];
-            }
-	    // if (FindLowestProfile(smallincrement,tmpprofile,tres,constraints.resprofileslist)) {
-	    //     bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[0]);
-	    // }
-	    // else{
-	    //     bound = constraints.mvccombined[0];
-	    // }
-            if (sdstartnew <= bound) {
-                break;
+        ret = IntegrateForward(constraints,0,sdbeg,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
+        if(ret != INT_BOTTOM && resprofile.nsteps>2) {
+            constraints.resprofileslist.push_back(resprofile);
+        }
+        if(ret == INT_BOTTOM || resprofile.nsteps < 5) {
+            // Integration failed. However, if qd(0) = 0,  there was probably a singularity, and one can try different values for sdot
+            std::vector<dReal> qd(constraints.trajectory.dimension);
+            constraints.trajectory.Evald(0,qd);
+            if(VectorNorm(qd) <= 5e-2) {
+                dReal s = 1e-2;
+                dReal ntrials = 1000.;
+                dReal mvcsd = std::min(constraints.SdLimitCombined(s),10.);
+                dReal incr = mvcsd / (ntrials+0.001);
+                for(dReal trialsd = incr; trialsd < mvcsd; trialsd += incr) {
+                    dReal betas = constraints.SddLimitBeta(s,trialsd);
+                    dReal betas2 = constraints.SddLimitBeta(s*2,trialsd+betas*s);
+                    if(betas2 > betas) {
+                        constraints.resprofileslist.push_back(StraightProfile(0,s,trialsd-s*betas,trialsd));
+                        ret = IntegrateForward(constraints,s,trialsd,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
+                        if(resprofile.nsteps>1) {
+                            constraints.resprofileslist.push_back(resprofile);
+                        }
+                        break;
+                    }
+                }
             }
         }
-        if (sdstartnew > bound) {
-            message = str(boost::format("Sdbeg (%.15e) > CLC or MVC (%.15e), s = %.15e")%sdstartnew%bound%sstartnew);
-            std::cout << message << std::endl;
-            sdstartnew = bound;
 
-	    // integrateprofilesstatus = false;
-	    // continue;
-	    // }
-            // set the new sd
-            //sdstartnew = bound;
-            // this is a HACK in order to get things working.
-            constraints.resprofileslist.push_back(StraightProfile(0, sstartnew, 0, bound));
-        }
-        /// integrate from s = 0
-        ret = IntegrateForward(constraints, sstartnew, sdstartnew, constraints.integrationtimestep, resprofile, MAXINTSTEPS, testaboveexistingprofiles, testmvc, zlajpah);
-        
-        if (ret == INT_BOTTOM) {
-            message = str(boost::format("FW reached 0 from IntegrateForward. sstartnew=%.15e, sdstartnew=%.15e")%sstartnew%sdstartnew);
+        // Now if it still fails, shouganai
+        if(ret==INT_BOTTOM) {
+            message = "Start profile hit 0";
             std::cout << message << std::endl;
             integrateprofilesstatus = false;
 
-	    /// keep record where it hits zero
-	    if (rep == constraints.extrareps) {
-		if (resprofile.nsteps > 1) {
-		    constraints.resprofileslist.push_back(resprofile);
-		}
-	    }
-	    
+            /// keep record where it hits zero
+            if (rep == constraints.extrareps) {
+                if (resprofile.nsteps > 1) {
+                    constraints.resprofileslist.push_back(resprofile);
+                }
+            }
+
             continue;
-        }
-        // }
-        if (resprofile.nsteps > 1) {
-            constraints.resprofileslist.push_back(resprofile);
         }
 
         /////////////////  Integrate from end /////////////////////
-        /// fix end
-        dReal sendnew = constraints.trajectory.duration, sdendnew = sdend;
-        constraints.FixEnd(sendnew, sdendnew);
-        if (constraints.trajectory.duration - sendnew <= TINY2 || sdendnew > constraints.SdLimitCombined(sendnew) - TINY2 || sdendnew < 0 ) {
-            sdendnew = sdend;
-        }
-        /// check whether sdend > CLC or MVC
-        ProfileSample lowestsample = FindLowestProfileFast(constraints.trajectory.duration - smallincrement, 1e30, constraints.resprofileslist);
-        if (lowestsample.itprofile != constraints.resprofileslist.end()) {
-            bound = std::min(lowestsample.sd, constraints.mvccombined[constraints.mvccombined.size() - 1]);
-        }
-        else {
-            bound = constraints.mvccombined[constraints.mvccombined.size() - 1];
-        }
-       // if (FindLowestProfile(constraints.trajectory.duration-smallincrement,tmpprofile,tres,constraints.resprofileslist)) {
-       //     bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[constraints.mvccombined.size()-1]);
-       // }
-       // else{
-       //     bound = constraints.mvccombined[constraints.mvccombined.size()-1];
-       // }
-        if (sdendnew > bound) {
-            message = str(boost::format("Sdend (%.15e) > CLC or MVC (%.15e)")%sdendnew%bound);
-            std::cout << message << std::endl;
-            integrateprofilesstatus = false;
-            continue;
-        }
-        /// integrate back from s = send
-        ret = IntegrateBackward(constraints, sendnew, sdendnew, constraints.integrationtimestep, resprofile, MAXINTSTEPS, testaboveexistingprofiles, testmvc);
-        
-        if (ret == INT_BOTTOM) {
-            message = str(boost::format("BW reached 0, s = %.15e, sd = %.15e")%sendnew%sdendnew);
-            std::cout << message << std::endl;
-            integrateprofilesstatus = false;
-
-	    /// keep record where it hits zero
-	    if (rep == constraints.extrareps) {
-		if (resprofile.nsteps > 1) {
-		    constraints.resprofileslist.push_back(resprofile);
-		}
-	    }
-
-            continue;
-        }
-        // }
-        if (resprofile.nsteps > 1) {
+        ret = IntegrateBackward(constraints,constraints.trajectory.duration,sdend,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
+        if(ret != INT_BOTTOM && resprofile.nsteps>2) {
             constraints.resprofileslist.push_back(resprofile);
+        }
+        if(ret == INT_BOTTOM || resprofile.nsteps < 5) {
+            // Integration failed. However, if qd(send) = 0, there was probably a singularity, and one can try different values for sdot
+            dReal send = constraints.trajectory.duration;
+            std::vector<dReal> qd(constraints.trajectory.dimension);
+            constraints.trajectory.Evald(send,qd);
+            //std::cout << send << " " << qd[0] << " " << qd[1] << " " << qd[2]  << " VN\n";
+            if(VectorNorm(qd) <= 5e-2) {
+                dReal ds = 1e-2;
+                dReal s = send - ds;
+                dReal ntrials = 1000.;
+                dReal mvcsd = std::min(constraints.SdLimitCombined(s),10.);
+                dReal incr = mvcsd / (ntrials+0.001);
+                for(dReal trialsd = incr; trialsd < mvcsd; trialsd += incr) {
+                    dReal alphas = constraints.SddLimitAlpha(s,trialsd);
+                    dReal alphas2 = constraints.SddLimitAlpha(s-ds,trialsd-alphas*ds);
+                    //std::cout << trialsd << " " << alphas << " " << alphas2 << "\n";
+                    if(alphas2 < alphas) {
+                        constraints.resprofileslist.push_back(StraightProfile(s,send,trialsd,trialsd+alphas*ds));
+                        ret = IntegrateBackward(constraints,s,trialsd,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
+                        if(resprofile.nsteps>1) {
+                            constraints.resprofileslist.push_back(resprofile);
+                        }
+                        break;
+                    }
+                }
+
+            }
+        }
+        if(ret==INT_BOTTOM) {
+        }
+        // Now if it still fails, shouganai
+        if(ret==INT_BOTTOM) {
+            message = "End profile hit 0";
+            std::cout << message << std::endl;
+            integrateprofilesstatus = false;
+
+            /// keep record where it hits zero
+            if (rep == constraints.extrareps) {
+                if (resprofile.nsteps > 1) {
+                    constraints.resprofileslist.push_back(resprofile);
+                }
+            }
+
+            continue;
         }
 
         /////////////////////// Zlajpah //////////////////////////
@@ -2618,14 +2419,14 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
             message = str(boost::format("Could not recover from CLC discontinuous s = %.15e")%sdiscontinuous);
         }
 
-        /// estimate resulting trajectory duration
+        // Estimate resulting trajectory duration
         constraints.resduration = 0;
         // Profile profile;
         dReal ds = constraints.integrationtimestep;
-        int nsamples = int((constraints.trajectory.duration - TINY)/ds);
-        dReal s, sdcur, sdnext;
-        lowestsample = FindLowestProfileFast(0, 1e30, constraints.resprofileslist);
-        if (lowestsample.itprofile != constraints.resprofileslist.end()) {
+        int nsamples = int((constraints.trajectory.duration-TINY)/ds);
+        dReal s,sdcur,sdnext;
+        ProfileSample lowestsample = FindLowestProfileFast(0, INF, constraints.resprofileslist);
+        if( lowestsample.itprofile != constraints.resprofileslist.end() ) {
             sdcur = lowestsample.sd;
         }
         else {
@@ -2634,27 +2435,18 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
             integrateprofilesstatus = false;
             continue;
         }
-	// if (FindLowestProfile(0,profile,tres,constraints.resprofileslist)) {
-	//     sdcur = profile.Evald(tres);
-	// }
-	// else{
-	//     message = "CLC discontinuous at 0";
-	//     std::cout << message << std::endl;
-	//     integrateprofilesstatus = false;
-	//     continue;
-	// }
         bool clcdiscontinuous = false;
         for (int i = 1; i <= nsamples; i++) {
             s = i*ds;
-            ProfileSample lowestsample = FindLowestProfileFast(s, 1e30, constraints.resprofileslist);
-            if ( lowestsample.itprofile != constraints.resprofileslist.end() ) {
+            ProfileSample lowestsample = FindLowestProfileFast(s, INF, constraints.resprofileslist);
+            if( lowestsample.itprofile != constraints.resprofileslist.end() ) {
                 sdnext = lowestsample.sd;
                 constraints.resduration += 2*ds/(sdcur + sdnext);
                 sdcur = sdnext;
             }
             else{
                 clcdiscontinuous = true;
-                lowestsample = FindLowestProfileFast(s, 1e30, constraints.resprofileslist);
+                lowestsample = FindLowestProfileFast(s, INF, constraints.resprofileslist);
                 break;
             }
         }
@@ -2682,10 +2474,10 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
     // d3 = t3 - t2;
     // dtot = t3 - t0;
 
-    // std::cout << "Constraints preprocessing : " << d1.count() << " \n ";
-    // std::cout << "Profiles calculation : " <<  d2.count() << " \n ";
-    // std::cout << "Duration calculation : " <<  d3.count() << " \n ";
-    // std::cout << "Total PP : " <<  dtot.count() << " \n ";
+//std::cout << "Constraints preprocessing : " << d1.count() << " \n ";
+//std::cout << "Profiles calculation : " <<  d2.count() << " \n ";
+//std::cout << "Duration calculation : " <<  d3.count() << " \n ";
+//std::cout << "Total PP : " <<  dtot.count() << " \n ";
 
     return TOPP_OK;
 }
@@ -2718,20 +2510,27 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
         return TOPP_CLC_ERROR;
     }
 
-    /// determine the lowest profile at t = 0
+    // dReal sdiscontinuous = Recover(constraints,constraints.integrationtimestep);
+    // if(sdiscontinuous>-0.5) {
+    //     std::cout <<  "Could not recover from CLC discontinuous\n";
+    //     return TOPP_CLC_ERROR;
+    // }
+
+
+    // Determine the lowest profile at t=0
     dReal bound;
-    ProfileSample lowestsample = FindLowestProfileFast(smallincrement, 1e30, constraints.resprofileslist);
-    if (lowestsample.itprofile != constraints.resprofileslist.end()) {
-        bound = std::min(lowestsample.sd, constraints.mvccombined[0]);
+    ProfileSample lowestsample = FindLowestProfileFast(smallincrement, INF, constraints.resprofileslist);
+    if( lowestsample.itprofile != constraints.resprofileslist.end() ) {
+        bound = std::min(lowestsample.sd,constraints.mvccombined[0]);
     }
     else { // just to make sure the profile is below mvccombined
         bound = constraints.mvccombined[0];
     }
 
-   // if (FindLowestProfile(smallincrement,tmpprofile,tres,constraints.resprofileslist))
-   //     bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[0]);
-   // else // just to make sure the profile is below mvccombined
-   //     bound = constraints.mvccombined[0];
+    // if (FindLowestProfile(smallincrement,tmpprofile,tres,constraints.resprofileslist))
+    //     bound = std::min(tmpprofile.Evald(tres),constraints.mvccombined[0]);
+    // else // just to make sure the profile is below mvccombined
+    //     bound = constraints.mvccombined[0];
 
     if (sdbegmin > bound) {
         std::cout << "[TOPP::VIP] sdbegmin is above the CLC or the combined MVC \n";
@@ -2753,8 +2552,8 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
         sdendmax = tmpprofile.Evald(tmpprofile.duration);
     else if (resintfw == INT_MVC || resintfw == INT_PROFILE) {
         /// look for the lowest profile at the end
-       // if (FindLowestProfile(constraints.trajectory.duration-smallincrement, tmpprofile, tres, constraints.resprofileslist) && tmpprofile.Evald(tres) <= constraints.mvccombined[constraints.mvccombined.size()-1])
-       //     sdendmax = tmpprofile.Evald(tres);
+        // if (FindLowestProfile(constraints.trajectory.duration-smallincrement, tmpprofile, tres, constraints.resprofileslist) && tmpprofile.Evald(tres) <= constraints.mvccombined[constraints.mvccombined.size()-1])
+        //     sdendmax = tmpprofile.Evald(tres);
 
         ProfileSample lowestsample = FindLowestProfileFast(constraints.trajectory.duration-smallincrement, constraints.mvccombined[constraints.mvccombined.size() - 1], constraints.resprofileslist);
         if (lowestsample.itprofile != constraints.resprofileslist.end()) {
@@ -2841,8 +2640,8 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
 
     /// determine the lowest profile at send
     dReal bound;
-    ProfileSample lowestsample = FindLowestProfileFast(constraints.trajectory.duration - smallincrement, 1e30, constraints.resprofileslist);
-    if (lowestsample.itprofile != constraints.resprofileslist.end()) {
+    ProfileSample lowestsample = FindLowestProfileFast(constraints.trajectory.duration-smallincrement, INF, constraints.resprofileslist);
+    if( lowestsample.itprofile != constraints.resprofileslist.end() ) {
         bound = std::min(lowestsample.sd, constraints.mvccombined[constraints.mvccombined.size() - 1]);
     }
     else {
@@ -2877,8 +2676,8 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
     // Phi profile hits MVC or CLC
     else if (resintbw == INT_MVC || resintbw == INT_PROFILE) {
         /// look for the lowest profile at s = 0
-	/// if (FindLowestProfile(smallincrement, tmpprofile, tres, constraints.resprofileslist) && tmpprofile.Evald(tres) <= constraints.mvccombined[0])
-	///     sdbegmax = tmpprofile.Evald(tres);
+        /// if (FindLowestProfile(smallincrement, tmpprofile, tres, constraints.resprofileslist) && tmpprofile.Evald(tres) <= constraints.mvccombined[0])
+        ///     sdbegmax = tmpprofile.Evald(tres);
 
         ProfileSample lowestsample = FindLowestProfileFast(smallincrement, constraints.mvccombined[0], constraints.resprofileslist);
         if (lowestsample.itprofile != constraints.resprofileslist.end()) {
@@ -2890,8 +2689,8 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
             int count = 0;
             int resintfw;
             dReal dint = constraints.integrationtimestep;
-            /// if integrating from sdbegmax fails with INT_BOTTOM or INT_MVC, then the trajectory is not traversable. 
-	    /// However, since integrating forward from a high sdbegmax can be risky, we give three chances by decreasing the value of the integration step.
+            /// if integrating from sdbegmax fails with INT_BOTTOM or INT_MVC, then the trajectory is not traversable.
+            /// However, since integrating forward from a high sdbegmax can be risky, we give three chances by decreasing the value of the integration step.
             while (count < 3) {
                 count++;
                 resintfw = IntegrateForward(constraints, 0, sdbegmax, dint, tmpprofile, MAXINTSTEPS);
@@ -3146,10 +2945,10 @@ bool SolveQuadraticEquation(dReal a0, dReal a1, dReal a2, dReal& sol, dReal lowe
     return sol >= lowerbound - epsilon && sol <= upperbound + epsilon;
 }
 
-bool IsAboveProfilesList(dReal s, dReal sd, const std::list<Profile>&resprofileslist, bool searchbackward, dReal softborder) {
-    ProfileSample sample = FindLowestProfileFast(s, 1e30, resprofileslist);
-    if ( sample.itprofile != resprofileslist.end() ) {
-        if (sd > sample.sd+softborder) {
+bool IsAboveProfilesList(dReal s, dReal sd, const std::list<Profile>&resprofileslist, bool searchbackward, dReal softborder){
+    ProfileSample sample = FindLowestProfileFast(s, INF, resprofileslist);
+    if( sample.itprofile != resprofileslist.end() ) {
+        if( sd > sample.sd+softborder ) {
             return true;
         }
     }
@@ -3321,11 +3120,11 @@ ProfileSample FindEarliestProfileIntersection(dReal sstart, dReal sdstart, dReal
                 dReal snext = itprofile->svect.at(index);
                 dReal sdnext = itprofile->sdvect.at(index);
                 dReal sddnext = itprofile->sddvect.at(index);
-                tintersect = 1e30; // time from sstart
-                if ( fabs(sddstart) <= TINY ) {
-                    if ( fabs(sddnext) <= TINY ) {
-                        if ( fabs(sdstart-sdnext) > TINY ) {
-                            RAVELOG_ERROR_FORMAT("sddstart and sddnext are both close to 0 at s = %.15e, sd diff = %.15e, don't know that to do", sstart%fabs(sdstart-sdnext));
+                tintersect=INF; // time from sstart
+                if( fabs(sddstart) <= TINY ) {
+                    if( fabs(sddnext) <= TINY ) {
+                        if( fabs(sdstart - sdnext) > TINY ) {
+                            //RAVELOG_ERROR_FORMAT("sddstart and sddnext are both close to 0 at s=%.15e, sd diff=%.15e, don't know that to do", sstart%fabs(sdstart-sdnext));
                             continue;
                         }
                         else {

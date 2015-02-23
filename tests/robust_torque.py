@@ -45,7 +45,7 @@ RaveSetDebugLevel(0)
 
 
 # Set-up
-ntraj = 10000
+ntraj = 1000
 ncurve = 1
 discrtimestep = 0.01
 vmax = zeros(ndof)
@@ -103,9 +103,9 @@ for j in range(ntraj):
     else:
         nfail += 1
         print ">>>>>>>>>>>>>>>>>>> TOPP could not retime ", nfail
-        TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
-        TOPPopenravepy.PlotTorques(robot,traj0,traj1,0.01,taumin,taumax,3)
-        raw_input()
+        #TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
+        #TOPPopenravepy.PlotTorques(robot,traj0,traj1,0.01,taumin,taumax,3)
+        #raw_input()
 
       
 print "\nNumber of failures:", nfail

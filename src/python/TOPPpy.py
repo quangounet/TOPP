@@ -117,7 +117,7 @@ def ComputeKinematicConstraints(traj, amax, discrtimestep):
 
 ######################## Plots ############################
 
-def PlotProfiles(profileslist0, switchpointslist=[], figstart=None):
+def PlotProfiles(profileslist0, switchpointslist=[], figstart=None, colorscheme = 1):
     from pylab import figure, clf, hold, plot, gca, axis, title, xlabel, ylabel
     profileslist = list(profileslist0)
     if figstart is not None:
@@ -164,9 +164,10 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=None):
             plot(sw[0], sw[1], 'yo', markersize = 8)
     smax, sdmax = mvcbobrow[0], M
     axis([0, smax, 0, sdmax])
-    #title('Maximum Velocity Curves and profiles', fontsize=20)
-    xlabel('$s$', fontsize = 22)
-    ylabel('$\dot s$', fontsize = 22)
+    if colorscheme == 1:
+        title('Maximum Velocity Curves and profiles', fontsize=20)
+        xlabel('$s$', fontsize=22)
+        ylabel('$\dot s$', fontsize=22)
     return smax, sdmax  # return this for PlotPhase (yurk!)
 
 

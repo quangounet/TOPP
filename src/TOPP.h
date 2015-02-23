@@ -87,7 +87,7 @@ namespace TOPP {
 #define MAXSD 200
 #define BOBROWEXCLUDENOTDEFINED -1
 
-#define MAXINTSTEPS 1e15
+#define MAXINTSTEPS 1e8
     
 ////////////////////////////////////////////////////////////////////
 /////////////////////////// Exception //////////////////////////////
@@ -262,7 +262,7 @@ class Constraints {
     }
 
     virtual std::vector<std::vector<dReal> > GetABCConstraints(dReal s) {
-	std::cout << "Virtual method not implemented\n";
+    	std::cout << "Virtual method not implemented\n";
         throw TOPPException("Virtual method not implemented");
     }
     
@@ -354,20 +354,6 @@ class Constraints {
         std::cout << "Virtual method not implemented\n";
         throw TOPPException("Virtual method not implemented");
     }
-    
-    virtual void FixStart(dReal& sstartnew, dReal& sdstartnew, dReal timestep) {
-	// Fixes the integration at s = 0 when there is a singularity there
-	// If there's nothing to do, then sstartnew = 0
-	// Else sstartnew > 0 and sdstartnew will be the value that allows going through the singularity
-        sstartnew = 0;
-    }
-
-    virtual void FixEnd(dReal& sendnew,dReal& sdendnew) {
-	// Fix the integration at s = send when there is a singularity there
-	// If there's nothing to do, then sendnew = send
-	// Else sendnew < send and sdendnew will be the value that allows going through the singularity
-        sendnew = trajectory.duration;
-    }
 
     virtual void AddSwitchPoint(int i, int switchpointtype, dReal sd = -1);
     virtual void AddSwitchPoint2(dReal s, dReal sd, int switchpointtype);
@@ -448,7 +434,7 @@ int IntegrateForward(Constraints& constraints, dReal sstart, dReal sdstart, dRea
 /// \param[in] dt the integration timestep
 /// \param[in] maxsteps the maximum steps to integrate for
 
-int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile, 
+int IntegrateBackward(Constraints& constraints, dReal sstart, dReal sdstart, dReal dt, Profile& resprofile,
 		      int maxsteps = MAXINTSTEPS, bool testaboveexistingprofiles  = true, bool testmvc = true, bool zlajpah = false);
 /// Integrate backward from (sstart,sdstart)
 /// \param[in] dt the integration timestep
