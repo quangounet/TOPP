@@ -26,6 +26,8 @@ from TOPPbindings import TOPPInstance
 def ProfileFromLines(lines):
     l = lines[0]
     [duration, dt] = [double(x) for x in l.split(' ')]
+    if duration<= 0 :
+        return None
     l = lines[1]
     sarray = array([double(x) for x in l.split(' ')])
     l = lines[2]
@@ -39,6 +41,9 @@ def ProfilesFromString(s):
     lines = [l.strip(" \n") for l in s.split('\n')]
     n = len(lines) / 3
     for i in range(n):
+        l = ProfileFromLines(lines[3 * i:3 * i + 3])
+        if l is None:
+            continue
         profileslist.append(ProfileFromLines(lines[3 * i:3 * i + 3]))
     return profileslist
 
@@ -277,3 +282,4 @@ def string2p(s):
         p2v.append(l[2 * (ndof + 1) + 1:3 * (ndof + 1)])
         p3v.append(l[3 * (ndof + 1) + 1:4 * (ndof + 1)])
     return Tv, p0v, p1v, p2v, p3v
+

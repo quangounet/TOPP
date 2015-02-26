@@ -197,9 +197,8 @@ def InsertIntoTrajectory(traj,traj2,s0,s1):
 
 
 def Concatenate(traj1,traj2):
-    c1 = traj1.chunkslist
-    c2 = traj2.chunkslist
-    c1.extend(c2)
+    c1 = list(traj1.chunkslist)
+    c1.extend(traj2.chunkslist)
     return PiecewisePolynomialTrajectory(c1)
 
 
