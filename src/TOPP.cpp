@@ -2288,7 +2288,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
 }
 
 
-int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmin, dReal& sdendmax){
+int VIP(Constraints& constraints, dReal sdbegmin, dReal& sdbegmax, dReal& sdendmin, dReal& sdendmax){
     if (constraints.trajectory.duration <= 0) {
         std::cout << "[TOPP::VIP] Warning : trajectory duration is <= 0 \n";
         return TOPP_SHORT_TRAJ;
@@ -2344,7 +2344,7 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
     }
 
     sdbegmax = std::min(sdbegmax,bound-constraints.bisectionprecision);
-
+    
     bool testaboveexistingprofiles = true, testmvc = true, zlajpah = true;
 
     // Compute sdendmax by integrating forward from (0,sdbegmax)
@@ -2467,7 +2467,7 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
 }
 
 
-int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dReal sdendmin, dReal sdendmax) {
+int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dReal sdendmin, dReal& sdendmax) {
     if (constraints.trajectory.duration <= 0) {
         std::cout << "[TOPP::VIPBackward] Warning : trajectory duration is <= 0 \n";
         return TOPP_SHORT_TRAJ;

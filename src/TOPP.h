@@ -406,10 +406,10 @@ int ComputeLimitingCurves(Constraints& constraints);
 int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend);
 
 // Velocity Interval Propagation
-int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmin, dReal& sdendmax);
+ int VIP(Constraints& constraints, dReal sdbegmin, dReal& sdbegmax, dReal& sdendmin, dReal& sdendmax);
 
 // Velocity Interval Propagation from sdend backwards
-int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dReal sdendmin, dReal sdendmax);
+int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dReal sdendmin, dReal& sdendmax);
 
 // Emergency stopping (integrate forward the minimum acceleration)
 dReal  EmergencyStop(Constraints& constraints, dReal sdbeg, Trajectory& restrajectory);
