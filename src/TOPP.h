@@ -377,6 +377,7 @@ class QuadraticConstraints : public Constraints {
     QuadraticConstraints(const std::string& constraintsstring);
     
     ////////////////////////////// Overloaded Methods //////////////////////////////
+    void ComputeMVCBobrow2();
     dReal SdLimitBobrowInit(dReal s);
     dReal SdLimitBobrowExclude(dReal s, int iexclude);
     std::pair<dReal, dReal> SddLimits(dReal s, dReal sd);
@@ -403,8 +404,8 @@ class QuadraticConstraints : public Constraints {
     void InterpolateDynamics(dReal s, std::vector<dReal>& a, std::vector<dReal>& b, std::vector<dReal>& c);
     /// Linearly interpolates the dynamics coefficients a, b, c
     
-    virtual void FixStart(dReal& sstartnew, dReal& sdstartnew, dReal timestep);
-    void FixEnd(dReal& sendnew, dReal& sdendnew);
+    /* virtual void FixStart(dReal& sstartnew, dReal& sdstartnew, dReal timestep); */
+    /* void FixEnd(dReal& sendnew, dReal& sdendnew); */
 
     std::vector<std::vector<dReal> > GetABCConstraints(dReal s);
 

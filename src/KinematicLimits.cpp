@@ -34,7 +34,6 @@ KinematicLimits::KinematicLimits(const std::string& constraintsstring){
     hasvelocitylimits =  VectorMax(vmax) > TINY;
 }
 
-
 void KinematicLimits::Discretize(){
     dReal s;
     std::vector<dReal> qd(trajectory.dimension), qdd(trajectory.dimension);
@@ -85,13 +84,17 @@ void KinematicLimits::ComputeSlopeDynamicSingularity(dReal s, dReal sd, std::vec
     s2 = s + delta;
     InterpolateDynamics(s,qd,qdd);
     InterpolateDynamics(s2,qd2,qdd2);
-
     slopesvector.resize(0);
     for(int i=0; i<trajectory.dimension; i++) {
         qdp = (qd2[i]-qd[i])/delta;
         qddp = (qdd2[i]-qdd[i])/delta;
-        slope = (-qddp*sd*sd)/((2*qdd[i]+qdp)*sd);
-        //std::cout << i << " " << slope << "***\n";
+        if (std::abs(qdd[i] + qdp) < TINY) {
+	    slope = 0;
+	}
+	else {
+	    slope = (-qddp*sd*sd)/((2*qdd[i]+qdp)*sd);
+	}
+        //std::cout << i << " " << slope << "***" << qdd[i] << " " << qdp << " " << sd << "\n";
         slopesvector.push_back(slope);
     }
 }

@@ -88,6 +88,16 @@ void Constraints::ComputeMVCBobrow() {
 }
 
 void Constraints::ComputeMVCBobrow2() {
+    // ComputeMVCBobrow();
+    mvcbobrow.resize(ndiscrsteps);
+    mvcbobrowlower.resize(ndiscrsteps);
+    for (int i = 0; i < ndiscrsteps; i++) {
+        mvcbobrow[i] = SdLimitBobrowInit(discrsvect[i]);
+        mvcbobrowlower[i] = -1.0; //SdLimitBobrowInitLower(discrsvect[i]);
+    }
+}
+
+void QuadraticConstraints::ComputeMVCBobrow2() {
     /// \brief Computes both lower and upper limits of sd
     /// for handling the case with islands
     mvcbobrow.resize(ndiscrsteps);
@@ -161,7 +171,7 @@ void Constraints::WriteMVCBobrow(std::stringstream& ss, dReal dt) {
         ss << SdLimitBobrow(t) << " ";
     }
     ss << SdLimitBobrow(duration);
-
+    
     /// write mvcbobrowlower
     ss << "\n";
     ss << duration << " " << dt << "\n";
@@ -173,49 +183,33 @@ void Constraints::WriteMVCBobrow(std::stringstream& ss, dReal dt) {
         ss << SdLimitBobrowLower(t) << " ";
     }
     ss << SdLimitBobrowLower(duration);
-
-    // /// TODO : change it to be more efficient
-    // bool hasmvclower = false;
-    // const char* separator = "";
-    // dReal sd;
-    // for (dReal t = 0; t < duration; t += dt) {
-    //  if (SdLimitBobrowLower(t) >= 0) {
-    //      hasmvclower = true;
-    //      break;
-    //  }
-    // }
-    // if (hasmvclower) {
-    // // if (hasislands) {
-    //  std::cout << "HEYYYYY\n";
-    //  ss << "\n";
-    //  ss << duration << " " << dt << "\n";
-    //  for (dReal t = 0; t < duration; t += dt) {
-    //      if (SdLimitBobrowLower(t) >= 0) {
-    //      ss << separator << t;
-    //      separator = " ";
-    //      }
-    //  }
-    //  if (SdLimitBobrowLower(duration) >= 0) {
-    //      ss << separator << duration << "\n";
-    //  }
-    //  else {
-    //      ss << "\n";
-    //  }
-
-    //  separator = ""; /// reset the separator
-    //  for (dReal t = 0; t < duration; t += dt) {
-    //      sd = SdLimitBobrowLower(t);
-    //      if (sd >= 0) {
-    //      ss << separator << sd;
-    //      separator = " ";
-    //  }
-    //  }
-    //  sd = SdLimitBobrowLower(duration);
-    //  if (sd >= 0) {
-    //      ss << separator << sd;
-    //  }
-    // }
 }
+
+// void QuadraticConstraints::WriteMVCBobrow(std::stringstream& ss, dReal dt) {
+//     dReal duration = trajectory.duration;
+//     /// write mvcbobrow
+//     ss << duration << " " << dt << "\n";
+//     for (dReal t = 0; t < duration; t += dt) {
+//         ss << t << " ";
+//     }
+//     ss << duration << "\n";
+//     for (dReal t = 0; t < duration; t += dt) {
+//         ss << SdLimitBobrow(t) << " ";
+//     }
+//     ss << SdLimitBobrow(duration);
+
+//     /// write mvcbobrowlower
+//     ss << "\n";
+//     ss << duration << " " << dt << "\n";
+//     for (dReal t = 0; t < duration; t += dt) {
+//         ss << t << " ";
+//     }
+//     ss << duration << "\n";
+//     for (dReal t = 0; t < duration; t += dt) {
+//         ss << SdLimitBobrowLower(t) << " ";
+//     }
+//     ss << SdLimitBobrowLower(duration);
+// }
 
 void Constraints::WriteMVCDirect(std::stringstream& ss, dReal dt) {
     std::vector<dReal> qd(trajectory.dimension);
@@ -802,6 +796,127 @@ dReal QuadraticConstraints::SdLimitBobrowInit(dReal s) {
         }
     }
     return sdmin;
+}
+
+dReal QuadraticConstraints::SdLimitBobrowInitUpper(dReal s) {
+    /// \brief Returns sd which is the highest edge between feasible-infeasible area
+    /// We have \alpha(s, sd - TINY) < \beta(s, sd - TINY) (infeasible area above)
+    std::vector<dReal> a, b, c;
+    InterpolateDynamics(s, a, b, c);
+    if (VectorNorm(a) < TINY) { ///? why check for VectorNorm(a)?
+        if (s < 1e-2) {
+            s += 1e-3;
+        }
+        else {
+            s -= 1e-3;
+        }
+        InterpolateDynamics(s, a, b, c);
+    }
+
+    bool possibleisland = false;
+    std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
+    if (sddlimits.first >= sddlimits.second) possibleisland = true;
+
+    std::vector<dReal> sdmin(0);
+    sdmin.push_back(INF);
+    for (int k = 0; k < nconstraints; k++) {
+        for (int m = k + 1; m < nconstraints; m++) {
+            dReal num, denum, r;
+            // If we have a pair of alpha and beta bounds, 
+	    // then determine the sdot for which the two bounds are equal
+            if (a[k]*a[m] < 0) {
+                num = a[k]*c[m] - a[m]*c[k];
+                denum = -a[k]*b[m] + a[m]*b[k];
+                if (std::abs(denum) > TINY) {
+                    r = num/denum;
+                    if (r >= 0) {
+                        r = sqrt(r);
+                        std::vector<dReal>::iterator it = std::lower_bound(sdmin.begin(), sdmin.end(), r);
+                        sdmin.insert(it, r);
+                    }
+                }
+            }
+        }
+    }
+
+    if (possibleisland) {
+        std::vector<dReal>::iterator it;
+        for (it = sdmin.begin(); it != sdmin.end(); it++) {
+            sddlimits = SddLimits(s, *it);
+            if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
+                /// this is the sd at the edge of the lower island
+                // std::cout << "hasisland at " << s << "\n";
+                hasislands = true;
+                it++;
+                return *it; /// return the upper edge
+            }
+        }
+        /// the normal mvc hits zero
+        return 0;
+    }
+    else {
+        /// no island
+        return sdmin[0];
+    }
+}
+
+dReal QuadraticConstraints::SdLimitBobrowInitLower(dReal s) {
+    /// \brief Returns sd which is the lowest edge between feasible-infeasible area
+    /// If there is any island, we have \alpha(s, sd - TINY) > \beta(s, sd - TINY) (infeasible area below)
+    std::vector<dReal> a, b, c;
+    InterpolateDynamics(s, a, b, c);
+    if (VectorNorm(a) < TINY) { ///? why check for VectorNorm(a)?
+        if (s < 1e-2) {
+            s += 1e-3;
+        }
+        else {
+            s -= 1e-3;
+        }
+        InterpolateDynamics(s, a, b, c);
+    }
+
+    bool possibleisland = false;
+
+    std::pair<dReal, dReal> sddlimits = SddLimits(s, 0);
+    if (sddlimits.first >= sddlimits.second) possibleisland = true;
+
+    if (possibleisland) {
+        std::vector<dReal> sdmin(0);
+        sdmin.push_back(INF);
+        for (int k = 0; k < nconstraints; k++) {
+            for (int m = k + 1; m < nconstraints; m++) {
+                dReal num, denum, r;
+                // If we have a pair of alpha and beta bounds, then determine the sdot for which the two bounds are equal
+                if (a[k]*a[m] < 0) {
+                    num = a[k]*c[m] - a[m]*c[k];
+                    denum = -a[k]*b[m] + a[m]*b[k];
+                    if (std::abs(denum) > TINY) {
+                        r = num/denum;
+                        if (r >= 0) {
+                            r = sqrt(r);
+                            std::vector<dReal>::iterator it = std::lower_bound(sdmin.begin(), sdmin.end(), r);
+                            sdmin.insert(it, r);
+                        }
+                    }
+                }
+            }
+        }
+        std::vector<dReal>::iterator it;
+        for (it = sdmin.begin(); it != sdmin.end(); it++) {
+            sddlimits = SddLimits(s, *it);
+            if (std::abs(sddlimits.first - sddlimits.second) < TINY) {
+                /// this is the sd at the edge of the lower island
+                // std::cout << "hasisland at " << s << "\n";
+                hasislands = true;
+                return *it;
+            }
+        }
+        return INF;
+    }
+    else {
+        /// no island
+        return -1;
+    }
 }
 
 dReal QuadraticConstraints::SdLimitBobrowExclude(dReal s, int iexclude) {
@@ -2264,7 +2379,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
 
         /////////////////  Compute the CLC /////////////////////
         ret = ComputeLimitingCurves(constraints);
-        std::cout << "COMPUTE CLC result: " << ret << "\n";
+        // std::cout << "COMPUTE CLC result: " << ret << "\n";
         if (ret != CLC_OK) {
             message = "CLC failed";
             std::cout << message << std::endl;
