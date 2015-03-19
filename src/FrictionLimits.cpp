@@ -1,5 +1,7 @@
 // -*- coding: utf-8 -*-
+// FrictionLimits.cpp
 // Copyright (C) 2013 Quang-Cuong Pham <cuong.pham@normalesup.org>
+//                    & Puttichai Lertkultanon <L.Puttichai@gmail.com>
 //
 // This file is part of the Time-Optimal Path Parameterization (TOPP) library.
 // TOPP is free software: you can redistribute it and/or modify
@@ -38,8 +40,9 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
     getline(iss, buff, '\n');
     VectorFromString(buff, vmax);
     ndof = probot->GetDOF();
-    getline(iss, buff, '\n');
-    nbottle = atoi(buff.c_str());
+    
+    probot->GetGrabbed(bottlesvector);
+    nbottle = bottlesvector.size();
 
     for (int i = 0; i < nbottle; i++) {
         objspecs.resize(0);
@@ -52,7 +55,6 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
 
     getline(iss, buff, '\n');
     mu = atof(buff.c_str());
-
     hasvelocitylimits = VectorMax(vmax) > TINY;
 
     std::vector<dReal> amax;
@@ -61,14 +63,16 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
     //Check Soundness
     BOOST_ASSERT(ndof == ptraj->dimension);
 
-    //Links
-    linksvector = probot->GetLinks();
-    nlink = linksvector.size();
-
-    int traylinkindex = nlink - (nbottle + 1);
-
+    //Links    
+    int traylinkindex = probot->GetLink("tray")->GetIndex();
+    
     for (int i = 0; i < nbottle; i++) {
-        mbvect.push_back(linksvector[nlink - (i + 1)]->GetMass());
+	dReal mb = 0;
+	for (int j = 0; j < int(bottlesvector[i]->GetLinks().size()); j++) {
+	    mb += bottlesvector[i]->GetLinks()[j]->GetMass();
+	}
+	// mb = bottlesvector[i]->GetLink("bottle_lowerpart")->GetMass();
+        mbvect.push_back(mb);
     }
 
     Vector g = probot->GetEnv()->GetPhysicsEngine()->GetGravity();
@@ -115,26 +119,6 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
             // Vector Pt = probot->GetLinks()[traylinkindex]->GetGlobalCOM();
             Vector nz_tray = Htray.rotate(worldz); //normal vector of the tray described in world's frame
 
-            // calculate Jacobians of the tray
-            // probot->CalculateJacobian(traylinkindex, Pt, jacobiant_p);
-            // probot->CalculateAngularVelocityJacobian(traylinkindex, jacobiant_o);
-
-            // if (!qdiszero) {
-            //  //******** Set new DOF values and compute derivatives of Jacobians **********
-            //     probot->SetDOFValues(qplusdeltaqd, CLA_Nothing);
-            //  //*** tray ***
-            //     probot->CalculateJacobian(traylinkindex, linksvector[traylinkindex]->GetGlobalCOM(), jacobiant_pdelta);
-            //     probot->CalculateAngularVelocityJacobian(traylinkindex, jacobiant_odelta);
-            //     MatrixAdd(jacobiant_pdelta, jacobiant_p, jacobiant_pdiff, norm_qd/delta, -norm_qd/delta);
-            //     MatrixAdd(jacobiant_odelta, jacobiant_o, jacobiant_odiff, norm_qd/delta, -norm_qd/delta);
-            // }
-
-            // Vector temp1 = MatrixMultVector(jacobiant_o, qd);
-            // Vector temp2 = MatrixMultVector(jacobiant_o, qdd) + MatrixMultVector(jacobiant_odiff, qd);
-
-            // Vector Pts = MatrixMultVector(jacobiant_p, qd);
-            // Vector Ptss = MatrixMultVector(jacobiant_p, qdd) + MatrixMultVector(jacobiant_pdiff, qd);
-
             dReal r2 = sqrt(2);
 
             //iterate over n bottles
@@ -147,30 +131,32 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
                 b.resize(0);
                 c.resize(0);
 
-                int bottlelinkindex = nlink - (i + 1);
+                // int bottlelinkindex = nlink - (i + 1);
                 dReal mb = mbvect[i];
                 dReal dx = dxvect[i];
                 dReal dy = dyvect[i];
                 dReal bottleh = bottlehvect[i];
 
-                RaveTransform<dReal> Hbottle = probot->GetLinks()[bottlelinkindex]->GetTransform();
-                Vector Pb = probot->GetLinks()[bottlelinkindex]->GetGlobalCOM();
+		RaveTransform<dReal> Hbottle = bottlesvector[i]->GetTransform();
+		Vector Pb = bottlesvector[i]->GetLink("bottle_lowerpart")->GetGlobalCOM();
 
                 Vector nx_bottle = Hbottle.rotate(worldx);
                 Vector ny_bottle = Hbottle.rotate(worldy);
                 Vector nz_bottle = Hbottle.rotate(worldz);
 
                 //Calculate Jacobians of the bottle
-                probot->CalculateJacobian(bottlelinkindex, Pb, jacobianb_p);
-                probot->CalculateAngularVelocityJacobian(bottlelinkindex, jacobianb_o);
+		//tray and bottle are moving as a rigid body, it is able to use traylinkindex
+		//when calculate linear velocity jacobian, use Pb instead of tray's COM
+                probot->CalculateJacobian(traylinkindex, Pb, jacobianb_p);
+                probot->CalculateAngularVelocityJacobian(traylinkindex, jacobianb_o);
 
                 if (!qdiszero) {
                     //******** Set new DOF values and compute derivatives of Jacobians **********
                     probot->SetDOFValues(qplusdeltaqd, CLA_Nothing);
 
                     //*** bottle ***
-                    probot->CalculateJacobian(bottlelinkindex, linksvector[bottlelinkindex]->GetGlobalCOM(), jacobianb_pdelta);
-                    probot->CalculateAngularVelocityJacobian(bottlelinkindex, jacobianb_odelta);
+                    probot->CalculateJacobian(traylinkindex, bottlesvector[i]->GetLink("bottle_lowerpart")->GetGlobalCOM(), jacobianb_pdelta);
+                    probot->CalculateAngularVelocityJacobian(traylinkindex, jacobianb_odelta);
                     MatrixAdd(jacobianb_pdelta, jacobianb_p, jacobianb_pdiff, norm_qd/delta, -norm_qd/delta);
                     MatrixAdd(jacobianb_odelta, jacobianb_o, jacobianb_odiff, norm_qd/delta, -norm_qd/delta);
 		    // MatrixAdd(jacobianb_pdelta, jacobianb_p, jacobianb_pdiff, 1.0/delta, -1.0/delta);
@@ -235,7 +221,7 @@ FrictionLimits::FrictionLimits(RobotBasePtr probot, std::string& constraintsstri
                 boost::multi_array<dReal, 2> localIb(boost::extents[3][3]), Ib(boost::extents[3][3]);
                 boost::multi_array<dReal, 2> Rb(boost::extents[3][3]);
 
-                matIb = linksvector[bottlelinkindex]->GetLocalInertia();
+                matIb = bottlesvector[i]->GetLink("bottle_lowerpart")->GetLocalInertia();
                 localIb = ExtractI(matIb); // bottle's inertia tensor in its own frame
 
                 Rb = ExtractR(Hbottle); // rotation matrix of the bottle

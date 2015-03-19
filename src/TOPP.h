@@ -362,6 +362,7 @@ class Constraints {
     std::vector<dReal> _svectcache, _sdvectcache, _sddvectcache; ///< caches
     bool _busingcache;
     
+    bool hasislands;
 };
 
 ////////////////////////////////////////////////////////////////////
@@ -397,7 +398,6 @@ class QuadraticConstraints : public Constraints {
 
     ////////////////////////////// Specific Members & Methods //////////////////////////////
     int nconstraints;  ///< number of constraints
-    bool hasislands;
     // int nislands;      ///< number of islands
     std::vector<std::vector<dReal> > avect, bvect, cvect;
     

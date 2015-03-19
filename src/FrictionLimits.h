@@ -39,7 +39,7 @@ public:
     std::vector<dReal> mbvect; // bottles' masses
     std::vector<dReal> dxvect, dyvect, bottlehvect;
     std::vector<dReal> objspecs; // dx(half width), dy(hale depth), half height (of the bottle)
-    std::vector<KinBody::LinkPtr> linksvector; // Vector of pointers to the links
+    std::vector<KinBodyPtr> bottlesvector; // Vector of pointers to bottles
 
     // C = Mv
     Vector MatrixMultVector(const boost::multi_array<dReal, 2>& M, const std::vector<dReal>& v);
