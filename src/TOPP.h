@@ -5,7 +5,7 @@
 // TOPP is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
-// at your option) any later version.
+// at your option, any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -81,7 +81,7 @@ typedef OpenRAVE::dReal dReal;
 typedef double dReal;
 #endif
 
-#define TINY 1e-10
+#define TINY 1e-7
 #define TINY2 1e-5
 #define INF 1.0e15
 #define MAXSD 200
