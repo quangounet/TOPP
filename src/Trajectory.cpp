@@ -5,7 +5,7 @@
 // TOPP is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
-// at your option) any later version.
+// at your option, any later version.
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -420,7 +420,6 @@ void Trajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal sd
 void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
                                 currentchunkindex, dReal& processedcursor, std::list<Chunk>::iterator&
                                 itcurrentchunk, std::list<Chunk>& chunkslist) {
-
     dReal t = 0, tnext;
     dReal snext = s + T*sd + 0.5*T*T*sdd;
     int chunkindex;
