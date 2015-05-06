@@ -1960,7 +1960,7 @@ int ComputeLimitingCurves(Constraints& constraints){
     Profile tmpprofile;
     dReal sswitch, sdswitch, sbackward, sdbackward, sforward, sdforward;
     int integratestatus;
-    bool testaboveexistingprofiles = true, testmvc = true, zlajpah = false;
+    bool testaboveexistingprofiles = true, testmvc = true, zlajpah = true;//false;
     constraints.ntangenttreated = 0;
     constraints.nsingulartreated = 0;
     int switchpointindex = 0; // for debugging purposes;
@@ -2384,7 +2384,7 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal& sdbegmax, dReal& sdendm
 	// three chances by decreasing the value of the integration step
 	while(count < MAXRETRY) {
 	    count++;
-	    resintbw = IntegrateBackward(constraints,constraints.trajectory.duration,sdendmax,dtint,tmpprofile,MAX_INT_STEPS);
+	    resintbw = IntegrateBackward(constraints,constraints.trajectory.duration,sdendmax,dtint,tmpprofile,MAX_INT_STEPS,testaboveexistingprofiles,testmvc,zlajpah);
 	    
 	    if (resintbw == INT_BOTTOM) std::cout << "[VIP] bw INT_BOTTOM\n";
 	    else if (resintbw == INT_END) std::cout << "[VIP] bw INT_END\n";
@@ -2420,14 +2420,14 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal& sdbegmax, dReal& sdendm
 	    // three chances by decreasing the value of the integration step
 	    while(count < MAXRETRY) {
 		count++;
-		resintbw = IntegrateBackward(constraints,constraints.trajectory.duration,sdendmax,dtint,tmpprofile,MAX_INT_STEPS);
+		resintbw = IntegrateBackward(constraints,constraints.trajectory.duration,sdendmax,dtint,tmpprofile,MAX_INT_STEPS,testaboveexistingprofiles,testmvc,zlajpah);
 		
 		if (resintbw == INT_BOTTOM) std::cout << "[VIP] bw INT_BOTTOM\n";
 		else if (resintbw == INT_END) std::cout << "[VIP] bw INT_END\n";
 		else if (resintbw == INT_MVC) std::cout << "[VIP] bw INT_MVC\n";
 		else if (resintbw == INT_PROFILE) std::cout << "[VIP] bw INT_PROFILE\n";
 		else if (resintbw == INT_MAXSTEPS) std::cout << "[VIP] bw INT_MAXSTEPS\n";
-		else std::cout << "[VIP] resintbw = " << resintfw << "\n";
+		else std::cout << "[VIP] resintbw = " << resintbw << "\n";
 		
 		if(resintbw != INT_BOTTOM && resintbw != INT_MVC) {
 		    break;
@@ -2440,7 +2440,15 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal& sdbegmax, dReal& sdendm
     }
     
     // Integrate from (send,0). If succeeds, then sdendmin = 0 and exits
-    int resintbw = IntegrateBackward(constraints,constraints.trajectory.duration,0,constraints.integrationtimestep,tmpprofile,MAX_INT_STEPS);
+    int resintbw = IntegrateBackward(constraints,constraints.trajectory.duration,0,constraints.integrationtimestep,tmpprofile,MAX_INT_STEPS,testaboveexistingprofiles,testmvc,zlajpah);
+    std::cout << "endpoint";
+    if (resintbw == INT_BOTTOM) std::cout << "[VIP] bw INT_BOTTOM\n";
+    else if (resintbw == INT_END) std::cout << "[VIP] bw INT_END\n";
+    else if (resintbw == INT_MVC) std::cout << "[VIP] bw INT_MVC\n";
+    else if (resintbw == INT_PROFILE) std::cout << "[VIP] bw INT_PROFILE\n";
+    else if (resintbw == INT_MAXSTEPS) std::cout << "[VIP] bw INT_MAXSTEPS\n";
+    else std::cout << "[VIP] resintbw = " << resintbw << "\n";
+
     if((resintbw == INT_END && tmpprofile.Evald(0)>=sdbegmin) || resintbw == INT_PROFILE) {
         constraints.resprofileslist.push_back(tmpprofile);
         sdendmin = 0;
@@ -2452,7 +2460,7 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal& sdbegmax, dReal& sdendm
     Profile bestprofile;
     while(sdupper-sdlower > constraints.bisectionprecision) {
         dReal sdtest = (sdupper + sdlower)/2;
-        int resintbw2 = IntegrateBackward(constraints,constraints.trajectory.duration,sdtest,constraints.integrationtimestep,tmpprofile,MAX_INT_STEPS);
+        int resintbw2 = IntegrateBackward(constraints,constraints.trajectory.duration,sdtest,constraints.integrationtimestep,tmpprofile,MAX_INT_STEPS,testaboveexistingprofiles,testmvc,zlajpah);
         if((resintbw2 == INT_END && tmpprofile.Evald(0)>=sdbegmin) || resintbw2 == INT_PROFILE) {
             sdupper = sdtest;
             bestprofile = tmpprofile;
