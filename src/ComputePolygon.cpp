@@ -177,7 +177,7 @@ bool read(soplex::SoPlex& mysoplex, std::istringstream& q, std::istringstream& G
                 row1.add(i,tmp);
             }
             else{
-                std::cerr << "unable to read constraint";
+                std::cerr << "[ComputePolygon] unable to read constraint";
                 return false;
             }
         }
@@ -193,7 +193,7 @@ bool read(soplex::SoPlex& mysoplex, std::istringstream& q, std::istringstream& G
                 row1.add(i,tmp);
             }
             else{
-                std::cerr << "unable to read constraint";
+                std::cerr << "[ComputePolygon] unable to read constraint";
                 return false;
             }
         }
@@ -246,6 +246,9 @@ bool ComputePolygon(const std::string& lp_q, const std::string& lp_G, const std:
     soplex::SoPlex lp;
     lp.setIntParam(soplex::SoPlex::OBJSENSE, soplex::SoPlex::OBJSENSE_MINIMIZE);
     lp.setIntParam(soplex::SoPlex::VERBOSITY, soplex::SoPlex::VERBOSITY_WARNING);
+    //    lp.setRealParam(soplex::SoPlex::FEASTOL, 1.e-12);
+    //lp.setRealParam(soplex::SoPlex::FPFEASTOL, 1.e-14);
+    //    std::cerr << lp.getRealParam(soplex::SoPlex::FEASTOL);
     read(lp, q, G, A, b, h);
 
     t1 = std::chrono::system_clock::now(); // Finished reading
@@ -263,8 +266,11 @@ bool ComputePolygon(const std::string& lp_q, const std::string& lp_G, const std:
     //std::cerr<<"sin cos "<<cos(4*M_PI/3)<<" "<<sin(4*M_PI/3)<<"\n";
     //std::cerr<<"sin cos "<<cos(2*M_PI/3)<<" "<<sin(2*M_PI/3)<<"\n";
 
-    if(abs(z1.first-z2.first)<1.e-6 && abs(z1.second-z2.second)<1.e-6)
+    if(abs(z1.first-z2.first)<1.e-6 && abs(z1.second-z2.second)<1.e-6){
+      std::cerr << "[ComputePolygon] initial expansion points coincide\n"; 
+	  std::cerr << "[ComputePolygon] differences "<<abs(z1.first-z2.first)<<" "<<abs(z1.second-z2.second)<<"\n";
         return false;
+    }
 
     // Make the first three vertices
     Vertex v1(z1.first,z1.second);
