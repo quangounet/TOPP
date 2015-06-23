@@ -2459,7 +2459,6 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
         if(ret != INT_BOTTOM && resprofile.nsteps>2) {
             constraints.resprofileslist.push_back(resprofile);
         }
-	std::cout << "Integrating backward from s_end:" << ret << "\n";
         if(ret == INT_BOTTOM || resprofile.nsteps < 5) {
             // Integration failed. However, if qd(send) = 0, there was probably a singularity, and one can try different values for sdot
             dReal send = constraints.trajectory.duration;
