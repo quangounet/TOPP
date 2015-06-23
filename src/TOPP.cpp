@@ -2407,7 +2407,8 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
         Profile tmpprofile;
 
         /////////////////  Integrate from start /////////////////////
-        ret = IntegrateForward(constraints,0,sdbeg,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
+        ret = IntegrateForward(constraints, 0, sdbeg,constraints.integrationtimestep, resprofile,
+			       MAXINTSTEPS, testaboveexistingprofiles, testmvc, zlajpah);
         if(ret != INT_BOTTOM && resprofile.nsteps>2) {
             constraints.resprofileslist.push_back(resprofile);
         }
@@ -2425,7 +2426,8 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
                     dReal betas2 = constraints.SddLimitBeta(s*2,trialsd+betas*s);
                     if(betas2 > betas) {
                         constraints.resprofileslist.push_back(StraightProfile(0,s,trialsd-s*betas,trialsd));
-                        ret = IntegrateForward(constraints,s,trialsd,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
+                        ret = IntegrateForward(constraints, s, trialsd, constraints.integrationtimestep, resprofile,
+					       MAXINTSTEPS, testaboveexistingprofiles, testmvc, zlajpah);
                         if(resprofile.nsteps>1) {
                             constraints.resprofileslist.push_back(resprofile);
                         }
@@ -2452,10 +2454,12 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
         }
 
         /////////////////  Integrate from end /////////////////////
-        ret = IntegrateBackward(constraints,constraints.trajectory.duration,sdend,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
+        ret = IntegrateBackward(constraints, constraints.trajectory.duration, sdend, constraints.integrationtimestep,
+				resprofile, MAXINTSTEPS, testaboveexistingprofiles, testmvc);
         if(ret != INT_BOTTOM && resprofile.nsteps>2) {
             constraints.resprofileslist.push_back(resprofile);
         }
+	std::cout << "Integrating backward from s_end:" << ret << "\n";
         if(ret == INT_BOTTOM || resprofile.nsteps < 5) {
             // Integration failed. However, if qd(send) = 0, there was probably a singularity, and one can try different values for sdot
             dReal send = constraints.trajectory.duration;
@@ -2474,7 +2478,8 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend) {
                     //std::cout << trialsd << " " << alphas << " " << alphas2 << "\n";
                     if(alphas2 < alphas) {
                         constraints.resprofileslist.push_back(StraightProfile(s,send,trialsd,trialsd+alphas*ds));
-                        ret = IntegrateBackward(constraints,s,trialsd,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
+                        ret = IntegrateBackward(constraints, s, trialsd, constraints.integrationtimestep, resprofile,
+						MAXINTSTEPS, testaboveexistingprofiles, testmvc);
                         if(resprofile.nsteps>1) {
                             constraints.resprofileslist.push_back(resprofile);
                         }

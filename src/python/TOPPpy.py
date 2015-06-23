@@ -183,7 +183,9 @@ def PlotAlphaBeta(topp_inst, prec=30):
     from pylab import axis, linspace, sqrt, plot
     smin, smax, sdmin, sdmax = axis()
     if sdmin <= 0.:
-        sdmin = 1e-2
+        sdmin = 0.
+    if smin <= 0.:
+        smin = 0.
     s_coord = linspace(smin, smax, prec)
     sd_coord = linspace(sdmin, sdmax, prec)
     ds0 = s_coord[1] - s_coord[0]
