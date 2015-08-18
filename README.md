@@ -3,7 +3,7 @@ TOPP
 
 This is TOPP, the Time-Optimal Path Parameterization library by Quang-Cuong Pham (cuong.pham@normalesup.org)
 
-If you use this library for your research, please reference the accompanying paper « A general, fast, and robust implementation of the time-optimal path parameterization algorithm » http://arxiv.org/abs/1312.6533 
+If you use this library for your research, please reference the accompanying paper « A general, fast, and robust implementation of the time-optimal path parameterization algorithm », IEEE Transactions on Robotics, vol. 30(6), pp. 1533-1540, 2014.
 
 Many thanks to Stephane Caron, Rosen Diankov and Puttichai Lertkultanon for their contributions !
 
