@@ -5,6 +5,8 @@ from TOPP import TOPPpy
 from TOPP import TOPPbindings
 from TOPP import Trajectory
 from pylab import *
+import string, time
+from mpl_toolkits.mplot3d import Axes3D
 
 def Extractabc(abc): #This function is currently in lie.py
     lista = [float(x) for x in abc[0].split()]
@@ -20,28 +22,52 @@ def Extractabc(abc): #This function is currently in lie.py
         c[i,:] = listc[i*6:i*6+6]
     return a, b, c
 
-with open ("data/lie.traj", "r") as myfile0:
-    trajstr=myfile0.read()
-
-with open ("data/lie.constraints", "r") as myfile1:
-    constraintsstr=myfile1.read()
+trajstr = """0.500000
+3
+0.0 0.0 -35.9066153846 47.930797594
+0.0 0.0 -0.645566686001 1.11351913336
+0.0 0.0 8.3609538376 -11.3580450529
+0.500000
+3
+0.0 0.1 -0.159247917034 0.0789972227119
+0.0 0.1 -32.7720979649 43.5627972865
+0.0 0.1 0.958473557774 -1.41129807703"""
+traj = Trajectory.PiecewisePolynomialTrajectory.FromString(trajstr)
 
 vmax = ones(3)
+taumax = ones(3)
 discrtimestep= 1e-2
+constraintsstr = str(discrtimestep)
+constraintsstr += "\n" + ' '.join([str(v) for v in taumax]) 
 
+t0 = time.time()
 abc = TOPPbindings.RunComputeSO3Constraints(trajstr,constraintsstr)
 a,b,c = Extractabc(abc)
 
-traj = Trajectory.PiecewisePolynomialTrajectory.FromString(trajstr)
+t1 = time.time()
+
 topp_inst = TOPP.QuadraticConstraints(traj, discrtimestep, vmax, list(a), list(b), list(c))
 
 x = topp_inst.solver
-
 ret = x.RunComputeProfiles(0,0)
-if ret == 1:
-    x.ReparameterizeTrajectory()
-    x.WriteResultTrajectory()
+    
+x.ReparameterizeTrajectory()
+t2 = time.time()
+print "Compute a,b,c:", t1-t0
+print "Run TOPP:", t2-t1
+print "Total:", t2-t0
+
+# Display results
+ion()
+x.WriteProfilesList()
+x.WriteSwitchPointsList()
+profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
+switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
+TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
+    
+x.WriteResultTrajectory()
 
 traj1 = Trajectory.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
-
+dtplot = 0.01
+TOPPpy.PlotKinematics(traj,traj1,dtplot,vmax,taumax)
 
