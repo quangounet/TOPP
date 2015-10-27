@@ -23,7 +23,7 @@ bool ComputeSO3Constraints(const std::string& SO3trajstring, const std::string& 
         getline(iss, strtmp, '\n');
         if (strtmp == "") {
             noInertia = true;
-            std::cout << "Inertia was not input, assume Inertia to be an Indentity(3) matrix\n";
+            std::cout << "Inertia was not input, assume Inertia to be an Identity(3) matrix\n";
             break;
         }
         VectorFromString(strtmp, vecttmp);
@@ -68,6 +68,7 @@ bool ComputeSO3Constraints(const std::string& SO3trajstring, const std::string& 
         std::vector<dReal> at;
         std::vector<dReal> bt;
         if (noInertia) {
+            //Inertia was not input, assume Inertia to be an Identity matrix. In this case, angular accelerations are the same as torques
             at = Ard;
             bt = AddVect(MatrixMultVector(Amat,rdd),C,1,1);
         }
