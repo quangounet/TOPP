@@ -20,5 +20,5 @@ std::vector<dReal> MatrixMultVector(const boost::multi_array<dReal, 2>& M, const
 
 boost::multi_array<dReal, 2> Eye();
 
-std::string pushback(const std::vector<dReal>& vect, const bool& type);
+std::string VectToString(const std::vector<dReal>& vect, const bool& IsCvect);
 }

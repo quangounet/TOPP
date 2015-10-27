@@ -9,13 +9,29 @@ bool ComputeSO3Constraints(const std::string& SO3trajstring, const std::string& 
     Trajectory* SO3traj = new Trajectory(SO3trajstring);
     dReal discrtimestep;
     std::vector<dReal> taumax;
+    boost::multi_array<dReal, 2> inertia(boost::extents[3][3]);
+    bool noInertia = false;
     std::string buff;
     std::istringstream iss(constraintsstring);
-
     getline(iss, buff, '\n');
     discrtimestep = atof(buff.c_str());
     getline(iss, buff, '\n');
     VectorFromString(buff, taumax);
+    for (int i = 0; i < 3; i++) {
+        std::string strtmp;
+        std::vector<dReal> vecttmp;
+        getline(iss, strtmp, '\n');
+        if (strtmp == "") {
+            noInertia = true;
+            std::cout << "Inertia was not input, assume Inertia to be an Indentity(3) matrix\n";
+            break;
+        }
+        VectorFromString(strtmp, vecttmp);
+        inertia[i][0] = vecttmp[0];
+        inertia[i][1] = vecttmp[1];
+        inertia[i][2] = vecttmp[2];
+    }
+
     // Process the data
     int ndiscrsteps = int((SO3traj->duration + 1e-10)/discrtimestep) + 1;
     int ndof = 3;
@@ -49,18 +65,29 @@ bool ComputeSO3Constraints(const std::string& SO3trajstring, const std::string& 
         C = AddVect(C12,Cross(r,rcrd),1,(3*snr-nr*cnr-2*nr)*rdrd/nr5);
         std::vector<dReal> Ard = MatrixMultVector(Amat,rd);
 
-        //If Inertia is not input
-        std::vector<dReal> at = Ard;
-        std::vector<dReal> bt = AddVect(MatrixMultVector(Amat,rdd),C,1,1);
-
+        std::vector<dReal> at;
+        std::vector<dReal> bt;
+        if (noInertia) {
+            at = Ard;
+            bt = AddVect(MatrixMultVector(Amat,rdd),C,1,1);
+        }
+        else
+        { //Inertia was input
+            at = MatrixMultVector(inertia,Ard);
+            std::vector<dReal> bt_firstpart;
+            std::vector<dReal> bt_secondpart;
+            bt_firstpart = AddVect(MatrixMultVector(inertia,MatrixMultVector(Amat,rdd)), MatrixMultVector(inertia,C),1,1);
+            bt_secondpart = Cross(Ard,at);
+            bt = AddVect(bt_firstpart,bt_secondpart,1,1);
+        }
         if (i != 0) {
             a.append("\n");
             b.append("\n");
             c.append("\n");
         }
-        a.append(pushback(at,false));
-        b.append (pushback(bt,false));
-        c.append(pushback(taumax,true));
+        a.append(VectToString(at,false));
+        b.append(VectToString(bt,false));
+        c.append(VectToString(taumax,true));
     }
     resstringlist.append(a);
     resstringlist.append(b);
@@ -68,14 +95,14 @@ bool ComputeSO3Constraints(const std::string& SO3trajstring, const std::string& 
     return true;
 };
 
-std::string pushback(const std::vector<dReal>&vect, const bool &type){
+std::string VectToString(const std::vector<dReal>&vect, const bool&IsCvect){
     std::stringstream ss;
-    if (type == true) { // pushback c
+    if (IsCvect == true) { // Convert c vect to a string
         ss << -vect[0] << " ";
         ss << -vect[1] << " ";
         ss << -vect[2] << " ";
     }
-    else{ //pushback ab
+    else{ //Convert a or b vect to a string
         ss << vect[0] << " ";
         ss << vect[1] << " ";
         ss << vect[2] << " ";
