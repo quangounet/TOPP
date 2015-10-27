@@ -68,7 +68,7 @@ x.WriteResultTrajectory()
 
 traj1 = Trajectory.PiecewisePolynomialTrajectory.FromString(x.restrajectorystring)
 dtplot = 0.01
-TOPPpy.PlotKinematics(traj,traj1,dtplot,vmax,taumax)
+TOPPpy.PlotKinematics(traj,traj1,dtplot,vmax,accelmax)
 
 
 raw_input()
