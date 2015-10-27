@@ -1710,31 +1710,8 @@ int ComputeLimitingCurves(Constraints& constraints){
                                 sdbackward, sforward, sdforward))
             continue;
 
-        bool shiller = false;
-        bool rescale = false;
-
-        if(!shiller) {
-            // Add middle part
-            if(rescale) {
-                dReal slope = (sdforward-sdbackward)/(sforward-sbackward);
-                sbackward = sswitch - constraints.integrationtimestep;
-                sforward = sswitch + constraints.integrationtimestep;
-                sdbackward = sdswitch - slope*constraints.integrationtimestep;
-                sdforward = sdswitch + slope*constraints.integrationtimestep;
-                std::cout << "toto " << constraints.integrationtimestep << "\n";
-            }
-            if (sforward - sbackward > TINY) {
-                constraints.resprofileslist.push_back(StraightProfile(sbackward,sforward,sdbackward,sdforward));
-            }
-        }
-        else{
-            sbackward = sswitch - constraints.integrationtimestep;
-            sforward = sswitch + constraints.integrationtimestep;
-            sdbackward = constraints.SdLimitCombined(sbackward);
-            sdforward = constraints.SdLimitCombined(sforward);
-            constraints.resprofileslist.push_back(StraightProfile(sswitch,sforward,sdswitch,sdforward));
-            constraints.resprofileslist.push_back(StraightProfile(sbackward,sswitch,sdbackward,sdswitch));
-        }
+        // Add middle part
+        constraints.resprofileslist.push_back(StraightProfile(sbackward,sforward,sdbackward,sdforward));
 
         // Integrate backward
         integratestatus = IntegrateBackward(constraints, sbackward, sdbackward,
@@ -1769,6 +1746,8 @@ int ComputeLimitingCurves(Constraints& constraints){
 int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
     std::chrono::time_point<std::chrono::system_clock> t0,t1,t2,t3;
     std::chrono::duration<double> d1,d2,d3,dtot;
+
+    dReal smallincrement = constraints.integrationtimestep*2;
 
     t0 = std::chrono::system_clock::now();
 
@@ -1821,6 +1800,22 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         Profile tmpprofile;
 
         /////////////////  Integrate from start /////////////////////
+
+        // Determine the lowest profile at t=0
+        dReal bound;
+        ProfileSample lowestsample = FindLowestProfileFast(smallincrement, INF, constraints.resprofileslist);
+        if( lowestsample.itprofile != constraints.resprofileslist.end() ) {
+            bound = std::min(lowestsample.sd,constraints.mvccombined[0]);
+        }
+        else { // just to make sure the profile is below mvccombined
+            bound = constraints.mvccombined[0];
+        }
+        if(sdbeg > bound) {
+            std::cout << "[TOPP] sdbeg is above the CLC or the combined MVC \n";
+            return TOPP_SDBEG_TOO_HIGH;
+        }
+
+        // Integrate
         ret = IntegrateForward(constraints,0,sdbeg,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc,zlajpah);
         if(ret != INT_BOTTOM && resprofile.nsteps>2) {
             constraints.resprofileslist.push_back(resprofile);
@@ -1848,7 +1843,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
                 }
             }
         }
-        // Now if it still fails, shouganai
+        // Now if it still fails, then we can't do anything about it
         if(ret==INT_BOTTOM) {
             message = "Start profile hit 0";
             std::cout << message << std::endl;
@@ -1858,6 +1853,20 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
 
 
         /////////////////  Integrate from end /////////////////////
+        // Determine the lowest profile at t = tend
+        lowestsample = FindLowestProfileFast(constraints.trajectory.duration-smallincrement, INF, constraints.resprofileslist);
+        if( lowestsample.itprofile != constraints.resprofileslist.end() ) {
+            bound = std::min(lowestsample.sd,constraints.mvccombined[constraints.mvccombined.size() - 1]);
+        }
+        else { // just to make sure the profile is below mvccombined
+            bound = constraints.mvccombined[constraints.mvccombined.size() - 1];
+        }
+        if(sdend > bound) {
+            std::cout << "[TOPP] sdend is above the CLC or the combined MVC \n";
+            return TOPP_SDEND_TOO_HIGH;
+        }
+
+        // Integrate
         ret = IntegrateBackward(constraints,constraints.trajectory.duration,sdend,constraints.integrationtimestep,resprofile,1e5,testaboveexistingprofiles,testmvc);
         if(ret != INT_BOTTOM && resprofile.nsteps>2) {
             constraints.resprofileslist.push_back(resprofile);
@@ -1957,7 +1966,7 @@ int ComputeProfiles(Constraints& constraints, dReal sdbeg, dReal sdend){
         dReal ds = constraints.integrationtimestep;
         int nsamples = int((constraints.trajectory.duration-TINY)/ds);
         dReal s,sdcur,sdnext;
-        ProfileSample lowestsample = FindLowestProfileFast(0, INF, constraints.resprofileslist);
+        lowestsample = FindLowestProfileFast(0, INF, constraints.resprofileslist);
         if( lowestsample.itprofile != constraints.resprofileslist.end() ) {
             sdcur = lowestsample.sd;
         }
@@ -2068,7 +2077,7 @@ int VIP(Constraints& constraints, dReal sdbegmin, dReal sdbegmax, dReal& sdendmi
 
     if(sdbegmin>bound) {
         std::cout << "[TOPP::VIP] sdbegmin is above the CLC or the combined MVC \n";
-        return TOPP_SDBEGMIN_TOO_HIGH;
+        return TOPP_SDBEG_TOO_HIGH;
     }
 
     sdbegmax = std::min(sdbegmax,bound-constraints.bisectionprecision);
@@ -2188,7 +2197,7 @@ int VIPBackward(Constraints& constraints, dReal& sdbegmin, dReal& sdbegmax, dRea
 
     if (sdendmin > bound) {
         std::cout << "[TOPP::VIPBackward] sdendmin is above the combined MVC \n";
-        return TOPP_SDENDMIN_TOO_HIGH;
+        return TOPP_SDEND_TOO_HIGH;
     }
 
     sdendmax = std::min(sdendmax, bound-constraints.bisectionprecision);
