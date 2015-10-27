@@ -32,13 +32,15 @@ trajstr = """0.500000
 0.0 0.1 -32.7720979649 43.5627972865
 0.0 0.1 0.958473557774 -1.41129807703"""
 traj = Trajectory.PiecewisePolynomialTrajectory.FromString(trajstr)
-
+inertia = eye(3)
 vmax = ones(3)
 accelmax = ones(3)
 discrtimestep= 1e-3
 constraintsstr = str(discrtimestep)
 constraintsstr += "\n" + ' '.join([str(a) for a in accelmax]) 
-
+for v in inertia:
+    constraintsstr += "\n" + ' '.join([str(i) for i in v])
+#When Inertia is an Identity matrix, angular accelerations are the same as torques
 t0 = time.time()
 abc = TOPPbindings.RunComputeSO3Constraints(trajstr,constraintsstr)
 a,b,c = Extractabc(abc)
