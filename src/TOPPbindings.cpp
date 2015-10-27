@@ -32,6 +32,8 @@
 #include "FrictionLimits.h"
 #include "openravepy.h"
 #endif
+//SO3 constraints
+#include "SO3Constraints.h"
 
 using namespace boost::python;
 using namespace TOPP;
@@ -331,12 +333,24 @@ public:
 
 };
 
+boost::python::list RunComputeSO3Constraints(std::string SO3trajstring, std::string constraintsstring){
+    boost::python::list resstringlist;
+    bool res = ComputeSO3Constraints(SO3trajstring, constraintsstring, resstringlist);
+    if(res == true) {
+        return resstringlist;
+    }
+    // else{
+    //     return "";
+    // };
+};
+
 
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ReparameterizeTrajectory_overloads, ReparameterizeTrajectory, 0, 1)
 
 BOOST_PYTHON_MODULE(TOPPbindings) {
     using namespace boost::python;
     class_<TOPPInstance>("TOPPInstance", init<object,std::string,std::string,std::string>())
+
     .def(init<object,std::string,object,TOPP::dReal>(args("openraverobot","problemtype","openravetrajectory","discrtimestep")))
     .def_readwrite("integrationtimestep", &TOPPInstance::integrationtimestep)
     .def_readwrite("reparamtimestep", &TOPPInstance::reparamtimestep)
@@ -373,4 +387,5 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def("GetOpenRAVEResultTrajectory", &TOPPInstance::GetOpenRAVEResultTrajectory, args("pyenv"), "resulting re-parameterized trajectory")
 #endif
     ;
+    def("RunComputeSO3Constraints",RunComputeSO3Constraints);
 }
