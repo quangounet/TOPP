@@ -1,11 +1,10 @@
 from numpy import *
-
+from pylab import *
+import time
 import TOPP
 from TOPP import TOPPpy
 from TOPP import TOPPbindings
 from TOPP import Trajectory
-from pylab import *
-import time
 
 def Extractabc(abc):
     lista = [float(x) for x in abc[0].split()]
