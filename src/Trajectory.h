@@ -95,6 +95,11 @@ public:
     // the degree of the polynomials in the original trajectory
     int Reparameterize(Constraints& constraints, Trajectory& restrajectory, dReal smax = 0);
 
+    // Reparameterize the trajectory (modified from Rosen's
+    // ExtractOpenRAVETrajectoryFromProfiles)
+    int Reparameterize2(Constraints& constraints, Trajectory& restrajectory, 
+			dReal smax=0);
+
     // Write the trajectory to the stream
     void Write(std::stringstream& ss);
 };

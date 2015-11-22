@@ -337,85 +337,6 @@ void Trajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal sd
     newchunk = Chunk(tnext - t0, polynomialsvector);
 }
 
-// void Trajectory::ComputeChunk(dReal t0, dReal tnext, dReal s, dReal sd, dReal sdd,
-//                const Chunk& currentchunk, Chunk& newchunk) {
-
-//     BOOST_ASSERT(currentchunk.degree <= 5);
-//     std::vector<dReal> a, b, c, d, e, coefficientsvector;
-//     std::vector<Polynomial> polynomialsvector;
-//     std::vector<std::vector<dReal> > coeffsvects;
-//     // current chunk : u0 + u1*s + u2*s^2 + u3*s^3 + u4*s^4 + u5*s^5
-//     // profile : s + sd*t + 0.5*sdd*t^2
-//     // new chunk : v0 + v1*t + v2*t^2 + v3*t^3 + v4*t^4 + v5*t^5 + v6*t^6 + v7*t^ + v8*t^8 + v9*t^9 + v10*t^10;
-
-//     if (currentchunk.degree >= 1) {
-//  a.resize(0);
-//  a.push_back(s + sd*t0 + 0.5*sdd*t0*t0);
-//  a.push_back(sd + sdd*t0);
-//  a.push_back(0.5*sdd);
-//  coeffsvects.push_back(a);
-//     }
-//     if (currentchunk.degree >= 2) {
-//  b.resize(0);
-//  b.push_back(a[0]*a[0]);
-//  b.push_back(2*a[0]*a[1]);
-//  b.push_back(2*a[0]*a[2] + a[1]*a[1]);
-//  b.push_back(2*a[1]*a[2]);
-//  b.push_back(a[2]*a[2]);
-//  coeffsvects.push_back(b);
-//     }
-//     if(currentchunk.degree >= 3) {
-//  c.push_back(b[0]*a[0]);
-//  c.push_back(b[1]*a[0] + b[0]*a[1]);
-//  c.push_back(b[2]*a[0] + b[1]*a[1] + b[0]*a[2]);
-//  c.push_back(b[3]*a[0] + b[2]*a[1] + b[1]*a[2]);
-//  c.push_back(b[4]*a[0] + b[3]*a[1] + b[2]*a[2]);
-//  c.push_back(b[4]*a[1] + b[3]*a[2]);
-//  c.push_back(b[4]*a[2]);
-//  coeffsvects.push_back(c);
-//     }
-//     if(currentchunk.degree >= 4) {
-//  d.push_back(b[0]*b[0]);
-//  d.push_back(2*b[0]*b[1]);
-//  d.push_back(2*b[0]*b[2] + b[1]*b[1]);
-//  d.push_back(2*(b[0]*b[3] + b[1]*b[2]));
-//  d.push_back(2*(b[0]*b[4] + b[1]*b[3]) + b[2]*b[2]);
-//  d.push_back(2*(b[1]*b[4] + b[2]*b[3]));
-//  d.push_back(2*b[2]*b[4] + b[3]*b[3]);
-//  d.push_back(2*b[3]*b[4]);
-//  d.push_back(b[4]*b[4]);
-//  coeffsvects.push_back(d);
-//     }
-//     if(currentchunk.degree >= 5) {
-//  e.push_back(a[0]*d[0]);
-//  e.push_back(d[1]*a[0] + d[0]*a[1]);
-//  e.push_back(d[2]*a[0] + d[1]*a[1] + d[0]*a[2]);
-//  e.push_back(d[3]*a[0] + d[2]*a[1] + d[1]*a[2]);
-//  e.push_back(d[4]*a[0] + d[3]*a[1] + d[2]*a[2]);
-//  e.push_back(d[5]*a[0] + d[4]*a[1] + d[3]*a[2]);
-//  e.push_back(d[6]*a[0] + d[5]*a[1] + d[4]*a[2]);
-//  e.push_back(d[7]*a[0] + d[6]*a[1] + d[5]*a[2]);
-//  e.push_back(d[8]*a[0] + d[7]*a[1] + d[6]*a[2]);
-//  e.push_back(d[8]*a[1] + d[7]*a[2]);
-//  e.push_back(d[8]*a[2]);
-//  coeffsvects.push_back(e);
-//     }
-
-//     for(int i = 0; i < currentchunk.dimension; i++) {
-//  coefficientsvector.resize(0);
-//  coefficientsvector.push_back(currentchunk.polynomialsvector[i].coefficientsvector[0]);
-//  for(int k = 1; k <= currentchunk.degree; k++){
-//      coefficientsvector.resize(2*k + 1, 0);
-//      dReal u = currentchunk.polynomialsvector[i].coefficientsvector[k];
-//      int l = 2*k + 1;
-//      for(int j = 0; j < l; j++) {
-//      coefficientsvector[j] += u*coeffsvects[k - 1][j];
-//      }
-//  }
-//  polynomialsvector.push_back(Polynomial(coefficientsvector));
-//     }
-//     newchunk = Chunk(tnext - t0, polynomialsvector);
-// }
 
 void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
                                 currentchunkindex, dReal& processedcursor, std::list<Chunk>::iterator&
@@ -517,6 +438,269 @@ int Trajectory::Reparameterize(Constraints& constraints, Trajectory& restrajecto
     }
     restrajectory = Trajectory(newchunkslist);
     return 1;
+}
+
+
+int Trajectory::Reparameterize2(Constraints& constraints, Trajectory& restrajectory,
+				dReal smax) {
+    std::string message;
+    
+    if (constraints.resprofileslist.size() == 0) {
+	return -1;
+    }
+
+    const Trajectory& intraj = constraints.trajectory;
+    if (intraj.chunkslist.size() == 0) {
+	return -1;
+    }
+
+    if (smax == 0) {
+	smax = intraj.duration;
+    }
+
+    // vsampledpoints contains s, sd, sdd, deltatime for each reparam step
+    std::vector<dReal> vsampledpoints;
+    vsampledpoints.reserve(80000);
+
+    ProfileSample sample = FindLowestProfileFast(0, 1e30, constraints.resprofileslist);
+    if (sample.itprofile == constraints.resprofileslist.end()) {
+	message = "Failed to find the lowest profile at s = 0.";
+	std::cout << message << std::endl;
+	return -1
+    }
+    vsampledpoints.push_back(sample.s);
+    vsampledpoints.push_back(sample.sd);
+    vsampledpoints.push_back(sample.sdd);
+    vsampledpoints.push_back(0);
+
+    // Now extracting s, sd, sdd, delta, from the lowest profile and each reparam step
+    bool bsuccess = false;
+    while (!bsuccess) {
+	const Profile& profile = *sample.itprofile;
+
+	dReal sprev = sample.s, sdprev = sample.sd, sddprev = sample.sdd;
+	dReal tprev = sample.t;
+	int sindex = sample.sindex + 1; // next index
+	ProfileSample checksample, checksample2;
+
+	// Reset checksample
+	checksample.itprofile = constraints.resprofileslist.end();
+	
+	// Step along the current profile (sample)
+	bool badded = false; // set to true is the stepping is successful
+	while (sindex < (int)profile.svect.size() && sprev < smax - TINY) {
+	    dReal s = profile.svect.at(sindex);
+	    dReal sd = profile.sdvect.at(sindex);
+	    dReal sdd = profile.sdvect.at(sindex);
+	    
+	    // Check if there is any lower profile at s
+	    checksample = FindLowestProfileFast(s, sd - 10*TINY,
+						constraints.resprofileslist);
+	    if (checksample.itprofile != constraints.resprofileslist.end()) {
+		if (sample.itprofile == checksample.itprofile) {
+		    message = "Checking lower profiles got sample profile";
+		    std::cout << message << std::endl;
+		    return -1
+		}
+		
+		// We have found a new lower profile.
+		// There must be an intersection somewhere.
+		dReal sintersect = 0, sdintersect = 0, sddintersect = 0, tintersect = 0;
+		// busechecksample tells us whether or not to use the
+		// newly found profile.
+		bool busechecksample = true;
+		
+		if (fabs(sddprev) <= TINY) { // why checking this ?
+		    message = str(boost::format("sprev = %.15e, sdprev = %.15e,"
+						" sddprev = %.15e; sdd is close to 0.")
+				  %sprev%sdprev%sddprev)
+		    std::cerr << message << std::endl;
+		    return -1;
+		}
+		else {
+		    if (fabs(checksample.sdd) <= TINY) {
+			// The new profile has sdd = 0
+			tintersect = (checksample.sd - sdprev)/sddprev;
+			sintersect = sprev + tintersect*(sdprev + 0.5*tintersect*sddprev);
+			sdintersect = checksample.sd; // Rosen put sdprev here. I think
+						      // that is not correct.
+			// sddintersect always needs to be
+			// checksample.sdd because the interpolation
+			// goes forward.
+			sddintersect = checksample.sdd;
+		    }
+		    else {
+			/* Consider the equation 
+			     v^2 = u^2 + 2ad,          --(1)
+			 where u, v are initial, final velocities, a
+			 is the (constant) acceleration, and d is the
+			 distance.
+
+			 For profile, we substitute v = sd, u = sdprev, 
+			 a = sddprev, and d = (s - sprev) into the above equation. 
+			 We have 
+			 
+			     s(sd) = (1/2sddprev)sd^2 + (sprev - sdprev^2/2sddprev). 
+			     
+			 Note that s is a function of sd.
+
+			 For checksample, we substitute v = csd, u = sd,
+			 a = csdd, and d = (cs - s) into Equation (1) to get
+
+			     s(sd) = (1/2csddprev)sd^2 + (cs - csd^2),
+			     
+			 where cX means checksample.X.
+
+			 We will use the two equations of the form
+			 
+			     s(sd) = A*sd^2 + C
+
+			 to find the intersection between profile and
+			 checksample.
+			 */
+			dReal Aprofile = 1/(2*sddprev);
+			dReal Cprofile = sprev - sdprev*sdprev/(2*sddprev);
+
+			dReal Acheck = 1/(2*checksample.sdd);
+			dReal Ccheck = checksample.s - 
+			    checksample.sd*checksample.sd/(2*checksample.sdd);
+
+			dReal Adiff = Aprofile - Acheck;
+			if (fabs(Adiff) <= TINY) {
+			    // I am not sure how we should handle the
+			    // following two cases
+			    if (fabs(Ccheck - Cprofile) <= TINY) {
+				message = "Adiff = Cdiff = 0";
+				std::cout << message << std:endl;
+			    }
+			    else {
+				message = "Adiff = 0 but Cdiff != 0";
+				std::cout << message << std:endl;
+			    }
+			}
+			else {
+			    dReal sdintersect2 = (Ccheck - Cprofile)/Adiff;
+			    // I don't know why Rosen checks if
+			    // sdintersect2 >= s*s here.
+			    
+			    sdintersect = sqrt(sdintersect2);
+			    sintersect = Aprofile*sdintersect2 + Cprofile;
+			    tintersect = (sdintersect - sdprev)/sddprev;
+			    // sddintersect always needs to be
+			    // checksample.sdd because the interpolation
+			    // goes forward.
+			    sddintersect = checksample.sdd;
+			}
+		    }
+		    
+		    if (tintersect > 0 && sintersect <= s) {
+			if (sprev <= sintersect + TINY) {
+			    // Now we obtain a valid intersection point.
+			    vsampledpoints.push_back(sintersect);
+			    vsampledpoints.push_back(sdintersect);
+			    vsampledpoints.push_back(sddintersect);
+			    vsampledpoints.psuh_back(tintersect);
+
+			    // What is this for ?
+			    dReal t2 = (sdintersect - checksample.sd)/checksample.sdd;
+			    checksample.t += t2; // go back in time
+			    checksample.s = sintersect;
+			}
+			else {
+			    // sintersect < sprev
+			    // what does this actually mean ?
+			    busechecksample = false;
+			}
+		    }
+		    else {
+			// Here we encounter a negative intersection 
+			// (or something like that). 
+			// It's either tintersect <= 0 or sintersect > s.
+
+			// Try again.
+			dReal tintersect2 = 1e30;
+			dReal tdelta = 0; // time offset
+			dReal sddstart = vsampledpoints.at(vsampledpoints.size() - 2);
+			dReal sdstart = (vsampledpoints.at(vsampledpoints.size() - 3) + 
+					 tdelta*sddstart);
+			dReal sstart = (vsampledpoints.at(vsampledpoints.size() - 4) + 
+					tdelta*(sdstart + 0.5*tdelta*sddstart));
+
+			checksample2 = FindEarliestProfileIntersection
+			    (sstart, sdstart, sddstart, profile.integrationtimestep,
+			     constraints.resprofileslist, sample.itprofile, tintersect2);
+
+			if (checksample2.itprofile != constraints.resprofileslist.end() &&
+			    checksample2.s > sprev, && tintersect2 > TINY) {
+			    // Here we can resolve the profile. Found a
+			    // profile with a valid intersection.
+			    vsampledpoints.push_back(checksample2.s);
+			    vsampledpoints.push_back(checksample2.sd);
+			    vsampledpoints.push_back(checksample2.sdd);
+			    vsampledpoints.push_back(tintersect2);
+			    checksample = checksample2;
+			}
+			else {
+			    // What happened here ?
+			    // Rosen says we should go on using the same profile.
+
+			    busechecksample = false;
+			}
+		    }
+		}
+	    
+		if (busechecksample) {
+		    // We just encountered a new lowest profile.
+		    badded = true;
+		    // Stop stepping along sample.
+		    break;
+		}
+		else {
+		    // This case means FindLowestProfileFast returned
+		    // something, but when we tried to find an intersect,
+		    // it somehow did not work out.
+		    
+		    // Reset checksample
+		    checksample.itprofile = constraints.resprofileslist.end();
+		}
+	    }
+	    
+	    // If we reach here, FindLowestProfileFast did not find
+	    // any lower profile, or found but it did not work.
+	    // Keep stepping along the same profile (sample).
+	    BOOST_ASSERT(sprev <= s);
+	    BOOST_ASSERT(profile.integrationtimestep - tprev > 0);
+	    
+	    vsampledpoints.push_back(s);
+	    vsampledpoints.push_back(sd);
+	    vsampledpoints.push_back(sdd);
+	    vsampledpoints.push_back(profile.integrationtimestep - tprev);
+
+	    // Successfully stepped. Keep going forward.
+	    badded = true;
+	    tprev = 0;
+	    sprev = s;
+	    sdprev = sd;
+	    sddprev = sdd;
+	    ++sindex;
+	}
+	
+	if (!badded) {
+	    return -1;
+	}
+
+	if (sprev >= smax - TINY) {
+	    // We have successfully reached the end of this trajectory
+	    bsuccess = true;
+	    break;
+	}
+
+	// 
+
+    }
+    // Now we successfully extracted s, sd, sdd, t from all the lowest profiles.
+
+
 }
 
 
