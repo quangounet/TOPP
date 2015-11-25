@@ -191,6 +191,16 @@ public:
         return ret;
     }
 
+    
+    int ReparameterizeTrajectory2(TOPP::dReal reparamtimestep=0)
+    {
+        // Set tuning parameters
+        pconstraints->reparamtimestep = reparamtimestep;
+
+        int ret = pconstraints->trajectory.Reparameterize2(*pconstraints, restrajectory);
+        return ret;
+    }
+
 
     int RunVIP(TOPP::dReal sdbeg1, TOPP::dReal sdbeg2){
         // Set tuning parameters
@@ -346,11 +356,12 @@ boost::python::list RunComputeSO3Constraints(std::string SO3trajstring, std::str
 
 
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ReparameterizeTrajectory_overloads, ReparameterizeTrajectory, 0, 1)
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ReparameterizeTrajectory_overloads2, ReparameterizeTrajectory2, 0, 1)
 
 BOOST_PYTHON_MODULE(TOPPbindings) {
     using namespace boost::python;
     class_<TOPPInstance>("TOPPInstance", init<object,std::string,std::string,std::string>())
-
+	
     .def(init<object,std::string,object,TOPP::dReal>(args("openraverobot","problemtype","openravetrajectory","discrtimestep")))
     .def_readwrite("integrationtimestep", &TOPPInstance::integrationtimestep)
     .def_readwrite("reparamtimestep", &TOPPInstance::reparamtimestep)
@@ -373,6 +384,7 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def("GetBeta",&TOPPInstance::GetBeta)
     .def("RunComputeProfiles",&TOPPInstance::RunComputeProfiles)
     .def("ReparameterizeTrajectory",&TOPPInstance::ReparameterizeTrajectory, ReparameterizeTrajectory_overloads(args("reparamtimestep")))
+    .def("ReparameterizeTrajectory2",&TOPPInstance::ReparameterizeTrajectory2, ReparameterizeTrajectory_overloads2(args("reparamtimestep")))
     .def("RunVIP",&TOPPInstance::RunVIP)
     .def("RunVIPBackward",&TOPPInstance::RunVIPBackward)
     .def("RunEmergencyStop",&TOPPInstance::RunEmergencyStop)
