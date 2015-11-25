@@ -18,6 +18,8 @@
 
 #include "TOPP.h"
 
+#define PRINT_SPIECETOCHUNKS false
+#define REPARAM2_DEBUG true
 
 namespace TOPP {
 
@@ -348,11 +350,18 @@ void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
     Chunk newchunk;
 
     FindChunkIndex(snext,chunkindex,remainder);
-
+    if (PRINT_SPIECETOCHUNKS) {
+	std::cout << "chunkindex = " << chunkindex << "; currentchunkindex = " << currentchunkindex << "\n";
+	std::cout << "s = " << s << "; snext = " << snext << "\n";
+    }
     // Process all chunks that have been overpassed
     while(currentchunkindex<chunkindex) {
         if(itcurrentchunk->duration-processedcursor>=TINY) {
             bool res = SolveQuadraticEquation(s-itcurrentchunk->send,sd,0.5*sdd,tnext,t,T);
+	    if (PRINT_SPIECETOCHUNKS) {
+		std::cout << "changing chunk\n";
+		std::cout << s << " " << sd << " " << 0.5*sdd << " " << t << " " << T << "\n\n";
+	    }
             BOOST_ASSERT(res);
             ComputeChunk(t,tnext,s-itcurrentchunk->sbegin,sd,sdd,*itcurrentchunk,newchunk);
             chunkslist.push_back(newchunk);
@@ -365,6 +374,9 @@ void Trajectory::SPieceToChunks(dReal s, dReal sd, dReal sdd, dReal T, int&
 
     // Process current chunk
     bool res = SolveQuadraticEquation((s-itcurrentchunk->sbegin)-remainder,sd,0.5*sdd,tnext,t,T);
+    if (PRINT_SPIECETOCHUNKS) {
+	std::cout << s << " " << sd << " " << 0.5*sdd << " " << t << " " << T << "\n\n";
+    }
     BOOST_ASSERT(res);
     ComputeChunk(t,tnext,s-itcurrentchunk->sbegin,sd,sdd,*itcurrentchunk,newchunk);
     chunkslist.push_back(newchunk);
@@ -500,20 +512,24 @@ int Trajectory::Reparameterize2(Constraints& constraints, Trajectory& restraject
 	    checksample = FindLowestProfileFast(s, sd - 10*TINY,
 						constraints.resprofileslist);
 	    if (checksample.itprofile != constraints.resprofileslist.end()) {
-		message = str(boost::format("[Reparameterize2]"
-					    " Found a new lower profile at s = %.15e, sd = %.15e")
-			      %s%sd);
-
-
+		
 		if (sample.itprofile == checksample.itprofile) {
 		    message = "[Reparameterize2] Checking lower profiles got sample profile";
 		    std::cout << message << std::endl;
 		    return -1;
 		}
 		
+		message = str(boost::format("[Reparameterize2]"
+					    " Found a new lower profile at s = %.15e, sd = %.15e")
+			      %s%sd);
+		std::cout << message << std::endl;
+		
 		// We have found a new lower profile.
 		// There must be an intersection somewhere.
-		dReal sintersect = 0, sdintersect = 0, sddintersect = 0, tintersect = 0;
+		dReal sintersect = 0;
+		dReal sdintersect = 0;
+		dReal sddintersect = 0;
+		dReal tintersect = 0;
 		// busechecksample tells us whether or not to use the
 		// newly found profile.
 		bool busechecksample = true;
@@ -533,12 +549,14 @@ int Trajectory::Reparameterize2(Constraints& constraints, Trajectory& restraject
 			// The new profile has sdd = 0
 			tintersect = (checksample.sd - sdprev)/sddprev;
 			sintersect = sprev + tintersect*(sdprev + 0.5*tintersect*sddprev);
-			sdintersect = checksample.sd; // Rosen put sdprev here. I think
-						      // that is not correct.
+			sdintersect = sdprev;// checksample.sd;
+			// Rosen put sdprev here. I think
+			// that is not correct.
+			    
 			// sddintersect always needs to be
 			// checksample.sdd because the interpolation
 			// goes forward.
-			sddintersect = checksample.sdd;
+			sddintersect = sddprev;// checksample.sdd;
 		    }
 		    else {
 			/* Consider the equation 
@@ -589,7 +607,7 @@ int Trajectory::Reparameterize2(Constraints& constraints, Trajectory& restraject
 				// most lokely they intersect at the same place
 				sintersect = checksample.s;
 				sdintersect = checksample.sd;
-				sddintersect = checksample.sdd;
+				sddintersect = sddprev;// checksample.sdd;
 				tintersect = (sdintersect - sdprev)/sddprev;
 			    }
 			    else {
@@ -601,8 +619,6 @@ int Trajectory::Reparameterize2(Constraints& constraints, Trajectory& restraject
 			}
 			else {
 			    dReal sdintersect2 = (Ccheck - Cprofile)/Adiff;
-			    // I don't know why Rosen checks if
-			    // sdintersect2 >= s*s here.
 			    if (sdintersect2 >= s*s) {
 				sdintersect = sqrt(sdintersect2);
 				sintersect = Aprofile*sdintersect2 + Cprofile;
@@ -610,7 +626,7 @@ int Trajectory::Reparameterize2(Constraints& constraints, Trajectory& restraject
 				// sddintersect always needs to be
 				// checksample.sdd because the interpolation
 				// goes forward.
-				sddintersect = checksample.sdd;
+				sddintersect = sddprev;// checksample.sdd;
 			    }
 			}
 		    }
@@ -620,7 +636,7 @@ int Trajectory::Reparameterize2(Constraints& constraints, Trajectory& restraject
 			    // Now we obtain a valid intersection point.
 			    vsampledpoints.push_back(sintersect);
 			    vsampledpoints.push_back(sdintersect);
-			    vsampledpoints.push_back(sddintersect);
+			    vsampledpoints.push_back(checksample.sdd);// sddintersect);
 			    vsampledpoints.push_back(tintersect);
 
 			    // What is this for ?
@@ -733,6 +749,8 @@ int Trajectory::Reparameterize2(Constraints& constraints, Trajectory& restraject
 
 	if (sprev >= smax - TINY) {
 	    // We have successfully reached the end of this trajectory
+	    message = "[Reparameterize2] We successfully reached send.";
+	    std::cout << message << std::endl;
 	    bsuccess = true;
 	    break;
 	}
@@ -744,6 +762,10 @@ int Trajectory::Reparameterize2(Constraints& constraints, Trajectory& restraject
 	// intersection with any other profile. Note that we have not
 	// reached smax either.
 	if (checksample.itprofile == constraints.resprofileslist.end()) {
+	    message = "[Reparameterize2] Reached the end of the profile but"
+		"not yet found any intersection";
+	    std::cout << message << std::endl;
+	    
 	    bool bfindconnection = true;
 	    do {
 		bfindconnection = false;
@@ -812,7 +834,7 @@ int Trajectory::Reparameterize2(Constraints& constraints, Trajectory& restraject
 		dReal sintersect = 0, sdintersect = 0, sddintersect = 0, tintersect = 0;
 		dReal snext, sdnext, sddnext;
 		size_t sconnectindex = sconnectindexmin;
-		while(true) {
+		while (true) {
 		    // In sample.itprofile, take the second to last point since that should have nonzero sdd
 		    vsampledpoints.resize(vsampledpoints.size() - 4);
 		    if (vsampledpoints.size() >= 4) {
@@ -841,19 +863,30 @@ int Trajectory::Reparameterize2(Constraints& constraints, Trajectory& restraject
 				std::cout << message << std::endl;
 				return -1;
 			    }
-			    dReal t = (sdprev - sdnext)/sddnext;
-			    sintersect = snext + t*(sdnext + t*sddnext*0.5);
+			    message = "[Reparameterize2] intersection case 1";
+			    std::cout << message << std::endl;
+			    // dReal t = (sdprev - sdnext)/sddnext;
+			    // sintersect = snext + t*(sdnext - t*sddnext*0.5);
+			    // sdintersect = sdprev;
+			    // sddintersect = sddprev;
+			    // tintersect = (sintersect - sprev)/sdprev;
+			    dReal t = (sdnext - sdprev)/sddnext;
 			    sdintersect = sdprev;
+			    sintersect = snext - t*(sdintersect + 0.5*t*sddnext);
 			    sddintersect = sddprev;
 			    tintersect = (sintersect - sprev)/sdprev;
 			}
 			else if (fabs(sddnext) <= TINY) {
+			    message = "[Reparameterize2] intersection case 2";
+			    std::cout << message << std::endl;
 			    tintersect = (sdnext - sdprev)/sddprev;
                             sintersect = sprev + tintersect*(sdprev + tintersect*sddprev*0.5);
                             sddintersect = sddprev;
                             sdintersect = sdnext;
 			}
 			else {
+			    message = "[Reparameterize2] intersection case 3";
+			    std::cout << message << std::endl;
 			    dReal Aprofile = 1/(2*sddprev);
 			    dReal Cprofile = sprev - sdprev*sdprev/(2*sddprev);
 			
@@ -903,6 +936,8 @@ int Trajectory::Reparameterize2(Constraints& constraints, Trajectory& restraject
 			    else {
 				dReal sdintersect2 = (Ccheck - Cprofile)/Adiff;
 				if (sdintersect2 < 0) {
+				    message = "[Reparameterize2] sdintersect2 < 0";
+				    std::cout << message << std::endl;
 				    dReal tintersect2 = 1e30;
 				    checksample2 = FindEarliestProfileIntersection\
 					(sprev, sdprev, sddprev, profile.integrationtimestep*10, 
@@ -969,7 +1004,6 @@ int Trajectory::Reparameterize2(Constraints& constraints, Trajectory& restraject
                     }
                     else {
                         t2 = (snext - sintersect)/sdnext;
-			std::cout << snext << " " << sintersect << " " << sdnext << "\n";
                         BOOST_ASSERT(t2 >= 0);
                         vsampledpoints.push_back(snext);
                         vsampledpoints.push_back(sdnext);
@@ -995,6 +1029,7 @@ int Trajectory::Reparameterize2(Constraints& constraints, Trajectory& restraject
 		}
 		else {
 		    dReal t2 = (sdintersect - sdnext)/sddnext;
+		    std::cout << "HEYHEY" << t2 << "\n";
                     checksample.itprofile = itprofilemin;
                     checksample.sindex = sconnectindex;
                     checksample.s = sintersect;
@@ -1029,6 +1064,31 @@ int Trajectory::Reparameterize2(Constraints& constraints, Trajectory& restraject
 
     }
     
+    // For debugging, do not delete
+    {
+	RAVELOG_INFO_FORMAT("success in extracting profiles (%d)!", vsampledpoints.size());
+	std::ofstream f("points.txt");
+	f << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
+	dReal sprev=vsampledpoints[0], sdprev = vsampledpoints[1], sddprev = vsampledpoints[2];
+	for(size_t i =0; i < vsampledpoints.size(); i += 4 ) {
+	    // sanity check
+	    dReal s = sprev + vsampledpoints[i+3]*(sdprev + vsampledpoints[i+3]*0.5*sddprev);
+	    dReal sd = sdprev + vsampledpoints[i+3]*sddprev;
+	    if( fabs(s-vsampledpoints[i])>TINY2 || fabs(sd-vsampledpoints[i+1])>TINY2) {
+		RAVELOG_WARN_FORMAT("inconsistency at s=%.15e: serr=%.15e, sderr=%.15e", sprev%(s-vsampledpoints[i])%(sd-vsampledpoints[i+1]));
+	    }
+	    //BOOST_ASSERT(fabs(s-vsampledpoints[i])<=TINY2);
+	    //BOOST_ASSERT(fabs(sd-vsampledpoints[i+1])<=TINY2);
+	    BOOST_ASSERT(vsampledpoints[i+3]>=0);
+	    f << vsampledpoints[i] << " " << vsampledpoints[i+1] << " " << vsampledpoints[i+2] << " " << vsampledpoints[i+3] << std::endl;
+	    sprev = vsampledpoints[i];
+	    sdprev = vsampledpoints[i+1];
+	    sddprev = vsampledpoints[i+2];
+	}
+    }
+
+
+
     // Now we successfully extracted s, sd, sdd, t from all the lowest profiles.
     // Start reparameterizing!
     
