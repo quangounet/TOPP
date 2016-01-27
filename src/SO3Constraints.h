@@ -1,5 +1,6 @@
 #include "TOPP.h"
 #include <boost/python.hpp>
+#include <boost/multi_array.hpp>
 
 namespace TOPP {
 void ComputeSO3Constraints(const std::string& SO3trajstring, const std::string& constraintsstring, boost::python::list& resstringlist);
