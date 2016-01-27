@@ -2,7 +2,7 @@
 #include <boost/python.hpp>
 
 namespace TOPP {
-bool ComputeSO3Constraints(const std::string& SO3trajstring, const std::string& constraintsstring, boost::python::list& resstringlist);
+void ComputeSO3Constraints(const std::string& SO3trajstring, const std::string& constraintsstring, boost::python::list& resstringlist);
 
 boost::multi_array<dReal, 2> SkewFromVect(const std::vector<dReal>& vect);
 

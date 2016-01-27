@@ -4,7 +4,7 @@
 #include <ctime>
 
 namespace TOPP {
-bool ComputeSO3Constraints(const std::string& SO3trajstring, const std::string& constraintsstring, boost::python::list& resstringlist){
+void ComputeSO3Constraints(const std::string& SO3trajstring, const std::string& constraintsstring, boost::python::list& resstringlist){
     //Convert the data
     Trajectory* SO3traj = new Trajectory(SO3trajstring);
     dReal discrtimestep;
@@ -93,7 +93,6 @@ bool ComputeSO3Constraints(const std::string& SO3trajstring, const std::string& 
     resstringlist.append(a);
     resstringlist.append(b);
     resstringlist.append(c);
-    return true;
 };
 
 std::string VectToString(const std::vector<dReal>&vect, const bool&IsCvect){

@@ -335,13 +335,8 @@ public:
 
 boost::python::list RunComputeSO3Constraints(std::string SO3trajstring, std::string constraintsstring){
     boost::python::list resstringlist;
-    bool res = ComputeSO3Constraints(SO3trajstring, constraintsstring, resstringlist);
-    if(res == true) {
-        return resstringlist;
-    }
-    // else{
-    //     return "";
-    // };
+    ComputeSO3Constraints(SO3trajstring, constraintsstring, resstringlist);
+    return resstringlist;
 };
 
 
