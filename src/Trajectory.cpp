@@ -194,12 +194,7 @@ void Trajectory::InitFromChunksList(const std::list<Chunk>&chunkslist0) {
 }
 
 
-Trajectory::Trajectory(const std::list<Chunk>& chunkslist0) {
-    InitFromChunksList(chunkslist0);
-}
-
-
-Trajectory::Trajectory(const std::string& trajectorystring) {
+void Trajectory::InitFromString(const std::string& trajectorystring) {
     std::string buff;
     std::istringstream iss(trajectorystring);
     int dimension;
@@ -221,6 +216,16 @@ Trajectory::Trajectory(const std::string& trajectorystring) {
         }
     }
     InitFromChunksList(chunkslist0);
+}
+
+
+Trajectory::Trajectory(const std::list<Chunk>& chunkslist0) {
+    InitFromChunksList(chunkslist0);
+}
+
+
+Trajectory::Trajectory(const std::string& trajectorystring) {
+    InitFromString(trajectorystring);
 }
 
 
