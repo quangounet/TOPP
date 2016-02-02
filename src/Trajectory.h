@@ -59,6 +59,7 @@ public:
     Trajectory(){
     }
     void InitFromChunksList(const std::list<Chunk>&chunkslist);
+    void InitFromString(const std::string& trajectorystring);
 
     int dimension;
     dReal duration;
