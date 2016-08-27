@@ -1,6 +1,6 @@
 from numpy import *
 import bisect
-import pylab
+import pylab, scipy
 import StringIO
 
 
@@ -17,9 +17,9 @@ class Polynomial(object):
     def __init__(self, coeff_list):
         # NB: we adopt the weak-term-first convention for inputs
         self.coeff_list = coeff_list
-        self.q = pylab.poly1d(coeff_list[::-1])
-        self.qd = pylab.polyder(self.q)
-        self.qdd = pylab.polyder(self.qd)
+        self.q = poly1d(coeff_list[::-1])
+        self.qd = polyder(self.q)
+        self.qdd = polyder(self.qd)
         self.degree = self.q.order
 
     def pad_coeff_string(self, new_degree):
@@ -36,7 +36,7 @@ class Polynomial(object):
         return self.qdd(s)
 
     def Evaldn(self, s, n):
-        return pylab.polyder(self.q,n)(s)
+        return polyder(self.q,n)(s)
 
     def __str__(self):
         return ' '.join(map(str, self.coeff_list))
@@ -150,19 +150,18 @@ class PiecewisePolynomialTrajectory():
         return '\n'.join([str(chunk) for chunk in self.chunkslist])
 
 
-def SimpleInterpolate(q0,q1,qd0,qd1,T):
-    a=((qd1-qd0)*T-2*(q1-q0-qd0*T))/T**3
-    b=(3*(q1-q0-qd0*T)-(qd1-qd0)*T)/T**2
-    c=qd0
-    d=q0
-    return [d,c,b,a]
-
-def MakeChunk(q0v,q1v,qd0v,qd1v,T):
-    polylist = []
-    for i in range(len(q0v)):
-        polylist.append(Polynomial(SimpleInterpolate(q0v[i],q1v[i],qd0v[i],qd1v[i],T)))
-    return Chunk(T,polylist)
-
+def CropChunk(c, s0, s1):
+    # Compute the Taylor shift at s0
+    polynomialsvector = []
+    for i in range(c.dimension):
+        coeffs = []
+        Pin = c.polynomialsvector[i].q
+        for n in range(c.degree+1):
+            coeffs.append(1./scipy.misc.factorial(n)*Pin(s0))
+            Pin = polyder(Pin)
+        polynomialsvector.append(Polynomial(coeffs))
+    return Chunk(s1-s0, polynomialsvector)
+            
 
 # Assumes that i0 < i1
 def InsertIntoTrajectory(traj,traj2,s0,s1):
@@ -170,8 +169,8 @@ def InsertIntoTrajectory(traj,traj2,s0,s1):
     i1,r1 = traj.FindChunkIndex(s1)
     c0 = traj.chunkslist[i0]
     c1 = traj.chunkslist[i1]
-    chunk0 = MakeChunk(c0.Eval(0),c0.Eval(r0),c0.Evald(0),c0.Evald(r0),r0)
-    chunk1 = MakeChunk(c1.Eval(r1),c1.Eval(c1.duration),c1.Evald(r1),c1.Evald(c1.duration),c1.duration-r1)
+    chunk0 = CropChunk(c0, 0, r0)
+    chunk1 = CropChunk(c1, r1, c1.duration) 
     tolerance = 0.05
     if linalg.linalg.norm(traj2.Eval(0)-c0.Eval(r0))>=tolerance :
         print "Position mismatch at s0 : ", linalg.linalg.norm(traj2.Eval(0)-c0.Eval(r0))
@@ -211,12 +210,12 @@ def SubTraj(traj,s0,s1=-1):
     c0 = traj.chunkslist[i0]
     c1 = traj.chunkslist[i1]
     if i0 == i1 :
-        newchunkslist.append(MakeChunk(c0.Eval(r0),c0.Eval(r1),c0.Evald(r0),c0.Evald(r1),r1-r0))
+        newchunkslist.append(CropChunk(c0,r0,r1))
     else:
-        newchunkslist.append(MakeChunk(c0.Eval(r0),c0.Eval(c0.duration),c0.Evald(r0),c0.Evald(c0.duration),c0.duration-r0))
+        newchunkslist.append(CropChunk(c0, r0, c0.duration)) 
         i = i0+1
         while i < i1:
             newchunkslist.append(traj.chunkslist[i])
             i = i+1
-        newchunkslist.append(MakeChunk(c1.Eval(0),c1.Eval(r1),c0.Evald(0),c0.Evald(r1),r1))
-    return(PiecewisePolynomialTrajectory(newchunkslist))
+        newchunkslist.append(CropChunk(c1, 0, r1))
+    return PiecewisePolynomialTrajectory(newchunkslist)
