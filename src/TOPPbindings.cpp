@@ -83,7 +83,6 @@ public:
 
         // Set default public tuning parameters
         integrationtimestep = 0;
-        reparamtimestep = 0;
         passswitchpointnsteps = 5;
         extrareps = 0;
 
@@ -123,7 +122,6 @@ public:
 
         // Set default public tuning parameters
         integrationtimestep = 0;
-        reparamtimestep = 0;
         passswitchpointnsteps = 5;
         extrareps = 0;
 
@@ -150,7 +148,7 @@ public:
     TOPP::dReal sdbegmin, sdbegmax;
 
     // Tuning parameters
-    TOPP::dReal integrationtimestep, reparamtimestep;
+    TOPP::dReal integrationtimestep;
     int passswitchpointnsteps, extrareps;
 
 #ifdef WITH_OPENRAVE
@@ -245,17 +243,6 @@ public:
     }
 #endif
 
-    TOPP::dReal RunEmergencyStop(TOPP::dReal sdbeg){
-        // Set tuning parameters
-        pconstraints->integrationtimestep = integrationtimestep;
-        pconstraints->passswitchpointnsteps = passswitchpointnsteps;
-        pconstraints->reparamtimestep = reparamtimestep;
-        pconstraints->extrareps = extrareps;
-
-        TOPP::dReal res = EmergencyStop(*pconstraints, sdbeg, restrajectory);
-        return res;
-    }
-
     void WriteResultTrajectory(){
         // std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
         //std::stringstream ss; ss << std::setprecision(std::numeric_limits<OpenRAVE::dReal>::digits10+1);
@@ -348,7 +335,6 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
 
     .def(init<object,std::string,object,TOPP::dReal>(args("openraverobot","problemtype","openravetrajectory","discrtimestep")))
     .def_readwrite("integrationtimestep", &TOPPInstance::integrationtimestep)
-    .def_readwrite("reparamtimestep", &TOPPInstance::reparamtimestep)
     .def_readwrite("passswitchpointnsteps", &TOPPInstance::passswitchpointnsteps)
     .def_readwrite("extrareps", &TOPPInstance::extrareps)
     .def_readonly("restrajectorystring", &TOPPInstance::restrajectorystring)
@@ -370,7 +356,6 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def("ReparameterizeTrajectory",&TOPPInstance::ReparameterizeTrajectory, ReparameterizeTrajectory_overloads(args("reparamtimestep")))
     .def("RunVIP",&TOPPInstance::RunVIP)
     .def("RunVIPBackward",&TOPPInstance::RunVIPBackward)
-    .def("RunEmergencyStop",&TOPPInstance::RunEmergencyStop)
     .def("WriteResultTrajectory",&TOPPInstance::WriteResultTrajectory)
     .def("WriteProfilesList",&TOPPInstance::WriteProfilesList)
     .def("WriteExtra",&TOPPInstance::WriteExtra)
