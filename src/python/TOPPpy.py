@@ -123,7 +123,7 @@ def ComputeKinematicConstraints(traj, amax, discrtimestep):
 ######################## Plots ############################
 
 def PlotProfiles(profileslist0, switchpointslist=[], figstart=None, colorscheme = 1):
-    from pylab import figure, clf, hold, plot, gca, axis, title, xlabel, ylabel
+    from pylab import figure, clf, hold, plot, gca, axis, title, xlabel, ylabel, cycler
     profileslist = list(profileslist0)
     if figstart is not None:
         figure(figstart)
@@ -137,9 +137,9 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=None, colorscheme 
     else:
         plot(mvcbobrow[2], mvcbobrow[3], 'm', linewidth=4)        
         plot(mvcdirect[2], mvcdirect[3], 'm--', linewidth=4)
-    colorcycle = ['r', 'g', 'b', 'y', 'k']
+    colorcycle = cycler('color', ['r', 'g', 'b', 'y', 'k'])
     ax = gca()
-    ax.set_color_cycle(colorcycle)
+    ax.set_prop_cycle(colorcycle)
     for p in profileslist:
         plot(p[2], p[3], 'k',linewidth=2)
     if len(profileslist) > 0:
@@ -205,9 +205,9 @@ def PlotAlphaBeta(topp_inst, prec=30):
 
 
 def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
-    from pylab import figure, clf, hold, gca, title, xlabel, ylabel, plot, axis
-    colorcycle = ['r', 'g', 'b', 'm', 'c', 'y', 'k']
-    colorcycle = colorcycle[0:traj0.dimension]
+    from pylab import figure, clf, hold, gca, title, xlabel, ylabel, plot, axis, cycler
+    x = ['r', 'g', 'b', 'y', 'k']
+    colorcycle = cycler('color', x[0:traj0.dimension])
     Tmax = max(traj0.duration, traj1.duration)
 
     # Joint angles
@@ -215,9 +215,9 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
     clf()
     hold('on')
     ax = gca()
-    ax.set_color_cycle(colorcycle)
+    ax.set_prop_cycle(colorcycle)
     traj0.Plot(dt, '--')
-    ax.set_color_cycle(colorcycle)
+    ax.set_prop_cycle(colorcycle)
     traj1.Plot(dt)
     title('Joint values', fontsize=20)
     xlabel('Time (s)', fontsize=18)
@@ -228,9 +228,9 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
     clf()
     hold('on')
     ax = gca()
-    ax.set_color_cycle(colorcycle)
+    ax.set_prop_cycle(colorcycle)
     traj0.Plotd(dt, '--')
-    ax.set_color_cycle(colorcycle)
+    ax.set_prop_cycle(colorcycle)
     traj1.Plotd(dt)
     for v in vmax:
         plot([0, Tmax], [v, v], '-.')
@@ -249,10 +249,10 @@ def PlotKinematics(traj0, traj1, dt=0.01, vmax=[], amax=[], figstart=0):
     figure(figstart + 2)
     clf()
     ax = gca()
-    ax.set_color_cycle(colorcycle)
+    ax.set_prop_cycle(colorcycle)
     hold('on')
     traj0.Plotdd(dt, '--')
-    ax.set_color_cycle(colorcycle)
+    ax.set_prop_cycle(colorcycle)
     traj1.Plotdd(dt)
     for a in amax:
         plot([0, Tmax], [a, a], '-.')

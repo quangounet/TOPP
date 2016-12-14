@@ -37,7 +37,7 @@ class QuadraticConstraints(object):
             None, "QuadraticConstraints", constraintstring, str(traj))
 
     def AVP(self, sdmin, sdmax):
-        return_code = self.solver.RunVIP(sdmin, sdmax)
+        return_code = self.solver.RunAVP(sdmin, sdmax)
         if return_code != TOPP_OK:
             raise NoTrajectoryFound(return_code)
         sdendmin = self.solver.sdendmin

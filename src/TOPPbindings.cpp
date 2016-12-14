@@ -94,6 +94,7 @@ public:
     TOPPInstance(object orobot, std::string problemtype, object otrajectory, TOPP::dReal discrtimestep)
     {
 #ifdef WITH_OPENRAVE
+
         _probot = openravepy::GetRobot(orobot);
         std::list<OpenRAVE::TrajectoryBasePtr> listtrajectories;
         OpenRAVE::TrajectoryBasePtr ptrajectory = openravepy::GetTrajectory(otrajectory);
@@ -169,12 +170,14 @@ public:
 
     int RunComputeProfiles(TOPP::dReal sdbeg, TOPP::dReal sdend){
         // Set tuning parameters
+
         pconstraints->integrationtimestep = integrationtimestep;
         pconstraints->passswitchpointnsteps = passswitchpointnsteps;
         pconstraints->extrareps = extrareps;
         pconstraints->stepthresh = 0.01;
 
         int res = ComputeProfiles(*pconstraints,sdbeg,sdend);
+
         resduration = pconstraints->resduration;
         return res;
     }
@@ -190,7 +193,7 @@ public:
     }
 
 
-    int RunVIP(TOPP::dReal sdbeg1, TOPP::dReal sdbeg2){
+    int RunAVP(TOPP::dReal sdbeg1, TOPP::dReal sdbeg2){
         // Set tuning parameters
         pconstraints->integrationtimestep = integrationtimestep;
         pconstraints->passswitchpointnsteps = passswitchpointnsteps;
@@ -198,7 +201,7 @@ public:
 
         sdbegmin = sdbeg1;
         sdbegmax = sdbeg2;
-        int ret = VIP(*pconstraints, sdbegmin, sdbegmax,
+        int ret = AVP(*pconstraints, sdbegmin, sdbegmax,
                       sdendmin, sdendmax);
         if(ret == 0) {
             sdendmin = -1;
@@ -207,7 +210,7 @@ public:
         return ret;
     }
 
-    int RunVIPBackward(TOPP::dReal sdend1, TOPP::dReal sdend2){
+    int RunAVPBackward(TOPP::dReal sdend1, TOPP::dReal sdend2){
         // Set tuning parameters
         pconstraints->integrationtimestep = integrationtimestep;
         pconstraints->passswitchpointnsteps = passswitchpointnsteps;
@@ -215,7 +218,7 @@ public:
 
         sdendmin = sdend1;
         sdendmax = sdend2;
-        int ret = VIPBackward(*pconstraints, sdbegmin, sdbegmax,
+        int ret = AVPBackward(*pconstraints, sdbegmin, sdbegmax,
                               sdendmin, sdendmax);
         if(ret == 0) {
             sdbegmin = -1;
@@ -354,8 +357,8 @@ BOOST_PYTHON_MODULE(TOPPbindings) {
     .def("GetBeta",&TOPPInstance::GetBeta)
     .def("RunComputeProfiles",&TOPPInstance::RunComputeProfiles)
     .def("ReparameterizeTrajectory",&TOPPInstance::ReparameterizeTrajectory, ReparameterizeTrajectory_overloads(args("reparamtimestep")))
-    .def("RunVIP",&TOPPInstance::RunVIP)
-    .def("RunVIPBackward",&TOPPInstance::RunVIPBackward)
+    .def("RunAVP",&TOPPInstance::RunAVP)
+    .def("RunAVPBackward",&TOPPInstance::RunAVPBackward)
     .def("WriteResultTrajectory",&TOPPInstance::WriteResultTrajectory)
     .def("WriteProfilesList",&TOPPInstance::WriteProfilesList)
     .def("WriteExtra",&TOPPInstance::WriteExtra)
