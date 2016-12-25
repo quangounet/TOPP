@@ -3,9 +3,9 @@ TOPP
 
 This is TOPP, the Time-Optimal Path Parameterization library by Quang-Cuong Pham (cuong.pham@normalesup.org)
 
-If you use this library for your research, please reference the accompanying paper «A general, fast, and robust implementation of the time-optimal path parameterization algorithm», *IEEE Transactions on Robotics*, vol. 30(6), pp. 1533-1540, 2014.
+If you use this library for your research, please reference the accompanying paper [«A general, fast, and robust implementation of the time-optimal path parameterization algorithm»](http://ieeexplore.ieee.org/document/6895310/), *IEEE Transactions on Robotics*, vol. 30(6), pp. 1533-1540, 2014.
 
-If you use Admissible Velocity Propagation, please reference the accompanying paper « Admissible Velocity Propagation: Beyond quasi-static path planning for high-dimensional robots», *The International Journal of Robotics Research*, DOI: 10.1177/0278364916675419, 2016.
+If you use Admissible Velocity Propagation, please reference also [«Admissible Velocity Propagation: Beyond quasi-static path planning for high-dimensional robots»](http://journals.sagepub.com/doi/full/10.1177/0278364916675419), *The International Journal of Robotics Research*, DOI: 10.1177/0278364916675419, 2016.
 
 Many thanks to Stephane Caron, Rosen Diankov, Puttichai Lertkultanon, and others, for their contributions !
 
