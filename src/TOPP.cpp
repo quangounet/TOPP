@@ -355,7 +355,7 @@ void Constraints::TrimSwitchPoints() {
         it++;
     }
     // Merge consecutive singular points that are in a small radius
-    if(scur>=0) {
+    if(scur>=0  && it!=switchpointslist.end()) {
         it++;
         while(it!=switchpointslist.end()) {
             snext = it->s;
@@ -406,7 +406,7 @@ void Constraints::TrimSwitchPoints() {
         it++;
     }
     // Merge consecutive non-singular switchpoints that are in a small radius
-    if(scur>=0) {
+    if(scur>=0  && it!=switchpointslist.end()) {
         it++;
         while(it!=switchpointslist.end()) {
             snext = it->s;
