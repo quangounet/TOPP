@@ -2,7 +2,7 @@ from numpy import *
 import bisect
 import pylab, scipy
 import StringIO
-
+from scipy import misc
 
 from pylab import arange, array, double, plot, zeros
 
@@ -157,14 +157,14 @@ def CropChunk(c, s0, s1):
         coeffs = []
         Pin = c.polynomialsvector[i].q
         for n in range(c.degree+1):
-            coeffs.append(1./scipy.misc.factorial(n)*Pin(s0))
+            coeffs.append(1./misc.factorial(n)*Pin(s0))
             Pin = polyder(Pin)
         polynomialsvector.append(Polynomial(coeffs))
     return Chunk(s1-s0, polynomialsvector)
             
 
 # Assumes that i0 < i1
-def InsertIntoTrajectory(traj,traj2,s0,s1):
+def InsertIntoTrajectory(traj,traj2,s0,s1,order=3):
     i0,r0 = traj.FindChunkIndex(s0)
     i1,r1 = traj.FindChunkIndex(s1)
     c0 = traj.chunkslist[i0]
@@ -178,12 +178,13 @@ def InsertIntoTrajectory(traj,traj2,s0,s1):
     if linalg.linalg.norm(traj2.Eval(traj2.duration)-c1.Eval(r1))>=tolerance:
         print "Position mismatch at s1 : ", linalg.linalg.norm(traj2.Eval(traj2.duration)-c1.Eval(r1))
         return None
-    if linalg.linalg.norm(traj2.Evald(0)-c0.Evald(r0)) >= tolerance:
-        print "Velocity mismatch at s0 : ", linalg.linalg.norm(traj2.Evald(0)-c0.Evald(r0))
-        return None
-    if linalg.linalg.norm(traj2.Evald(traj2.duration)-c1.Evald(r1)) >= tolerance:
-        print "Velocity mismatch at s1: ", linalg.linalg.norm(traj2.Evald(traj2.duration)-c1.Evald(r1))
-        return None
+    if order > 1:
+        if linalg.linalg.norm(traj2.Evald(0)-c0.Evald(r0)) >= tolerance:
+            print "Velocity mismatch at s0 : ", linalg.linalg.norm(traj2.Evald(0)-c0.Evald(r0))
+            return None
+        if linalg.linalg.norm(traj2.Evald(traj2.duration)-c1.Evald(r1)) >= tolerance:
+            print "Velocity mismatch at s1: ", linalg.linalg.norm(traj2.Evald(traj2.duration)-c1.Evald(r1))
+            return None
     newchunkslist = list(traj.chunkslist)
     for i in range(i1-i0+1):
         newchunkslist.pop(i0)
