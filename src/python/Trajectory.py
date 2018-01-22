@@ -81,7 +81,7 @@ class Chunk():
 
     def __str__(self):
         chunks_str = '\n'.join(map(str, self.polynomialsvector))
-        return '%f\n%d\n%s' % (self.duration, self.dimension, chunks_str)
+        return '%s\n%d\n%s' % (str(self.duration), self.dimension, chunks_str)
 
 
 class PiecewisePolynomialTrajectory():
