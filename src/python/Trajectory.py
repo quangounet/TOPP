@@ -220,3 +220,37 @@ def SubTraj(traj,s0,s1=-1):
             i = i+1
         newchunkslist.append(CropChunk(c1, 0, r1))
     return PiecewisePolynomialTrajectory(newchunkslist)
+
+
+def ReverseTrajectory(topptraj):
+    newchunkslist = []
+    
+    for chunk in topptraj.chunkslist:
+        T = chunk.duration
+        newpoly_list = []
+        for p in chunk.polynomialsvector:
+            # Perform variable changing of p(x) = a_n(x)^n + a_(n-1)(x)^(n-1) + ...
+            # by x = T - y
+            a = p.q # coefficient vector with python convention (highest degree first)
+            # a is a poly1d object
+            r = a.r
+            newr = [T - k for k in r]
+            b = poly1d(newr, True) # reconstruct a new polynomial from roots
+            b = b*a.coeffs[0] # multiply back by a_n
+            # *** this multiplication does not commute
+            if (b(0)*a(T) < 0):
+                # correct the coeffs if somehow the polynomial is flipped
+                b = b*-1.0
+            # TOPP convention is weak-term-first
+            newpoly = Polynomial(b.coeffs.tolist()[::-1])
+            newpoly_list.append(newpoly)
+        newchunk = Chunk(chunk.duration, newpoly_list)
+        newchunkslist.insert(0, newchunk)
+    newtopptraj = PiecewisePolynomialTrajectory(newchunkslist)
+    return newtopptraj
+
+
+def ReverseTrajectoryString(topptrajstring):
+    topptraj = PiecewisePolynomialTrajectory.FromString(topptrajstring)
+    newtopptraj = ReverseTrajectory(topptraj)
+    return str(newtopptraj)
