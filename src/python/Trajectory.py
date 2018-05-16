@@ -6,6 +6,12 @@ from scipy import misc
 
 from pylab import arange, array, double, plot, zeros
 
+import sys
+if sys.version_info < (3,):
+    text_type = unicode
+else:
+    text_type = str
+
 
 class Polynomial(object):
     @staticmethod
@@ -97,7 +103,7 @@ class PiecewisePolynomialTrajectory():
 
     @staticmethod
     def FromString(trajectorystring):
-        buff = io.StringIO(trajectorystring)
+        buff = io.StringIO(text_type(trajectorystring))
         chunkslist = []
         while buff.tell() < len(trajectorystring):
             duration = double(buff.readline())

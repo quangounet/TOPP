@@ -29,6 +29,11 @@ from TOPP import TOPPbindings
 from TOPP import ClosedChain
 from TOPP import Bimanual
 
+try:
+    input = raw_input
+except NameError:
+    pass
+
 ion()
 
 ############# Load environment and robot ############
@@ -111,7 +116,7 @@ q_start[0:3] = q_start1
 q_start[3:6] = q_start2
 robot2.SetTransform(T2)
 #print "Initial config"
-#raw_input()
+#input()
 
 # Goal configuration
 # Robot 1
@@ -130,7 +135,7 @@ q_goal = zeros(6)
 q_goal[0:3] = q_goal1
 q_goal[3:6] = q_goal2
 #print "Goal config"
-#raw_input()
+#input()
 
 
 ########### Interpolate between the two configurations ##############

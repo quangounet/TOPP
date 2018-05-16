@@ -6,6 +6,11 @@ from TOPP import TOPPpy
 from TOPP import TOPPbindings
 from TOPP import Trajectory
 
+try:
+    input = raw_input
+except NameError:
+    pass
+
 def Extractabc(abc):
     lista = [float(x) for x in abc[0].split()]
     listb = [float(x) for x in abc[1].split()]

@@ -23,6 +23,12 @@ from TOPP import TOPPpy
 from TOPP import Trajectory
 from TOPP import Utilities
 
+try:
+    input = raw_input
+except NameError:
+    pass
+
+
 # A two-dof path going through 5 viapoints (0,1) - (1,1) - (5,1) - (3,2) - (5,4)
 path = array([[0,1,5,3,5],[1,1,1,2,4]])
 traj0 = Utilities.InterpolateViapoints(path) # Interpolate using splines

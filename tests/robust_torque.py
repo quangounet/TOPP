@@ -27,6 +27,11 @@ from TOPP import TOPPopenravepy
 from TOPP import Trajectory
 from TOPP import Utilities
 
+try:
+    input = raw_input
+except NameError:
+    pass
+
 ion()
 
 

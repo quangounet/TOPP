@@ -10,8 +10,14 @@ from TOPP import Trajectory
 from TOPP import Utilities
 from TOPP import TOPPbindings
 from TOPP import TOPPopenravepy
-from io import StringIO
-import io as oldIO
+import io
+
+import sys
+if sys.version_info < (3,):
+    text_type = unicode
+else:
+    text_type = str
+
 
 cvxopt.solvers.options['show_progress'] = False
 
@@ -276,7 +282,7 @@ class Polygon:
         self.vertices = [v1,v2,v3]
 
     def fromString(self,s):
-        buff = oldIO.StringIO(s)
+        buff = io.StringIO(text_type(s))
         self.vertices = []
         while(True):
             l = buff.readline()

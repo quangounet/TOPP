@@ -24,6 +24,11 @@ from TOPP import TOPPpy
 from TOPP import Trajectory
 from TOPP import Utilities
 
+try:
+    input = raw_input
+except NameError:
+    pass
+
 ion()
 
 
@@ -69,7 +74,7 @@ for j in range(ntraj):
     profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
     switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
     #TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
-    #raw_input()
+    #input()
     if(ret == 1):
         x.ReparameterizeTrajectory()
         x.WriteResultTrajectory()
@@ -82,7 +87,7 @@ for j in range(ntraj):
         nfail += 1
         print(">>>>>>>>>>>>>>>>>>> TOPP could not retime ", nfail)
         #TOPPpy.PlotKinematics(traj0,traj1,0.01,vmax,amax)
-        #raw_input()
+        #input()
 
 
 print("\nNumber of failures:", nfail)

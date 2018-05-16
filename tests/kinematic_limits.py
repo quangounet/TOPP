@@ -22,6 +22,12 @@ from TOPP import TOPPbindings
 from TOPP import TOPPpy
 from TOPP import Trajectory
 
+try:
+    input = raw_input
+except NameError:
+    pass
+
+
 # Trajectory
 ndof = 5
 trajectorystring = """1.0

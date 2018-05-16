@@ -12,6 +12,11 @@ from TOPP import Utilities
 cvxopt.solvers.options['show_progress'] = False
 from . import ClosedChain
 
+try:
+    input = raw_input
+except NameError:
+    pass
+
 
 #############################################################
 ######################## Kinematics #########################
@@ -65,7 +70,7 @@ def IK3(robot,desiredpose,q_start=[0.5,0.5,0.5],step=1e-2,threshold=1e-3,k=0.1):
         #print J, dposestep        
         dq = dot(Jstar,dposestep)
         q += dq
-        #raw_input()
+        #input()
     return q, linalg.norm(dpose)
 
 
@@ -470,7 +475,7 @@ def ComputeConstraints(robot, tunings, trajtotal):
             # figure(6)
             # clf()
             # P.Plot()
-            # raw_input()
+            # input()
             #return P, lp
             vertices_list = P.export_vertices()
             constraintstring += "\n"
@@ -551,7 +556,7 @@ def ComputeConstraintsTorqueOnly(robot, traj, taumin, taumax, discrtimestep):
             # figure(6)
             # clf()
             # P.Plot()
-            # raw_input()
+            # input()
             #return P, lp
             vertices_list = P.export_vertices()
             constraintstring += "\n"
