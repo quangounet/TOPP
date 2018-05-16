@@ -16,13 +16,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import openravepy
-import string
 import time
 
-import Trajectory
-import TOPPbindings
+from . import Trajectory
+from . import TOPPbindings
 
-from QuadraticConstraints import QuadraticConstraints
+from .QuadraticConstraints import QuadraticConstraints
 from pylab import arange, array, cross, dot, inv, norm, random, zeros
 from pylab import arcsin, arctan2, cos, pi, sin
 
@@ -52,7 +51,7 @@ class RAVEBindings(QuadraticConstraints):
 def ToRaveTraj(robot, spec, traj):
     nchunks = len(traj.chunkslist)
     if nchunks < 1:
-        print "TOPP trajectory has less than 1 chunk"
+        print("TOPP trajectory has less than 1 chunk")
         return None
     timespec = openravepy.ConfigurationSpecification()
     timespec.AddGroup('deltatime', 1, 'linear')
@@ -74,7 +73,7 @@ def ToRaveTraj(robot, spec, traj):
 def FromRaveTraj(robot, traj):
     N = traj.GetNumWaypoints()
     if N < 2:
-        print "RAVE trajectory has less than 2 waypoints"
+        print("RAVE trajectory has less than 2 waypoints")
         return None
     timespec = openravepy.ConfigurationSpecification()
     timespec.AddGroup('deltatime', 1, 'linear')
@@ -132,9 +131,9 @@ def ComputeTorquesConstraints(robot, traj, taumin, taumax, discrtimestep):
                     avect.append(-to[i])
                     bvect.append(-tm[i] - tc[i])
                     cvect.append(-tg[i] + taumin[i])
-            constraintstring += "\n" + string.join([str(a) for a in avect])
-            constraintstring += "\n" + string.join([str(b) for b in bvect])
-            constraintstring += "\n" + string.join([str(c) for c in cvect])
+            constraintstring += "\n" + " ".join([str(a) for a in avect])
+            constraintstring += "\n" + " ".join([str(b) for b in bvect])
+            constraintstring += "\n" + " ".join([str(c) for c in cvect])
     return constraintstring
 
 

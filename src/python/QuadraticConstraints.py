@@ -16,22 +16,22 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import TOPPpy
+from . import TOPPpy
 
-from Errors import NoTrajectoryFound, TOPP_OK
-from Trajectory import PiecewisePolynomialTrajectory
-from TOPPbindings import TOPPInstance
-from TOPPpy import ProfilesFromString, SwitchPointsFromString, PlotProfiles
+from .Errors import NoTrajectoryFound, TOPP_OK
+from .Trajectory import PiecewisePolynomialTrajectory
+from .TOPPbindings import TOPPInstance
+from .TOPPpy import ProfilesFromString, SwitchPointsFromString, PlotProfiles
 
 
 class QuadraticConstraints(object):
     def __init__(self, traj, discrtimestep, vmax, a, b, c):
         constraintstring = str(discrtimestep)
-        constraintstring += "\n" + ' '.join(map(str, vmax))
+        constraintstring += "\n" + " ".join(map(str, vmax))
         for i, _ in enumerate(a):
-            constraintstring += "\n" + ' '.join(map(str, a[i]))
-            constraintstring += "\n" + ' '.join(map(str, b[i]))
-            constraintstring += "\n" + ' '.join(map(str, c[i]))
+            constraintstring += "\n" + " ".join(map(str, a[i]))
+            constraintstring += "\n" + " ".join(map(str, b[i]))
+            constraintstring += "\n" + " ".join(map(str, c[i]))
         self.discrtimestep = discrtimestep
         self.solver = TOPPInstance(
             None, "QuadraticConstraints", constraintstring, str(traj))

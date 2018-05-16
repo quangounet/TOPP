@@ -10,7 +10,7 @@ from TOPP import Trajectory
 from TOPP import Utilities
 
 cvxopt.solvers.options['show_progress'] = False
-import ClosedChain
+from . import ClosedChain
 
 
 #############################################################
@@ -93,22 +93,22 @@ def Compensate(robot,T1,T2,dofvalues1,dofvalues2,freedofs1,freedofs2,dependentdo
         robot.SetDOFValues(dofvalues1)
         p = robot.GetLinks()[constrainedlink].GetTransform()[0:3,3]
         if(len(freedofs1)>0):            
-            Jfree[0:2,range(len(freedofs1))] = robot.ComputeJacobianTranslation(constrainedlink,p)[[0,2],:][:,freedofs1]
-            Jfree[2,range(len(freedofs1))] = robot.ComputeJacobianAxisAngle(constrainedlink)[1,freedofs1]
+            Jfree[0:2,list(range(len(freedofs1)))] = robot.ComputeJacobianTranslation(constrainedlink,p)[[0,2],:][:,freedofs1]
+            Jfree[2,list(range(len(freedofs1)))] = robot.ComputeJacobianAxisAngle(constrainedlink)[1,freedofs1]
         if(len(dependentdofs1)>0):
-            Jdependent[0:2,range(len(dependentdofs1))] = robot.ComputeJacobianTranslation(constrainedlink,p)[[0,2],:][:,dependentdofs1]
-            Jdependent[2,range(len(dependentdofs1))] = robot.ComputeJacobianAxisAngle(constrainedlink)[1,dependentdofs1]
+            Jdependent[0:2,list(range(len(dependentdofs1)))] = robot.ComputeJacobianTranslation(constrainedlink,p)[[0,2],:][:,dependentdofs1]
+            Jdependent[2,list(range(len(dependentdofs1)))] = robot.ComputeJacobianAxisAngle(constrainedlink)[1,dependentdofs1]
     # robot in configuration 2
     with robot:
         robot.SetTransform(T2)
         robot.SetDOFValues(dofvalues2)
         p = robot.GetLinks()[constrainedlink].GetTransform()[0:3,3]
         if(len(freedofs2)>0):
-            Jfree[0:2,len(freedofs1)+array(range(len(freedofs2)))] = robot.ComputeJacobianTranslation(constrainedlink,p)[[0,2],:][:,freedofs2]
-            Jfree[2,len(freedofs1)+array(range(len(freedofs2)))] = robot.ComputeJacobianAxisAngle(constrainedlink)[1,freedofs2] 
+            Jfree[0:2,len(freedofs1)+array(list(range(len(freedofs2))))] = robot.ComputeJacobianTranslation(constrainedlink,p)[[0,2],:][:,freedofs2]
+            Jfree[2,len(freedofs1)+array(list(range(len(freedofs2))))] = robot.ComputeJacobianAxisAngle(constrainedlink)[1,freedofs2] 
         if(len(dependentdofs2)>0):
-            Jdependent[0:2,len(dependentdofs1)+array(range(len(dependentdofs2)))] = robot.ComputeJacobianTranslation(constrainedlink,p)[[0,2],:][:,dependentdofs2] 
-            Jdependent[2,len(dependentdofs1)+array(range(len(dependentdofs2)))] = robot.ComputeJacobianAxisAngle(constrainedlink)[1,dependentdofs2] 
+            Jdependent[0:2,len(dependentdofs1)+array(list(range(len(dependentdofs2))))] = robot.ComputeJacobianTranslation(constrainedlink,p)[[0,2],:][:,dependentdofs2] 
+            Jdependent[2,len(dependentdofs1)+array(list(range(len(dependentdofs2))))] = robot.ComputeJacobianAxisAngle(constrainedlink)[1,dependentdofs2] 
     # compute the compensation
     if(abs(det(Jdependent))<tol_jacobian):
         raise Exception("Jdependent non invertible")
@@ -131,17 +131,17 @@ def CompensateTrajectory(robot,T1,T2,freedofs1,freedofs2,dependentdofs1,dependen
         freevalues = freetraj.Eval(t)
         freed = freetraj.Evald(t)
         if len(freedofs1)>0:
-            dofvalues1[freedofs1] = freevalues[range(len(freedofs1))]
+            dofvalues1[freedofs1] = freevalues[list(range(len(freedofs1)))]
         if len(dependentdofs1)>0:
-            dofvalues1[dependentdofs1] = dependentvalues[range(len(dependentdofs1))]
+            dofvalues1[dependentdofs1] = dependentvalues[list(range(len(dependentdofs1)))]
         if len(freedofs2)>0:        
-            dofvalues2[freedofs2] = freevalues[len(freedofs1) + array(range(len(freedofs2)))]
+            dofvalues2[freedofs2] = freevalues[len(freedofs1) + array(list(range(len(freedofs2))))]
         if len(dependentdofs2)>0:
-            dofvalues2[dependentdofs2] = dependentvalues[len(dependentdofs1) + array(range(len(dependentdofs2)))]
+            dofvalues2[dependentdofs2] = dependentvalues[len(dependentdofs1) + array(list(range(len(dependentdofs2))))]
         try:
             dependentd = Compensate(robot,T1,T2,dofvalues1,dofvalues2,freedofs1,freedofs2,dependentdofs1,dependentdofs2,constrainedlink,freed,tol_jacobian)
         except Exception as inst:
-            print "Could not interpolate : Compensate failed"
+            print("Could not interpolate : Compensate failed")
             return None
         dependentvalues += dependentd*dt
         dependentv.append(array(dependentvalues))
@@ -187,11 +187,11 @@ def Interpolate(robot,tunings,qstartfull,qgoal,freestartvelocities,freegoalveloc
     chunksubdiv = tunings.chunksubdiv
     freetraj = ClosedChain.InterpolateFree(qstartfull[freedofs],qgoal,freestartvelocities,freegoalvelocities,duration)
     dependent0 = qstartfull[dependentdofs]
-    freedofs1 = filter(lambda x:x<3,freedofs)
-    freedofs2 = filter(lambda x:x>=3,freedofs)
+    freedofs1 = [x for x in freedofs if x<3]
+    freedofs2 = [x for x in freedofs if x>=3]
     freedofs2 = [x-3 for x in freedofs2]
-    dependentdofs1 = filter(lambda x:x<3,dependentdofs)
-    dependentdofs2 = filter(lambda x:x>=3,dependentdofs)
+    dependentdofs1 = [x for x in dependentdofs if x<3]
+    dependentdofs2 = [x for x in dependentdofs if x>=3]
     dependentdofs2 = [x-3 for x in dependentdofs2]
 
     dependenttraj = CompensateTrajectory(robot1,T1,T2,freedofs1,freedofs2,dependentdofs1,dependentdofs2,constrainedlink,freetraj,dependent0,nchunks,chunksubdiv,tol_jacobian)
@@ -262,7 +262,7 @@ def ComputeSensitivityMatrices(robot1,T1,T2,q,Gdofs,Sdofs,actuated,constrainedli
                 W[i,:] = rowz
             else:
                 W[i,:] = H[indiceS[0],:]
-        nactuated = len(filter(lambda x:x, actuated))
+        nactuated = len([x for x in actuated if x])
         S = zeros((nactuated,3))
         for i in range(nactuated):
             indiceG = [j for j,x in enumerate(Gdofs) if x == i]
@@ -307,7 +307,7 @@ def OptimizeTorques(ST,tauG,ineqmatrices):
         #sol = cvxopt.solvers.lp(qp_q, qp_G, qp_h, qp_A, qp_b)
         sol = cvxopt.solvers.qp(qp_P, qp_q, qp_G, qp_h,qp_A,qp_b)
     except Exception as inst:
-        print "Warning : ", inst
+        print("Warning : ", inst)
         return False,0
 
     if sol['status'] == 'optimal':
@@ -315,7 +315,7 @@ def OptimizeTorques(ST,tauG,ineqmatrices):
         tauA = array(tauA).reshape((6,))
         return True,tauA
     else:
-        print sol['status']
+        print(sol['status'])
     
     return False,0
 
@@ -342,7 +342,7 @@ def ComputeTorquesTraj(robot,traj,dt=0.01):
         if status:
             torquesvect.append(tauA)
         else:
-            print "Warning at t =",t
+            print("Warning at t =",t)
             if(len(torquesvect)>0):
                 torquesvect.append(torquesvect[-1])
             else:
@@ -445,7 +445,7 @@ def ComputeConstraints(robot, tunings, trajtotal):
         try:
             W, S = ComputeSensitivityMatrices(robot1,T1,T2,q,Gdofs,Sdofs,actuated,constrainedlink)
         except Exception as inst:
-            print inst
+            print(inst)
             return None
         astar = dot(W.T,a)
         bstar = dot(W.T,b)
@@ -464,7 +464,7 @@ def ComputeConstraints(robot, tunings, trajtotal):
         res, P = ClosedChain.ComputePolygon(lp)
         if not res:
             got_error = True
-            print "Compute Polygone: Infeasible at t =", t
+            print("Compute Polygone: Infeasible at t =", t)
         else:
             P.sort_vertices()
             # figure(6)
@@ -532,8 +532,8 @@ def ComputeConstraintsTorqueOnly(robot, traj, taumin, taumax, discrtimestep):
         h = zeros(2*ndof+1)
         G[:ndof,:ndof] = eye(ndof)
         G[ndof:2*ndof,:ndof] = -eye(ndof)
-        h[:ndof] = filter(lambda x: abs(x) > 1e-10 ,taumax)
-        h[ndof:2*ndof] = filter(lambda x: abs(x) > 1e-10, -taumin)
+        h[:ndof] = [x for x in taumax if abs(x) > 1e-10]
+        h[ndof:2*ndof] = [x for x in -taumin if abs(x) > 1e-10]
         G[2*ndof,ndof+1] = -1
         lp_G = cvxopt.matrix(G)
         lp_h = cvxopt.matrix(h)
@@ -545,7 +545,7 @@ def ComputeConstraintsTorqueOnly(robot, traj, taumin, taumax, discrtimestep):
         res, P = ClosedChain.ComputePolygon(lp)
         if not res:
             got_error = True
-            print "Compute Polygone: Infeasible at t =", t
+            print("Compute Polygone: Infeasible at t =", t)
         else:
             P.sort_vertices()
             # figure(6)

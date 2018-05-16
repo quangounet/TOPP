@@ -15,11 +15,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-print "\n***********************************************\nNB: This test file requires OpenRAVE and cvxopt\n***********************************************\n"
+print("\n***********************************************\nNB: This test file requires OpenRAVE and cvxopt\n***********************************************\n")
 
 
 import time
-import string
 from pylab import *
 from numpy import *
 from openravepy import *
@@ -145,7 +144,7 @@ trajectorystring = str(trajtotal)
 ################ Bobrow with actuation redundancy ##################
 
 constraintstring = str(tunings.discrtimestep)
-constraintstring += "\n" + string.join([str(v) for v in robot.vmax])
+constraintstring += "\n" + " ".join([str(v) for v in robot.vmax])
 scaledowncoef = 0.99
 robot.taumin = taumin * scaledowncoef # safety bound
 robot.taumax = taumax * scaledowncoef
@@ -160,9 +159,9 @@ x.integrationtimestep = 1e-3
 ret = x.RunComputeProfiles(1,1)
 t2 = time.time()
 
-print "Compute Polygon constraints:", t1-t0, "seconds"
-print "Note : Compute Polygon is faster with the C++ version, checkout branch tomas-develop"
-print "Run TOPP:", t2-t1, "seconds"
+print("Compute Polygon constraints:", t1-t0, "seconds")
+print("Note : Compute Polygon is faster with the C++ version, checkout branch tomas-develop")
+print("Run TOPP:", t2-t1, "seconds")
 
 x.WriteProfilesList()
 x.WriteSwitchPointsList()
@@ -188,5 +187,5 @@ if(ret == 1):
     TOPPpy.PlotKinematics(trajtotal,trajtotal2,dt,robot.vmax)
     Bimanual.PlotTorques(robot,trajtotal,trajtotal2,dt)
 
-raw_input()
+input()
 

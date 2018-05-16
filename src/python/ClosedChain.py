@@ -1,5 +1,4 @@
 import time
-import string
 import scipy
 from pylab import *
 from numpy import *
@@ -11,8 +10,8 @@ from TOPP import Trajectory
 from TOPP import Utilities
 from TOPP import TOPPbindings
 from TOPP import TOPPopenravepy
-from cStringIO import StringIO
-import StringIO as oldIO
+from io import StringIO
+import io as oldIO
 
 cvxopt.solvers.options['show_progress'] = False
 
@@ -54,7 +53,7 @@ def Compensate(robot,freedofs,dependentdofs,constrainedlinks,dofvalues,freedelta
     #dependentdelta = -dot(pinv(Jdependent),dot(Jfree,freedelta))
     # Assume that Jpendent is square    
     if abs(det(Jdependent)) < toljacobian:
-        print "Singularity detected: det(Jdependent) =", det(Jdependent)
+        print("Singularity detected: det(Jdependent) =", det(Jdependent))
         return None
     if slidelinks is None:
         dependentdelta = linalg.solve(Jdependent,-dot(Jfree,freedelta))
@@ -90,7 +89,7 @@ def CompensateTrajectory(robot,qstart,freedofs,dependentdofs,constrainedlinks,fr
         else:
             dependentdelta = Compensate(robot,freedofs,dependentdofs,constrainedlinks,dofvalues,freedelta,toljacobian,slidedofs,slidelinks,slidedelta)
         if dependentdelta is None:
-            print "t=",t
+            print("t=",t)
             return None
         dependentvalues += dependentdelta*dt
         dependentv.append(array(dependentvalues))
@@ -197,7 +196,7 @@ def OptimizeDirection(vdir,lp):
         else:
             return False, 0
     except Exception as inst:
-        print inst
+        print(inst)
         return False,0
     
 
@@ -242,7 +241,7 @@ class Vertex:
         return linalg.norm([self.x-self.next.x,self.y-self.next.y])        
     def expand(self,lp):
         v1 = self
-        v2 = self.next
+        v2 = self.__next__
         v = array([v2.y-v1.y,v1.x-v2.x]) #orthogonal direction to edge
         v = 1/linalg.norm(v) * v
         res, z = OptimizeDirection(v,lp)
@@ -255,7 +254,7 @@ class Vertex:
             return False, None
         else:
             vnew = Vertex([xopt,yopt])
-            vnew.next = self.next
+            vnew.next = self.__next__
             self.next = vnew
             self.expanded = False
             return True, vnew
@@ -264,7 +263,7 @@ class Vertex:
         plot([self.x,self.next.x],[self.y,self.next.y])
     
     def Print(self):
-        print self.x,self.y,"to",self.next.x, self.next.y
+        print(self.x,self.y,"to",self.next.x, self.next.y)
 
 class Polygon:
     def __init__(self):
@@ -309,7 +308,7 @@ class Polygon:
                     self.vertices.append(vnew)
                     niter += 1
             else:
-                v = v.next
+                v = v.__next__
     
     # Assumes every vertices are on the positive halfplane
     # Export the vertices starting from the left-most and going clockwise
@@ -328,7 +327,7 @@ class Polygon:
         while not vcur.checked:
             vcur.checked = True
             newvertices.append(vcur)
-            vcur = vcur.next
+            vcur = vcur.__next__
         newvertices.reverse()
         vfirst = newvertices.pop(-1)
         newvertices.insert(0,vfirst)
@@ -353,7 +352,7 @@ class Polygon:
             v.Plot()
 
     def Print(self):
-        print "Polygon contains vertices"
+        print("Polygon contains vertices")
         for v in self.vertices:
             # print"  "
             v.Print()

@@ -1,7 +1,7 @@
 from numpy import *
 import bisect
 import pylab, scipy
-import StringIO
+import io
 from scipy import misc
 
 from pylab import arange, array, double, plot, zeros
@@ -39,7 +39,7 @@ class Polynomial(object):
         return polyder(self.q,n)(s)
 
     def __str__(self):
-        return ' '.join(map(str, self.coeff_list))
+        return " ".join(map(str, self.coeff_list))
 
 
 class Chunk():
@@ -97,9 +97,9 @@ class PiecewisePolynomialTrajectory():
 
     @staticmethod
     def FromString(trajectorystring):
-        buff = StringIO.StringIO(trajectorystring)
+        buff = io.StringIO(trajectorystring)
         chunkslist = []
-        while buff.pos < buff.len:
+        while buff.tell() < len(trajectorystring):
             duration = double(buff.readline())
             dimension = int(buff.readline())
             poly_vector = []
@@ -173,17 +173,17 @@ def InsertIntoTrajectory(traj,traj2,s0,s1,order=3):
     chunk1 = CropChunk(c1, r1, c1.duration) 
     tolerance = 0.05
     if linalg.linalg.norm(traj2.Eval(0)-c0.Eval(r0))>=tolerance :
-        print "Position mismatch at s0 : ", linalg.linalg.norm(traj2.Eval(0)-c0.Eval(r0))
+        print("Position mismatch at s0 : ", linalg.linalg.norm(traj2.Eval(0)-c0.Eval(r0)))
         return None
     if linalg.linalg.norm(traj2.Eval(traj2.duration)-c1.Eval(r1))>=tolerance:
-        print "Position mismatch at s1 : ", linalg.linalg.norm(traj2.Eval(traj2.duration)-c1.Eval(r1))
+        print("Position mismatch at s1 : ", linalg.linalg.norm(traj2.Eval(traj2.duration)-c1.Eval(r1)))
         return None
     if order > 1:
         if linalg.linalg.norm(traj2.Evald(0)-c0.Evald(r0)) >= tolerance:
-            print "Velocity mismatch at s0 : ", linalg.linalg.norm(traj2.Evald(0)-c0.Evald(r0))
+            print("Velocity mismatch at s0 : ", linalg.linalg.norm(traj2.Evald(0)-c0.Evald(r0)))
             return None
         if linalg.linalg.norm(traj2.Evald(traj2.duration)-c1.Evald(r1)) >= tolerance:
-            print "Velocity mismatch at s1: ", linalg.linalg.norm(traj2.Evald(traj2.duration)-c1.Evald(r1))
+            print("Velocity mismatch at s1: ", linalg.linalg.norm(traj2.Evald(traj2.duration)-c1.Evald(r1)))
             return None
     newchunkslist = list(traj.chunkslist)
     for i in range(i1-i0+1):

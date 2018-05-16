@@ -36,9 +36,9 @@ vmax = ones(3)
 accelmax = ones(3)
 discrtimestep= 1e-3
 constraintsstr = str(discrtimestep)
-constraintsstr += "\n" + ' '.join([str(a) for a in accelmax]) 
+constraintsstr += "\n" + " ".join([str(a) for a in accelmax]) 
 for v in inertia:
-    constraintsstr += "\n" + ' '.join([str(i) for i in v])
+    constraintsstr += "\n" + " ".join([str(i) for i in v])
 #When Inertia is an Identity matrix, angular accelerations are the same as torques
 t0 = time.time()
 abc = TOPPbindings.RunComputeSO3Constraints(trajstr,constraintsstr)
@@ -53,9 +53,9 @@ ret = x.RunComputeProfiles(0,0)
     
 x.ReparameterizeTrajectory()
 t2 = time.time()
-print "Compute a,b,c:", t1-t0
-print "Run TOPP:", t2-t1
-print "Total:", t2-t0
+print("Compute a,b,c:", t1-t0)
+print("Run TOPP:", t2-t1)
+print("Total:", t2-t0)
 
 # Display results
 ion()
@@ -72,4 +72,4 @@ dtplot = 0.01
 TOPPpy.PlotKinematics(traj,traj1,dtplot,vmax,accelmax)
 
 
-raw_input()
+input()
