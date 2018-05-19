@@ -15,7 +15,7 @@ def Extractabc(abc):
     lista = [float(x) for x in abc[0].split()]
     listb = [float(x) for x in abc[1].split()]
     listc = [float(x) for x in abc[2].split()]
-    n= len(lista)/6
+    n= len(lista)//6
     a = zeros((n,6))
     b = zeros((n,6))
     c = zeros((n,6))
