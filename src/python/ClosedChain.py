@@ -247,7 +247,7 @@ class Vertex:
         return linalg.norm([self.x-self.next.x,self.y-self.next.y])        
     def expand(self,lp):
         v1 = self
-        v2 = self.__next__
+        v2 = self.next
         v = array([v2.y-v1.y,v1.x-v2.x]) #orthogonal direction to edge
         v = 1/linalg.norm(v) * v
         res, z = OptimizeDirection(v,lp)
@@ -260,7 +260,7 @@ class Vertex:
             return False, None
         else:
             vnew = Vertex([xopt,yopt])
-            vnew.next = self.__next__
+            vnew.next = self.next
             self.next = vnew
             self.expanded = False
             return True, vnew
@@ -314,7 +314,7 @@ class Polygon:
                     self.vertices.append(vnew)
                     niter += 1
             else:
-                v = v.__next__
+                v = v.next
     
     # Assumes every vertices are on the positive halfplane
     # Export the vertices starting from the left-most and going clockwise
@@ -333,7 +333,7 @@ class Polygon:
         while not vcur.checked:
             vcur.checked = True
             newvertices.append(vcur)
-            vcur = vcur.__next__
+            vcur = vcur.next
         newvertices.reverse()
         vfirst = newvertices.pop(-1)
         newvertices.insert(0,vfirst)
