@@ -15,12 +15,17 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import string
 from pylab import *
 from numpy import *
 from TOPP import TOPPbindings
 from TOPP import TOPPpy
 from TOPP import Trajectory
+
+try:
+    input = raw_input
+except NameError:
+    pass
+
 
 # Trajectory
 ndof = 5
@@ -49,12 +54,12 @@ discrtimestep = 0.01
 uselegacy = True
 if uselegacy: #Using the legacy KinematicLimits (a bit faster but not fully supported)
     constraintstring = str(discrtimestep)
-    constraintstring += "\n" + string.join([str(v) for v in vmax])
-    constraintstring += "\n" + string.join([str(a) for a in amax])
+    constraintstring += "\n" + " ".join([str(v) for v in vmax])
+    constraintstring += "\n" + " ".join([str(a) for a in amax])
     x = TOPPbindings.TOPPInstance(None,"KinematicLimits",constraintstring,trajectorystring);
 else: #Using the general QuadraticConstraints (fully supported)
     constraintstring = str(discrtimestep)
-    constraintstring += "\n" + string.join([str(v) for v in vmax])
+    constraintstring += "\n" + " ".join([str(v) for v in vmax])
     constraintstring += TOPPpy.ComputeKinematicConstraints(traj0, amax, discrtimestep) 
     x = TOPPbindings.TOPPInstance(None,"QuadraticConstraints",constraintstring,trajectorystring);
 
@@ -62,8 +67,8 @@ else: #Using the general QuadraticConstraints (fully supported)
 ret = x.RunAVP(0.1, 0.2)
 
 
-print "End min velocity:", x.sdendmin
-print "End max velocity:", x.sdendmax
+print("End min velocity:", x.sdendmin)
+print("End max velocity:", x.sdendmax)
 
 # Display results
 ion()
@@ -73,4 +78,4 @@ profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
 switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
 TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
 
-raw_input()
+input()

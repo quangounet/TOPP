@@ -16,8 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from TOPPopenravepy import RAVEBindings
-from Utilities import vect2str
+from .TOPPopenravepy import RAVEBindings
+from .Utilities import vect2str
 
 
 class TorqueLimits(RAVEBindings):

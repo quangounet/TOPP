@@ -16,13 +16,18 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import string,time
+import time
 from pylab import *
 from numpy import *
 from TOPP import TOPPbindings
 from TOPP import TOPPpy
 from TOPP import Trajectory
 from TOPP import Utilities
+
+try:
+    input = raw_input
+except NameError:
+    pass
 
 ion()
 
@@ -39,7 +44,7 @@ nfail = 0
 nsingulartreateds = 0
 ntangenttreateds = 0
 for j in range(ntraj):
-    print j
+    print(j)
     p0a = Utilities.vect2str_mintos(rand(ndof)*2*pi-pi)
     p0b = Utilities.vect2str_mintos(rand(ndof)*2*pi-pi)
     p1a = Utilities.vect2str_mintos(rand(ndof)*2*pi-pi)
@@ -59,7 +64,7 @@ for j in range(ntraj):
     trajectorystring = TOPPpy.BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v)
     traj0 = Trajectory.PiecewisePolynomialTrajectory.FromString(trajectorystring)
     constraintstring = str(discrtimestep)
-    constraintstring += "\n" + string.join([str(v) for v in vmax])
+    constraintstring += "\n" + " ".join([str(v) for v in vmax])
     constraintstring += TOPPpy.ComputeKinematicConstraints(traj0, amax, discrtimestep) 
     x = TOPPbindings.TOPPInstance(None,"QuadraticConstraints",constraintstring,trajectorystring);
     x.extrareps = 5
@@ -69,7 +74,7 @@ for j in range(ntraj):
     profileslist = TOPPpy.ProfilesFromString(x.resprofilesliststring)
     switchpointslist = TOPPpy.SwitchPointsFromString(x.switchpointsliststring)
     #TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
-    #raw_input()
+    #input()
     if(ret == 1):
         x.ReparameterizeTrajectory()
         x.WriteResultTrajectory()
@@ -77,14 +82,14 @@ for j in range(ntraj):
         avect = array([traj1.Evaldd(t) for t in arange(0,traj1.duration,0.01)])
         nsingulartreateds += x.nsingulartreated
         ntangenttreateds += x.ntangenttreated
-        print x.ntangenttreated, x.nsingulartreated, ntangenttreateds, nsingulartreateds
+        print(x.ntangenttreated, x.nsingulartreated, ntangenttreateds, nsingulartreateds)
     else:
         nfail += 1
-        print ">>>>>>>>>>>>>>>>>>> TOPP could not retime ", nfail
+        print(">>>>>>>>>>>>>>>>>>> TOPP could not retime ", nfail)
         #TOPPpy.PlotKinematics(traj0,traj1,0.01,vmax,amax)
-        #raw_input()
+        #input()
 
 
-print "\nNumber of failures:", nfail
-print "Number of singularities:", nsingulartreateds      
+print("\nNumber of failures:", nfail)
+print("Number of singularities:", nsingulartreateds)      
         

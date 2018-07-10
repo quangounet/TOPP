@@ -1,6 +1,6 @@
 from numpy import *
 from scipy import interpolate
-import Trajectory
+from . import Trajectory
 
 def InterpolateViapoints(path):
     nviapoints = len(path[0,:])
@@ -68,7 +68,7 @@ def Interpolate5thDegree(q0, q1, qd0, qd1, qdd0, qdd1, T):
 
 
 def vect2str(v):
-    return ' '.join(map(str, v))
+    return " ".join(map(str, v))
 
 
 def vect2str_mintos(v):

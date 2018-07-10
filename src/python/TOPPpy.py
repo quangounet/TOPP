@@ -16,10 +16,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from Utilities import vect2str, BezierToTrajectoryString
-import string
+from .Utilities import vect2str, BezierToTrajectoryString
 from pylab import double, array, random
-from TOPPbindings import TOPPInstance
+from .TOPPbindings import TOPPInstance
 
 ################# Reading from string #####################
 
@@ -39,7 +38,7 @@ def ProfilesFromString(s):
     s = s.strip(" \n")
     profileslist = []
     lines = [l.strip(" \n") for l in s.split('\n')]
-    n = len(lines) / 3
+    n = len(lines) // 3
     for i in range(n):
         l = ProfileFromLines(lines[3 * i:3 * i + 3])
         if l is None:
@@ -54,7 +53,7 @@ def ExtraFromString(s):
     lines.pop(0)
     tvect = []
     torques = []
-    for i in range(len(lines) / 2):
+    for i in range(len(lines) // 2):
         tvect.append(double(lines[2 * i]))
         torques.append(array([double(x) for x in lines[2 * i + 1].split(' ')]))
     return array(tvect), array(torques)
@@ -146,8 +145,8 @@ def PlotProfiles(profileslist0, switchpointslist=[], figstart=None, colorscheme 
         M = 2 * max([max(p[3]) for p in profileslist])
     else:
         M = 20
-        bobrow = filter((lambda x: x < M), mvcbobrow[3])
-        direct = filter((lambda x: x < M), mvcdirect[3])
+        bobrow = list(filter((lambda x: x < M), mvcbobrow[3]))
+        direct = list(filter((lambda x: x < M), mvcdirect[3]))
         if len(bobrow) > 0:
             M = max(M, max(bobrow))
         if len(direct) > 0:

@@ -15,9 +15,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-print "\n************************************\nNB: This test file requires OpenRAVE\n************************************\n"
+print("\n************************************\nNB: This test file requires OpenRAVE\n************************************\n")
 
-import string,time,pickle
+import time
 from pylab import *
 from numpy import *
 from openravepy import *
@@ -26,6 +26,11 @@ from TOPP import TOPPpy
 from TOPP import TOPPopenravepy
 from TOPP import Trajectory
 from TOPP import Utilities
+
+try:
+    input = raw_input
+except NameError:
+    pass
 
 ion()
 
@@ -61,7 +66,7 @@ nfail = 0
 nsingulartreateds = 0
 ntangenttreateds = 0
 for j in range(ntraj):
-    print j
+    print(j)
     p0a = Utilities.vect2str_mintos(rand(ndof)*2*pi-pi)
     p0b = Utilities.vect2str_mintos(rand(ndof)*2*pi-pi)
     p1a = Utilities.vect2str_mintos(rand(ndof)*2*pi-pi)
@@ -81,7 +86,7 @@ for j in range(ntraj):
     trajectorystring = TOPPpy.BezierToTrajectoryString(Tv,p0v,p1v,p2v,p3v)
     traj0 = Trajectory.PiecewisePolynomialTrajectory.FromString(trajectorystring)
     constraintstring = str(discrtimestep)
-    constraintstring += "\n" + string.join([str(v) for v in vmax])
+    constraintstring += "\n" + " ".join([str(v) for v in vmax])
     constraintstring += TOPPopenravepy.ComputeTorquesConstraints(robot,traj0,taumin,taumax,discrtimestep)
     x = TOPPbindings.TOPPInstance(None,"QuadraticConstraints",constraintstring,trajectorystring)
     x.extrareps = 5
@@ -99,14 +104,14 @@ for j in range(ntraj):
         #tvect1, tauvect1 = TOPPopenravepy.ComputeTorques(traj1, robot, 0.01)
         nsingulartreateds += x.nsingulartreated
         ntangenttreateds += x.ntangenttreated
-        print x.ntangenttreated, x.nsingulartreated, ntangenttreateds, nsingulartreateds
+        print(x.ntangenttreated, x.nsingulartreated, ntangenttreateds, nsingulartreateds)
     else:
         nfail += 1
-        print ">>>>>>>>>>>>>>>>>>> TOPP could not retime ", nfail
+        print(">>>>>>>>>>>>>>>>>>> TOPP could not retime ", nfail)
         #TOPPpy.PlotProfiles(profileslist,switchpointslist,4)
         #TOPPopenravepy.PlotTorques(robot,traj0,traj1,0.01,taumin,taumax,3)
         #raw_input()
 
       
-print "\nNumber of failures:", nfail
-print "Number of singularities:", nsingulartreateds      
+print("\nNumber of failures:", nfail)
+print("Number of singularities:", nsingulartreateds)      

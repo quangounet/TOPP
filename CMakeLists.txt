@@ -97,23 +97,6 @@ if( OpenRAVE_FOUND )
   set(EXTRA_COMPILE_FLAGS "${EXTRA_COMPILE_FLAGS} -DWITH_OPENRAVE")
 endif()
 
-#find_package(Boost ${OpenRAVE_Boost_VERSION} EXACT COMPONENTS iostreams python thread filesystem system thread date_time)# regex)
-find_package(Boost COMPONENTS iostreams python thread filesystem system thread date_time)
-if( Boost_FOUND )
-  include_directories(${Boost_INCLUDE_DIRS})
-  set(TOPP_LINK_DIRS ${TOPP_LINK_DIRS} ${Boost_LIBRARY_DIRS})
-elseif(Boost_VERSION AND NOT "${Boost_VERSION}" STREQUAL "0")
-  include_directories(${Boost_INCLUDE_DIRS})
-  set(TOPP_LINK_DIRS ${TOPP_LINK_DIRS} ${Boost_LIBRARY_DIRS})
-  message(FATAL_ERROR "Could not find boost libraries!")
-endif()
-
-message(STATUS "found boost version: ${Boost_VERSION} at ${Boost_INCLUDE_DIRS}")
-if( NOT Boost_THREAD_LIBRARY OR NOT Boost_DATE_TIME_LIBRARY )
-  message(FATAL_ERROR "boost thread and date_time libraries are necessary")
-endif()
-
-
 include(FindPythonInterp)
 ## check python
 find_package(PythonLibs) # using PYTHON_INCLUDE_PATH instead of PYTHON_INCLUDE_DIRS?
@@ -130,11 +113,11 @@ endif()
 if( PYTHON_EXECUTABLE )
   get_filename_component(PYTHON_EXECUTABLE_NAME ${PYTHON_EXECUTABLE} NAME)
   execute_process(
-    COMMAND ${PYTHON_EXECUTABLE} -c "import numpy; print numpy.get_include()"
+    COMMAND ${PYTHON_EXECUTABLE} -c "import numpy; print(numpy.get_include())"
     OUTPUT_VARIABLE _python_numpy_include OUTPUT_STRIP_TRAILING_WHITESPACE
     RESULT_VARIABLE _python_failed0)
   execute_process(
-    COMMAND ${PYTHON_EXECUTABLE} -c "from distutils.sysconfig import get_python_lib; from os.path import relpath; print relpath(get_python_lib(1,prefix='${CMAKE_INSTALL_PREFIX}'),'${CMAKE_INSTALL_PREFIX}')"
+    COMMAND ${PYTHON_EXECUTABLE} -c "from distutils.sysconfig import get_python_lib; from os.path import relpath; print(relpath(get_python_lib(1,prefix='${CMAKE_INSTALL_PREFIX}'),'${CMAKE_INSTALL_PREFIX}'))"
     OUTPUT_VARIABLE TOPP_PYTHON_INSTALL_DIR OUTPUT_STRIP_TRAILING_WHITESPACE
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     RESULT_VARIABLE _python_failed2)
@@ -160,6 +143,28 @@ if( PYTHON_EXECUTABLE )
     message(STATUS "failed to get python site-package directories via get_python_lib")
     set(PYTHON_EXECUTABLE)
   endif()
+endif()
+
+#find_package(Boost ${OpenRAVE_Boost_VERSION} EXACT COMPONENTS iostreams python thread filesystem system thread date_time)# regex)
+find_package(Boost COMPONENTS iostreams python-py${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR} thread filesystem system thread date_time)
+
+if(Boost_PYTHON-PY${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR}_FOUND)
+  set(Boost_PYTHON_FOUND ${Boost_PYTHON-PY${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR}_FOUND})
+  set(Boost_PYTHON_LIBRARY ${Boost_PYTHON-PY${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR}_LIBRARY})
+endif()
+
+if( Boost_FOUND )
+  include_directories(${Boost_INCLUDE_DIRS})
+  set(TOPP_LINK_DIRS ${TOPP_LINK_DIRS} ${Boost_LIBRARY_DIRS})
+elseif(Boost_VERSION AND NOT "${Boost_VERSION}" STREQUAL "0")
+  include_directories(${Boost_INCLUDE_DIRS})
+  set(TOPP_LINK_DIRS ${TOPP_LINK_DIRS} ${Boost_LIBRARY_DIRS})
+  message(FATAL_ERROR "Could not find boost libraries!")
+endif()
+
+message(STATUS "found boost version: ${Boost_VERSION} at ${Boost_INCLUDE_DIRS}")
+if( NOT Boost_THREAD_LIBRARY OR NOT Boost_DATE_TIME_LIBRARY )
+  message(FATAL_ERROR "boost thread and date_time libraries are necessary")
 endif()
 
 set(TOPPPY_INSTALL_DIR "${TOPP_PYTHON_INSTALL_DIR}/TOPP" CACHE PATH "TOPP Python bindings installation directory")

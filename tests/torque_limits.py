@@ -15,9 +15,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-print "\n************************************\nNB: This test file requires OpenRAVE\n************************************\n"
+print("\n************************************\nNB: This test file requires OpenRAVE\n************************************\n")
 
-import string,time
+import time
 from pylab import *
 from numpy import *
 from openravepy import *
@@ -26,6 +26,12 @@ from TOPP import TOPPpy
 from TOPP import TOPPopenravepy
 from TOPP import Trajectory
 from TOPP import Utilities
+
+try:
+    input = raw_input
+except NameError:
+    pass
+
 
 # Robot (OpenRAVE)
 env = Environment()
@@ -71,13 +77,13 @@ uselegacy = False
 t0 = time.time()
 if uselegacy: #Using the legacy TorqueLimits (faster but not fully supported)
     constraintstring = str(discrtimestep)
-    constraintstring += "\n" + string.join([str(v) for v in vmax])
-    constraintstring += "\n" + string.join([str(t) for t in taumin]) 
-    constraintstring += "\n" + string.join([str(t) for t in taumax]) 
+    constraintstring += "\n" + " ".join([str(v) for v in vmax])
+    constraintstring += "\n" + " ".join([str(t) for t in taumin]) 
+    constraintstring += "\n" + " ".join([str(t) for t in taumax]) 
     x = TOPPbindings.TOPPInstance(robot,"TorqueLimitsRave", constraintstring, trajectorystring)
 else: #Using the general QuadraticConstraints (fully supported)
     constraintstring = str(discrtimestep)
-    constraintstring += "\n" + string.join([str(v) for v in vmax])
+    constraintstring += "\n" + " ".join([str(v) for v in vmax])
     constraintstring += TOPPopenravepy.ComputeTorquesConstraints(robot,traj0,taumin,taumax,discrtimestep)
     x = TOPPbindings.TOPPInstance(None,"QuadraticConstraints",constraintstring,trajectorystring);
 
@@ -88,11 +94,11 @@ if(ret == 1):
     x.ReparameterizeTrajectory()
 t2 = time.time()
 
-print "Using legacy:", uselegacy
-print "Discretization step:", discrtimestep
-print "Setup TOPP:", t1-t0
-print "Run TOPP:", t2-t1
-print "Total:", t2-t0
+print("Using legacy:", uselegacy)
+print("Discretization step:", discrtimestep)
+print("Setup TOPP:", t1-t0)
+print("Run TOPP:", t2-t1)
+print("Total:", t2-t0)
 
 # Display results
 ion()
@@ -114,4 +120,4 @@ if(ret == 1):
     TOPPopenravepy.PlotTorques(robot,traj0,traj1,dtplot,taumin,taumax,3)
 
 
-raw_input()
+input()
