@@ -1,7 +1,7 @@
 TOPP
 ====
 
-<span style="color:red">Starting June 2018, TOPP will no longer be actively maintained. Please use [TOPP-RA](https://github.com/hungpham2511/toppra), which provides all functionalities supported by TOPP while being faster and more robust (100% success rate guaranteed).</span>
+**NOTE:** Starting June 2018, TOPP will no longer be actively maintained. Please use [TOPP-RA](https://github.com/hungpham2511/toppra), which provides all functionalities supported by TOPP while being faster and more robust (100% success rate guaranteed).
 
 This is TOPP, the Time-Optimal Path Parameterization library by Quang-Cuong Pham (cuong.pham@normalesup.org).
 
